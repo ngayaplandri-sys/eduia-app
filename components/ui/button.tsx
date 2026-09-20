@@ -13,7 +13,13 @@ export const buttonVariants = cva(
           "bg-success-600 text-white hover:bg-success-700 shadow-btn-success",
         warning:
           "bg-warning-600 text-white hover:bg-warning-700 shadow-btn-warning",
-        lavender:
+        /* Accent or — réservé aux moments précieux (CTA héros marketing, offre
+           Premium recommandée) : jamais la couleur de remplissage par défaut,
+           ce rôle reste à `primary`. Texte foncé (pas blanc) : l'or clair
+           contraste mal avec du blanc, bien avec `ink-900`. */
+        accent:
+          "bg-accent-400 text-ink-900 hover:bg-accent-500 active:bg-accent-600 shadow-btn-accent",
+        tint:
           "bg-primary-100 text-primary-700 hover:bg-primary-200 active:bg-primary-200",
         outline:
           "border border-line bg-surface text-ink-700 hover:bg-canvas hover:text-ink-900",
@@ -34,7 +40,7 @@ export const buttonVariants = cva(
       },
       { variant: "ghost", class: "shadow-none" },
       { variant: "outline", class: "shadow-none" },
-      { variant: "lavender", class: "shadow-none" },
+      { variant: "tint", class: "shadow-none" },
     ],
     defaultVariants: { variant: "primary", size: "md", block: false },
   },

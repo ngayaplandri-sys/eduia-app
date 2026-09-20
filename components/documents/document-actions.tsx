@@ -72,7 +72,7 @@ export function DocumentActions({
     <div className="flex items-center gap-1">
       <Link
         href="/resumer"
-        className={buttonVariants({ variant: "lavender", size: "sm" })}
+        className={buttonVariants({ variant: "tint", size: "sm" })}
       >
         <Sparkles className="size-4" aria-hidden />
         {t.summarize}
