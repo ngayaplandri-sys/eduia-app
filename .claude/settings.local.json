@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(npm run typecheck 2>&1)",
+      "PowerShell(npm run db:generate 2>&1)",
+      "PowerShell(npm run db:migrate 2>&1)",
+      "PowerShell(npm run lint 2>&1)",
+      "PowerShell(npm run dev)",
+      "PowerShell(taskkill /PID 1156 /F 2>&1)",
+      "PowerShell(Get-Process -Name node -ErrorAction SilentlyContinue)",
+      "PowerShell(Stop-Process -Force)",
+      "PowerShell(npm run build 2>&1)",
+      "PowerShell(node -e \"try{require.resolve\\('playwright-core'\\);console.log\\('playwright-core: present'\\)}catch\\(e\\){console.log\\('playwright-core: absent'\\)}\")",
+      "PowerShell(npm install --no-save playwright-core 2>&1)",
+      "PowerShell(npx tsx scripts/_i18n-deep-scan.ts 2>&1)",
+      "PowerShell(npx tsx scripts/_theme-shots.ts 2>&1)"
+    ]
+  }
+}

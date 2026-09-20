@@ -1,0 +1,11 @@
+export type * from "./user";
+export type * from "./activity";
+export type * from "./summary";
+export type * from "./exam";
+export type * from "./correction";
+export type * from "./document";
+export type * from "./onboarding";
+export type * from "./admin";
+export type * from "./search";
+export type * from "./credits";
+export type * from "./assistant";

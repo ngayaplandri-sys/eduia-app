@@ -1,0 +1,57 @@
+"use server";
+
+import { redirect } from "next/navigation";
+import { z } from "zod";
+import { db, schema } from "@/lib/db";
+import { requireUser } from "@/lib/data/user";
+import { getDictionary } from "@/lib/i18n/server";
+import { SCHOOL_LEVELS } from "@/lib/config/levels";
+import { SUBJECTS } from "@/lib/config/tool-options";
+import { ONBOARDING_GOAL_IDS, LEARNING_STYLE_IDS } from "@/lib/config/onboarding";
+import type { OnboardingAnswers } from "@/types";
+
+const onboardingSchema = z.object({
+  firstName: z.string().trim().min(1).max(60),
+  schoolLevel: z.enum(SCHOOL_LEVELS),
+  subjects: z.array(z.enum(SUBJECTS)).min(1),
+  goal: z.enum(ONBOARDING_GOAL_IDS),
+  improveSubjects: z.array(z.enum(SUBJECTS)).min(1),
+  learningStyle: z.enum(LEARNING_STYLE_IDS),
+});
+
+export interface OnboardingActionResult {
+  error?: string;
+}
+
+/**
+ * Enregistre les réponses de l'onboarding pour l'utilisateur connecté (une
+ * ligne par compte, `userId` unique → un nouveau passage remplace l'ancien) puis
+ * redirige vers `/dashboard`. La redirection est levée hors du `try/catch` :
+ * `redirect()` fonctionne en lançant une exception interne que Next.js
+ * intercepte — un `catch` englobant l'avalerait par erreur.
+ */
+export async function saveOnboarding(
+  input: OnboardingAnswers,
+): Promise<OnboardingActionResult> {
+  const [user, dict] = await Promise.all([requireUser(), getDictionary()]);
+
+  const parsed = onboardingSchema.safeParse(input);
+  if (!parsed.success) {
+    return { error: dict.onboarding.invalidAnswers };
+  }
+
+  try {
+    await db
+      .insert(schema.onboarding)
+      .values({ userId: user.id, ...parsed.data })
+      .onConflictDoUpdate({
+        target: schema.onboarding.userId,
+        set: { ...parsed.data },
+      });
+  } catch (error) {
+    console.error("Échec de l'enregistrement de l'onboarding :", error);
+    return { error: dict.onboarding.saveFailed };
+  }
+
+  redirect("/dashboard");
+}
