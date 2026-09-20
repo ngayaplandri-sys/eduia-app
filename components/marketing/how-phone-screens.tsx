@@ -60,7 +60,7 @@ function SummarizeImportScreen({ t }: { t: MockupDict }) {
     <div>
       <ScreenHeader label={t.resumeImporting} />
       <div className="mt-3 flex items-center gap-2 rounded-lg border border-[#e6e8ee] bg-white px-2.5 py-2 shadow-[0_1px_2px_rgb(16_24_40_/_0.04)]">
-        <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-[#f6f4fb] text-[#693fa8]">
+        <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-[#eef3fa] text-[#1c4373]">
           <FileText className="size-3.5" strokeWidth={2} aria-hidden />
         </span>
         <span className="min-w-0 flex-1 truncate text-[0.65rem] font-semibold text-[#1b1f2a]">
@@ -95,14 +95,14 @@ function SummarizeResultScreen({ t }: { t: MockupDict }) {
         {points.map((point) => (
           <li
             key={point}
-            className="flex items-start gap-1.5 rounded-lg bg-[#f6f4fb] px-2 py-1.5 text-[0.62rem] leading-snug text-[#3a4051]"
+            className="flex items-start gap-1.5 rounded-lg bg-[#eef3fa] px-2 py-1.5 text-[0.62rem] leading-snug text-[#3a4051]"
           >
-            <span className="mt-[0.2rem] size-1 shrink-0 rounded-full bg-[#693fa8]" aria-hidden />
+            <span className="mt-[0.2rem] size-1 shrink-0 rounded-full bg-[#1c4373]" aria-hidden />
             {point}
           </li>
         ))}
       </ul>
-      <div className="mt-2.5 rounded-lg bg-[#693fa8] py-2 text-center text-[0.62rem] font-semibold text-white">
+      <div className="mt-2.5 rounded-lg bg-[#1c4373] py-2 text-center text-[0.62rem] font-semibold text-white">
         {t.resumeCta}
       </div>
     </div>
@@ -173,7 +173,7 @@ function GenerateExamScreen({ t }: { t: MockupDict }) {
           </div>
         ))}
       </div>
-      <div className="mt-2.5 rounded-lg bg-[#693fa8] py-2 text-center text-[0.62rem] font-semibold text-white">
+      <div className="mt-2.5 rounded-lg bg-[#1c4373] py-2 text-center text-[0.62rem] font-semibold text-white">
         {t.generateExamCta}
       </div>
     </div>
@@ -202,7 +202,7 @@ function CorrectionResultScreen({ t }: { t: MockupDict }) {
           </div>
         ))}
       </dl>
-      <div className="mt-2.5 rounded-lg bg-[#693fa8] py-2 text-center text-[0.62rem] font-semibold text-white">
+      <div className="mt-2.5 rounded-lg bg-[#1c4373] py-2 text-center text-[0.62rem] font-semibold text-white">
         {t.viewDetailedCorrection}
       </div>
     </div>

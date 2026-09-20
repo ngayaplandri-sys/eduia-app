@@ -30,11 +30,11 @@ function PriceCard({
       variant={featured ? "elevated" : "content"}
       className={cn(
         "hover-lift relative flex h-full flex-col p-6 sm:p-7",
-        featured && "ring-1 ring-primary-200",
+        featured && "ring-1 ring-accent-200",
       )}
     >
       {featured ? (
-        <span className="absolute -top-3 left-6 rounded-full bg-primary-600 px-3 py-1 text-[0.7rem] font-bold uppercase tracking-wide text-white">
+        <span className="absolute -top-3 left-6 rounded-full bg-accent-400 px-3 py-1 text-[0.7rem] font-bold uppercase tracking-wide text-ink-900">
           {recommendedLabel}
         </span>
       ) : null}
@@ -55,7 +55,7 @@ function PriceCard({
             <Check
               className={cn(
                 "mt-0.5 size-4 shrink-0",
-                featured ? "text-primary-600" : "text-success-600",
+                featured ? "text-accent-600" : "text-success-600",
               )}
               aria-hidden
             />
@@ -68,7 +68,7 @@ function PriceCard({
         href="/signup"
         className={cn(
           buttonVariants({
-            variant: featured ? "primary" : "outline",
+            variant: featured ? "accent" : "outline",
             size: "md",
             block: true,
           }),
