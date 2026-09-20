@@ -36,11 +36,11 @@ export function PlanCard({
       className={cn(
         cardVariants({ variant: highlighted ? "elevated" : "content" }),
         "hover-lift relative flex flex-col p-6 sm:p-7",
-        highlighted && "bg-accent-50/40 ring-2 ring-accent-200",
+        highlighted && "bg-primary-50/40 ring-2 ring-primary-200",
       )}
     >
       {badge ? (
-        <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-accent-400 px-3.5 py-1 text-badge font-bold uppercase tracking-wide text-ink-900 shadow-btn-accent">
+        <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-primary-600 px-3.5 py-1 text-badge font-bold uppercase tracking-wide text-white shadow-btn-primary">
           {badge}
         </span>
       ) : null}
@@ -48,7 +48,7 @@ export function PlanCard({
       <span
         className={cn(
           "mb-4 flex size-11 items-center justify-center rounded-xl",
-          highlighted ? "bg-accent-100 text-accent-700" : "bg-canvas text-ink-500",
+          highlighted ? "bg-primary-100 text-primary-600" : "bg-canvas text-ink-500",
         )}
       >
         <Icon className="size-5" strokeWidth={2} aria-hidden />

@@ -42,34 +42,19 @@
     dashboard/Premium, score final), toujours en `font-display` */
   --text-display-xl--line-height: 1.03;
 
-  /* ---- Marque : bleu marine (profond, "encre" — jamais un bleu corporate
-     saturé) ---------------------------------------------------------------- */
-  --color-primary-50: #eef3fa;
-  --color-primary-100: #dbe6f4;
-  --color-primary-200: #b4cbe8;
-  --color-primary-300: #82a8d6;
-  --color-primary-400: #4f80bc;
-  --color-primary-500: #2c5f9e;
-  --color-primary-600: #1c4373;
-  --color-primary-700: #163459;
-  --color-primary-800: #112742;
+  /* ---- Marque : violet (désaturé/approfondi — plus "encre", moins "violet
+     électrique par défaut" ; valeurs volontairement décalées des swatches
+     Tailwind stock) ------------------------------------------------------ */
+  --color-primary-50: #f6f4fb;
+  --color-primary-100: #ebe4f7;
+  --color-primary-200: #d8cbef;
+  --color-primary-300: #bda2e2;
+  --color-primary-400: #9a76cf;
+  --color-primary-500: #7c4fbe;
+  --color-primary-600: #693fa8;
+  --color-primary-700: #553087;
+  --color-primary-800: #43266c;
   --color-primary: var(--color-primary-600);
-
-  /* ---- Accent : or chaleureux — réservé aux moments précieux (CTA héros,
-     offre recommandée, liseré de signature). N'est JAMAIS la couleur de
-     remplissage par défaut d'un bouton/lien/icône courant : ce rôle reste à
-     `primary`. Famille distincte de `warning` (fonctionnel, alertes) pour
-     éviter toute ambiguïté sémantique. --------------------------------- */
-  --color-accent-50: #fdf6e8;
-  --color-accent-100: #faebc7;
-  --color-accent-200: #f2d38c;
-  --color-accent-300: #e9bb5c;
-  --color-accent-400: #dea53a;
-  --color-accent-500: #cc8f24;
-  --color-accent-600: #b8791a;
-  --color-accent-700: #8f5c14;
-  --color-accent-800: #6b4610;
-  --color-accent: var(--color-accent-600);
 
   /* ---- Succès : vert (nuancé vers un vert plus émeraude/sourd) ---------------- */
   --color-success-50: #ecfdf3;
@@ -124,15 +109,14 @@
   --shadow-card: 0 1px 2px 0 rgb(16 24 40 / 0.04), 0 1px 3px 0 rgb(16 24 40 / 0.06);
   --shadow-card-hover: 0 10px 28px -10px rgb(16 24 40 / 0.16);
   --shadow-pop: 0 16px 40px -12px rgb(16 24 40 / 0.24);
-  --shadow-btn-primary: 0 10px 22px -10px rgb(28 67 115 / 0.5);
+  --shadow-btn-primary: 0 10px 22px -10px rgb(105 63 168 / 0.5);
   --shadow-btn-success: 0 10px 22px -10px rgb(21 143 82 / 0.45);
   --shadow-btn-warning: 0 10px 22px -10px rgb(221 95 16 / 0.45);
-  --shadow-btn-accent: 0 10px 22px -10px rgb(184 121 26 / 0.5);
   /* Profondeur "scène" — moments hero, cartes mises en avant (Premium, plan
-     recommandé) : plus marquée que `shadow-pop`, toujours teintée navy, jamais
+     recommandé) : plus marquée que `shadow-pop`, toujours teintée violet, jamais
      noire plate (même logique que les `shadow-btn-*`). */
-  --shadow-elevated: 0 24px 60px -18px rgb(28 67 115 / 0.28), 0 8px 24px -10px rgb(16 24 40 / 0.12);
-  --shadow-glow-lg: 0 0 0 1px rgb(28 67 115 / 0.08), 0 20px 56px -14px rgb(28 67 115 / 0.32);
+  --shadow-elevated: 0 24px 60px -18px rgb(105 63 168 / 0.28), 0 8px 24px -10px rgb(16 24 40 / 0.12);
+  --shadow-glow-lg: 0 0 0 1px rgb(105 63 168 / 0.08), 0 20px 56px -14px rgb(105 63 168 / 0.32);
 
   /* ---- Dimensions de la coquille --------------------------------------------- */
   --spacing-sidebar: 16.25rem; /* 260px */
@@ -172,28 +156,16 @@
   --color-line: #2b2f3a;
   --color-line-soft: #232732;
 
-  /* Marque : bleu marine (même logique d'inversion qu'en mode clair) */
-  --color-primary-50: #0f1a2b;
-  --color-primary-100: #142842;
-  --color-primary-200: #1d3c61;
-  --color-primary-300: #2c5586;
-  --color-primary-400: #4f80bc;
-  --color-primary-500: #6fa0d8;
-  --color-primary-600: #8fb8e6;
-  --color-primary-700: #bcd7f0;
-  --color-primary-800: #dceaf8;
-
-  /* Accent : or (même logique d'inversion, déjà lumineux — moins d'écart
-     nécessaire qu'avec le navy pour rester visible sur fond quasi noir) */
-  --color-accent-50: #241a08;
-  --color-accent-100: #33240c;
-  --color-accent-200: #4d3712;
-  --color-accent-300: #7a591c;
-  --color-accent-400: #c99730;
-  --color-accent-500: #d9a83a;
-  --color-accent-600: #e6bb52;
-  --color-accent-700: #f3d68f;
-  --color-accent-800: #f9e6bb;
+  /* Marque : violet (même décalage hors-swatch-stock qu'en mode clair) */
+  --color-primary-50: #191430;
+  --color-primary-100: #221b40;
+  --color-primary-200: #33285f;
+  --color-primary-300: #4a3a86;
+  --color-primary-400: #8a6ce0;
+  --color-primary-500: #b096df;
+  --color-primary-600: #7c4fbe;
+  --color-primary-700: #cdbfe8;
+  --color-primary-800: #e2d8f2;
 
   /* Succès : vert */
   --color-success-50: #0e2117;
@@ -230,12 +202,11 @@
   --shadow-card-hover: 0 10px 28px -10px rgb(0 0 0 / 0.62);
   --shadow-pop: 0 16px 40px -12px rgb(0 0 0 / 0.72);
   /* Lueur teintée conservée en sombre (au lieu de s'aplatir en noir pur) */
-  --shadow-btn-primary: 0 10px 24px -10px rgb(111 160 216 / 0.55);
+  --shadow-btn-primary: 0 10px 24px -10px rgb(124 79 190 / 0.55);
   --shadow-btn-success: 0 10px 24px -10px rgb(31 178 104 / 0.5);
   --shadow-btn-warning: 0 10px 24px -10px rgb(238 122 23 / 0.5);
-  --shadow-btn-accent: 0 10px 24px -10px rgb(217 168 58 / 0.5);
-  --shadow-elevated: 0 28px 70px -18px rgb(111 160 216 / 0.45), 0 10px 28px -10px rgb(0 0 0 / 0.55);
-  --shadow-glow-lg: 0 0 0 1px rgb(111 160 216 / 0.18), 0 22px 60px -14px rgb(111 160 216 / 0.5);
+  --shadow-elevated: 0 28px 70px -18px rgb(124 79 190 / 0.45), 0 10px 28px -10px rgb(0 0 0 / 0.55);
+  --shadow-glow-lg: 0 0 0 1px rgb(124 79 190 / 0.18), 0 22px 60px -14px rgb(124 79 190 / 0.5);
 }
 
 @keyframes pop-in {
@@ -339,44 +310,41 @@
   animation: hero-caret-blink 0.85s linear infinite;
 }
 
-/* Dégradé de la bannière hero — bande cinématographique navy profonde,
-   volontairement sombre même en thème clair (comme un hero photo/vidéo avec
-   overlay, indépendant du thème clair/sombre du reste du site) + grain léger
-   pour casser le plat/stérile d'un aplat vectoriel uniforme. Turbulence SVG
-   encodée en data-URI, aucune dépendance/asset supplémentaire. */
+/* Dégradé de la bannière hero — composition radiale mono-teinte violette
+   (jamais de bascule vers le bleu : c'est la signature "dégradé IA" que ce
+   design system évite délibérément) + grain léger pour casser le plat/stérile
+   d'un aplat vectoriel uniforme. Turbulence SVG encodée en data-URI, aucune
+   dépendance/asset supplémentaire. */
 @utility bg-hero-gradient {
   background-image:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
-    radial-gradient(120% 140% at 100% 0%, color-mix(in oklab, var(--color-primary-400) 38%, transparent) 0%, transparent 60%),
-    radial-gradient(110% 130% at 0% 100%, color-mix(in oklab, var(--color-primary-300) 42%, transparent) 0%, transparent 55%),
-    linear-gradient(180deg, #0e1a2c 0%, #081120 100%);
+    radial-gradient(120% 140% at 100% 0%, color-mix(in oklab, var(--color-primary-200) 60%, transparent) 0%, transparent 60%),
+    radial-gradient(110% 130% at 0% 100%, color-mix(in oklab, var(--color-primary-100) 75%, transparent) 0%, transparent 55%),
+    linear-gradient(180deg, #f8f6fc 0%, #f1ecf9 100%);
   background-blend-mode: overlay, normal, normal, normal;
   background-repeat: repeat, no-repeat, no-repeat, no-repeat;
 }
 
-/* Variante sombre du dégradé hero (le seul aplat non tokenisé de l'app) —
-   déjà sombre en clair, encore un peu plus profonde en thème sombre. */
+/* Variante sombre du dégradé hero (le seul aplat non tokenisé de l'app). */
 :root[data-theme="dark"] .bg-hero-gradient {
   background-image:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
-    radial-gradient(120% 140% at 100% 0%, color-mix(in oklab, var(--color-primary-300) 32%, transparent) 0%, transparent 60%),
-    radial-gradient(110% 130% at 0% 100%, color-mix(in oklab, var(--color-primary-200) 40%, transparent) 0%, transparent 55%),
-    linear-gradient(180deg, #070d16 0%, #05090f 100%);
+    radial-gradient(120% 140% at 100% 0%, color-mix(in oklab, var(--color-primary-300) 35%, transparent) 0%, transparent 60%),
+    radial-gradient(110% 130% at 0% 100%, color-mix(in oklab, var(--color-primary-200) 45%, transparent) 0%, transparent 55%),
+    linear-gradient(180deg, #191521 0%, #15131c 100%);
   background-blend-mode: overlay, normal, normal, normal;
   background-repeat: repeat, no-repeat, no-repeat, no-repeat;
 }
 
 /* Variante "resserrée" du dégradé de scène — bannière dashboard : même ADN
-   (grain + radial mono-navy) mais plus contenue/personnelle que le hero
-   landing (rayons plus courts, foyer resserré en haut, voile clair —
-   contrairement au hero marketing, le dashboard reste un espace de travail
-   clair et posé). */
+   (grain + radial mono-violet, jamais de bleu) mais plus contenue/personnelle
+   que le hero landing (rayons plus courts, foyer resserré en haut). */
 @utility bg-scene-dashboard {
   background-image:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
     radial-gradient(85% 95% at 90% 0%, color-mix(in oklab, var(--color-primary-200) 48%, transparent) 0%, transparent 58%),
     radial-gradient(70% 85% at 4% 100%, color-mix(in oklab, var(--color-primary-100) 58%, transparent) 0%, transparent 52%),
-    linear-gradient(180deg, #f4f7fb 0%, #eef3f9 100%);
+    linear-gradient(180deg, #f8f6fc 0%, #f2eefa 100%);
   background-blend-mode: overlay, normal, normal, normal;
   background-repeat: repeat, no-repeat, no-repeat, no-repeat;
 }
@@ -385,21 +353,21 @@
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
     radial-gradient(85% 95% at 90% 0%, color-mix(in oklab, var(--color-primary-300) 30%, transparent) 0%, transparent 58%),
     radial-gradient(70% 85% at 4% 100%, color-mix(in oklab, var(--color-primary-200) 38%, transparent) 0%, transparent 52%),
-    linear-gradient(180deg, #0d1420 0%, #0a0f18 100%);
+    linear-gradient(180deg, #191521 0%, #16131d 100%);
   background-blend-mode: overlay, normal, normal, normal;
   background-repeat: repeat, no-repeat, no-repeat, no-repeat;
 }
 
-/* Variante "premium" du dégradé de scène — hero Premium : même ADN navy +
-   un accent or ponctuel via le token `accent` dédié (jamais `warning`, pour
-   ne pas mélanger la marque avec la sémantique d'alerte) pour une sensation
-   précieuse sur les paliers payants. */
+/* Variante "premium" du dégradé de scène — hero Premium : même ADN violet +
+   un accent chaud ponctuel réutilisant le token `warning` existant (aucune
+   nouvelle teinte ajoutée au système) pour une sensation plus précieuse sur
+   les paliers payants. */
 @utility bg-scene-premium {
   background-image:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
     radial-gradient(120% 140% at 100% 0%, color-mix(in oklab, var(--color-primary-200) 55%, transparent) 0%, transparent 58%),
-    radial-gradient(90% 105% at 0% 100%, color-mix(in oklab, var(--color-accent-200) 34%, transparent) 0%, transparent 55%),
-    linear-gradient(180deg, #f4f7fb 0%, #f1f5fa 100%);
+    radial-gradient(90% 105% at 0% 100%, color-mix(in oklab, var(--color-warning-200) 34%, transparent) 0%, transparent 55%),
+    linear-gradient(180deg, #f8f6fc 0%, #f1ecf9 100%);
   background-blend-mode: overlay, normal, normal, normal;
   background-repeat: repeat, no-repeat, no-repeat, no-repeat;
 }
@@ -407,23 +375,23 @@
   background-image:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
     radial-gradient(120% 140% at 100% 0%, color-mix(in oklab, var(--color-primary-300) 35%, transparent) 0%, transparent 60%),
-    radial-gradient(90% 105% at 0% 100%, color-mix(in oklab, var(--color-accent-300) 24%, transparent) 0%, transparent 55%),
-    linear-gradient(180deg, #0d1420 0%, #0a0f18 100%);
+    radial-gradient(90% 105% at 0% 100%, color-mix(in oklab, var(--color-warning-200) 22%, transparent) 0%, transparent 55%),
+    linear-gradient(180deg, #191521 0%, #15131c 100%);
   background-blend-mode: overlay, normal, normal, normal;
   background-repeat: repeat, no-repeat, no-repeat, no-repeat;
 }
 
 /* Variante "panneau" du dégradé de scène — volet de marque plein-fond (page
    connexion/inscription) : mêmes couches (grain + radials) que les autres
-   scènes, mais bâtie sur un fond navy profond (au lieu d'un aplat clair) pour
-   porter du texte blanc, toujours strictement dans la même teinte marine du
-   design system (jamais de violet résiduel). */
+   scènes, mais bâtie sur un fond violet profond (au lieu d'un aplat clair) pour
+   porter du texte blanc, toujours strictement dans la même teinte violette du
+   design system (jamais de bleu). */
 @utility bg-scene-auth {
   background-image:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
     radial-gradient(120% 130% at 12% -10%, color-mix(in oklab, var(--color-primary-400) 55%, transparent) 0%, transparent 55%),
-    radial-gradient(110% 120% at 105% 115%, color-mix(in oklab, #0a1420 65%, transparent) 0%, transparent 60%),
-    linear-gradient(165deg, var(--color-primary-700) 0%, var(--color-primary-800) 55%, #0c1c30 100%);
+    radial-gradient(110% 120% at 105% 115%, color-mix(in oklab, #1c1330 65%, transparent) 0%, transparent 60%),
+    linear-gradient(165deg, var(--color-primary-700) 0%, var(--color-primary-800) 55%, #34204f 100%);
   background-blend-mode: overlay, normal, normal, normal;
   background-repeat: repeat, no-repeat, no-repeat, no-repeat;
 }
@@ -431,8 +399,8 @@
   background-image:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
     radial-gradient(120% 130% at 12% -10%, color-mix(in oklab, var(--color-primary-400) 40%, transparent) 0%, transparent 55%),
-    radial-gradient(110% 120% at 105% 115%, color-mix(in oklab, #050910 70%, transparent) 0%, transparent 60%),
-    linear-gradient(165deg, #1a3252 0%, #12233a 55%, #060c16 100%);
+    radial-gradient(110% 120% at 105% 115%, color-mix(in oklab, #0f0a1a 70%, transparent) 0%, transparent 60%),
+    linear-gradient(165deg, #3c2a5c 0%, #241736 55%, #15101f 100%);
   background-blend-mode: overlay, normal, normal, normal;
   background-repeat: repeat, no-repeat, no-repeat, no-repeat;
 }
@@ -489,14 +457,14 @@
     box-shadow 500ms ease-out;
   box-shadow:
     0 30px 60px -25px rgb(27 31 42 / 0.35),
-    0 12px 24px -12px rgb(28 67 115 / 0.18);
+    0 12px 24px -12px rgb(105 63 168 / 0.18);
 
   @media (hover: hover) and (pointer: fine) {
     &:hover {
       translate: 0 -0.6rem;
       box-shadow:
         0 44px 80px -22px rgb(27 31 42 / 0.45),
-        0 20px 44px -14px rgb(28 67 115 / 0.32);
+        0 20px 44px -14px rgb(105 63 168 / 0.32);
     }
   }
 

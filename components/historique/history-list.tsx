@@ -72,7 +72,7 @@ export function HistoryList({
               <Link
                 href={item.action.href}
                 className={cn(
-                  buttonVariants({ variant: "tint", size: "sm" }),
+                  buttonVariants({ variant: "lavender", size: "sm" }),
                   "flex-1 justify-center sm:flex-none",
                 )}
               >

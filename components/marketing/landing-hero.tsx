@@ -17,17 +17,14 @@ export async function LandingHero() {
       id="accueil"
       className="relative isolate scroll-mt-20 overflow-hidden"
     >
-      {/* Fond du hero : bande navy cinématographique, volontairement sombre
-          quel que soit le thème clair/sombre du site (comme un hero
-          photo/vidéo avec overlay) — le texte et les surfaces de cette
-          section utilisent donc des teintes fixes claires, pas les tokens
-          réactifs au thème. */}
+      {/* Fond du hero : même dégradé lavande que le bloc hero du dashboard et
+          l'encart CTA → l'illustration partage exactement le fond de la page. */}
       <div aria-hidden className="absolute inset-0 -z-20 bg-hero-gradient" />
       {/* Halo d'ambiance derrière l'illustration (desktop) — lumière diffuse,
           aucun bord ni rectangle. */}
       <div
         aria-hidden
-        className="absolute -right-32 top-4 -z-10 hidden size-[42rem] rounded-full bg-primary-400/25 blur-[120px] lg:block"
+        className="absolute -right-32 top-4 -z-10 hidden size-[42rem] rounded-full bg-primary-200/45 blur-[120px] lg:block"
       />
       {/* Raccord doux vers la section suivante (bg-canvas) — pas de ligne nette. */}
       <div
@@ -37,34 +34,34 @@ export async function LandingHero() {
 
       <HeroSpotlight className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-[1fr_1.1fr] lg:gap-14 lg:px-8 lg:py-28">
         <div className="relative z-[1]">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-fine font-semibold text-white shadow-sm ring-1 ring-white/20 backdrop-blur-sm">
-            <Star className="size-3.5 fill-current text-accent-400" aria-hidden />
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-surface/75 px-3 py-1 text-fine font-semibold text-primary-700 shadow-sm ring-1 ring-primary-100 backdrop-blur-sm">
+            <Star className="size-3.5 fill-current" aria-hidden />
             {t.badge}
           </span>
 
           <h1
             aria-label={t.titleAria}
-            className="mt-5 font-display font-medium tracking-[-0.01em] text-white text-display-md sm:text-display-lg lg:text-display-xl"
+            className="mt-5 font-display font-medium tracking-[-0.01em] text-ink-900 text-display-md sm:text-display-lg lg:text-display-xl"
           >
             <HeroTypewriter
               lines={[
                 { text: t.titleLine1 },
                 {
                   text: t.titleLine2,
-                  className: "italic text-accent-400",
+                  className: "italic text-primary-600",
                 },
               ]}
             />
           </h1>
 
-          <p className="mt-5 max-w-lg text-base leading-relaxed text-white/70">
+          <p className="mt-5 max-w-lg text-base leading-relaxed text-ink-500">
             {t.subtitle}
           </p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
             <Link
               href="/signup"
-              className={buttonVariants({ variant: "accent", size: "lg" })}
+              className={buttonVariants({ variant: "primary", size: "lg" })}
             >
               {t.ctaPrimary}
               <ArrowRight className="size-[1.15rem]" aria-hidden />
@@ -73,37 +70,43 @@ export async function LandingHero() {
               href="#comment-ca-marche"
               className={cn(
                 buttonVariants({ variant: "outline", size: "lg" }),
-                "gap-2.5 border-white/25 bg-white/10 text-white backdrop-blur-sm hover:bg-white/15 hover:text-white",
+                "gap-2.5 bg-surface/60 backdrop-blur-sm",
               )}
             >
-              <CirclePlay className="size-[1.2rem] text-white" aria-hidden />
+              <CirclePlay className="size-[1.2rem] text-primary-600" aria-hidden />
               {t.ctaSecondary}
             </a>
           </div>
         </div>
 
-        {/* La photo (fond clair) est posée dans une carte `surface` — la scène
-            est désormais toujours sombre, donc ce traitement en « îlot clair »
-            s'applique dans les deux thèmes (plus de fondu de masque, qui ne
-            fonctionnait que quand le fond de section était clair lui aussi).
-            Léger voile navy en overlay (mix-blend-mode) pour rapprocher les
-            teintes de la photo (violet/lavande d'origine) de la nouvelle
-            identité, sans regénérer l'image. */}
-        <div className="relative z-[1] overflow-hidden rounded-[1.75rem] bg-surface p-3 shadow-[var(--shadow-elevated)] ring-1 ring-white/10">
-          <div className="relative overflow-hidden rounded-[1.15rem]">
-            <Image
-              src={heroStudents}
-              alt={t.imageAlt}
-              priority
-              placeholder="blur"
-              sizes="(min-width: 1024px) 40rem, 92vw"
-              className="h-auto w-full"
-            />
-            <div
-              aria-hidden
-              className="absolute inset-0 bg-gradient-to-br from-primary-700/25 via-transparent to-accent-500/10 mix-blend-multiply"
-            />
-          </div>
+        {/* Clair : l'illustration n'a plus de cadre — son fond lavande se confond
+            avec celui de la section, les 4 bords sont fondus au masque.
+            Sombre : le visuel (fond clair) est posé dans une carte `surface`
+            discrète pour rester lisible sans « bloc collé ». */}
+        <div className="relative z-[1] dark:rounded-[1.75rem] dark:bg-surface dark:p-3 dark:shadow-card dark:ring-1 dark:ring-line">
+          <div
+            aria-hidden
+            className="absolute inset-6 -z-10 rounded-[3rem] bg-primary-100/50 blur-3xl dark:hidden"
+          />
+          <Image
+            src={heroStudents}
+            alt={t.imageAlt}
+            priority
+            placeholder="blur"
+            sizes="(min-width: 1024px) 40rem, 92vw"
+            className={cn(
+              "h-auto w-full",
+              // Fond de l'image ≈ fond de la section (en clair) → un fondu léger
+              // des bords suffit à effacer le rectangle du JPG sans rogner le
+              // sujet ni les icônes flottantes.
+              "[mask-image:linear-gradient(to_right,transparent_0,#000_5%,#000_95%,transparent_100%),linear-gradient(to_bottom,transparent_0,#000_4%,#000_96%,transparent_100%)]",
+              "[mask-composite:intersect] [-webkit-mask-composite:source-in]",
+              "[filter:drop-shadow(0_24px_48px_rgb(76_29_149/0.14))]",
+              // En sombre : pas de fondu (il révélerait le fond noir), coins
+              // arrondis suivant la carte.
+              "dark:rounded-[1.15rem] dark:[filter:none] dark:[mask-image:none]",
+            )}
+          />
         </div>
       </HeroSpotlight>
     </section>

@@ -62,7 +62,7 @@ export function ActivityCardList({ items }: { items: ActivityItem[] }) {
           <Link
             href={item.action.href}
             className={buttonVariants({
-              variant: "tint",
+              variant: "lavender",
               size: "sm",
               block: true,
             })}
