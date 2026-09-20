@@ -99,7 +99,7 @@ export default async function PremiumPage() {
             user.plan === "premium" ? (
               currentPlanBadge
             ) : (
-              <SubscribeButton plan="premium" planLabel={t.planPremiumTitle} />
+              <SubscribeButton plan="premium" planLabel={t.planPremiumTitle} variant="accent" />
             )
           }
         />
