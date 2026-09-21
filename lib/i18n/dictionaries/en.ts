@@ -751,7 +751,7 @@ export const en: Dictionary = {
     supportHours: "8:00 am - 6:00 pm",
     timezoneLabel: "Yaoundé time (GMT+1)",
     prefilledMessage: "Hello, I need help with EduIA.",
-    contactSubject: "Help request · EduIA",
+    contactSubject: "EduIA Help Request",
     faq: {
       import: {
         q: "How do I import a course?",

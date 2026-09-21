@@ -772,7 +772,7 @@ export const fr = {
     supportHours: "08h00 - 18h00",
     timezoneLabel: "Heure de Yaoundé (GMT+1)",
     prefilledMessage: "Bonjour, j'ai besoin d'aide avec EduIA.",
-    contactSubject: "Demande d'aide · EduIA",
+    contactSubject: "Demande d'aide EduIA",
     faq: {
       import: {
         q: "Comment importer un cours ?",
