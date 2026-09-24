@@ -3,6 +3,7 @@ import { zodTextFormat } from "openai/helpers/zod";
 import type { ResponseInput } from "openai/resources/responses/responses";
 import { getOpenAIClient, OPENAI_MODEL } from "./openai-client";
 import { AIGenerationError } from "./errors";
+import { estimatePageCountFromText } from "./extract";
 import { aiSummarySchema, aiExamSchema, aiCorrectionSchema } from "./schemas";
 import type { AiUsageTokens } from "./usage";
 import type { Locale } from "@/lib/i18n/config";
@@ -48,7 +49,10 @@ function localizedDateLabel(date: Date, locale: Locale): string {
  * restent à câbler côté page.
  */
 
-const MAX_SOURCE_CHARS = 12_000;
+// Couvre jusqu'à 5 pages denses (photos de cahier, TXT, Word) importées
+// ensemble : en dessous, les dernières pages d'un cours multi-photos étaient
+// tronquées avant d'atteindre le modèle.
+const MAX_SOURCE_CHARS = 24_000;
 
 /**
  * Règle d'ancrage stricte au document, partagée par les trois outils : quand
@@ -204,7 +208,7 @@ function activeOptionLabels(
 
 function estimatePageCount(sourceText: string | null): number {
   if (!sourceText) return 0;
-  return Math.max(1, Math.round(sourceText.length / 2500));
+  return estimatePageCountFromText(sourceText);
 }
 
 /** Lève une erreur claire si l'IA n'a renvoyé aucune sortie structurée exploitable. */
@@ -216,7 +220,7 @@ function requireParsed<T>(parsed: T | null, message: string): T {
 }
 
 /** Compteurs de tokens de la réponse OpenAI (pour `ai_usage` / `/admin/ai`). */
-function readUsage(response: {
+export function readUsage(response: {
   usage?: { input_tokens: number; output_tokens: number };
 }): AiUsageTokens {
   return {

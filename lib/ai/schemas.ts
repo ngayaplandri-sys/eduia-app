@@ -107,6 +107,41 @@ export const aiSummarySchema = z.object({
 
 export type AISummaryOutput = z.infer<typeof aiSummarySchema>;
 
+// ───────────────────────── Sortie IA : transcription d'une photo ─────────────────────────
+
+/** Motif précis quand une photo n'est pas (entièrement) lisible. */
+export const OCR_ISSUES = [
+  "none",
+  "blurry",
+  "too_dark",
+  "glare",
+  "cropped",
+  "no_text",
+  "illegible_handwriting",
+] as const;
+
+export type OcrIssueCode = (typeof OCR_ISSUES)[number];
+
+export const aiImageTranscriptionSchema = z.object({
+  quality: z
+    .enum(["good", "partial", "unreadable"])
+    .describe(
+      "good : tout le texte est déchiffrable. partial : texte globalement lisible mais certains passages ne le sont pas. unreadable : presque rien n'est déchiffrable, ou l'image ne contient pas de texte de cours.",
+    ),
+  issue: z
+    .enum(OCR_ISSUES)
+    .describe(
+      "Cause principale quand quality vaut partial ou unreadable ; « none » quand quality vaut good.",
+    ),
+  text: z
+    .string()
+    .describe(
+      "Transcription intégrale et fidèle du texte visible, dans sa langue d'origine. Chaîne vide si quality vaut unreadable.",
+    ),
+});
+
+export type AIImageTranscription = z.infer<typeof aiImageTranscriptionSchema>;
+
 // ───────────────────────── Sortie IA : épreuve ─────────────────────────
 
 const aiExamChoiceSchema = z.object({

@@ -8,7 +8,8 @@ import type { Dictionary } from "@/lib/i18n/dictionaries";
  * « Résumer mes cours » :
  *  - PDF  → transmis tel quel à OpenAI (`input_file`), pas d'extraction ici ;
  *  - DOCX → `mammoth.extractRawText` ;
- *  - TXT / image → déjà extraits côté client (lecture directe / OCR).
+ *  - TXT / image → déjà extraits avant l'envoi (lecture directe / photo
+ *    transcrite par le modèle de vision, voir `lib/ai/ocr.ts`).
  */
 
 /** Taille maximale d'un fichier importé (PDF ou Word). */
@@ -103,7 +104,18 @@ export function estimatePdfPageCount(bytes: Buffer): number {
   return matches ? matches.length : 0;
 }
 
-/** Nombre de pages approximatif d'un contenu texte (≈ 2500 caractères / page). */
+/**
+ * Repère de page inséré avant chaque fichier importé dont le texte est déjà
+ * extrait (« [Page 2 — photo.jpg] », « [Pièce jointe — cours.docx] »).
+ */
+const PAGE_MARKER = /^\[[^\]\n]+ — [^\]\n]+\]$/gm;
+
+/**
+ * Nombre de pages approximatif d'un contenu texte (≈ 2500 caractères / page),
+ * jamais inférieur au nombre de fichiers importés : une photo de cahier est une
+ * page entière même si elle contient peu de texte.
+ */
 export function estimatePageCountFromText(text: string): number {
-  return Math.max(1, Math.round(text.length / 2500));
+  const importedFiles = text.match(PAGE_MARKER)?.length ?? 0;
+  return Math.max(1, importedFiles, Math.round(text.length / 2500));
 }

@@ -15,14 +15,16 @@ import { formatBytes } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
 import { useI18n } from "@/lib/i18n/client";
 import type { DropzoneFile, DropzoneFileKind } from "@/components/common/file-dropzone";
-import type { OcrProgress } from "@/lib/ocr/recognize-image";
+import {
+  recognizeImage,
+  describeOcrFailure,
+  describeOcrStep,
+  type OcrProgress,
+} from "@/lib/ocr/recognize-image";
 
-/** Taille maximale d'une image analysable par OCR. */
-const MAX_IMAGE_BYTES = 25 * 1024 * 1024;
-/** En dessous de ce nombre de lettres/chiffres, l'OCR n'a rien d'exploitable. */
-const MIN_USEFUL_CHARS = 8;
-/** En dessous de cette confiance moyenne, on considère l'image illisible. */
-const MIN_CONFIDENCE = 40;
+type ProcessResult =
+  | { ok: true; file: DropzoneFile; warning: string | null }
+  | { ok: false; message: string };
 
 function detectKind(file: File): DropzoneFileKind {
   const type = file.type.toLowerCase();
@@ -68,9 +70,10 @@ type Phase =
  * pour les outils acceptant plusieurs pages/fichiers traités comme UN seul
  * document (« Résumer un cours », « Générer une épreuve »).
  *
- * Même pipeline d'extraction par fichier (OCR pour une image, lecture directe
- * pour un TXT, extraction serveur pour PDF/DOCX via `raw`), appliqué
- * séquentiellement à chaque fichier ajouté.
+ * Même pipeline d'extraction par fichier (lecture IA pour une photo, lecture
+ * directe pour un TXT, extraction serveur pour PDF/DOCX via `raw`), appliqué
+ * séquentiellement à chaque fichier ajouté. Une photo illisible n'est jamais
+ * écartée en silence : son nom et le motif précis sont affichés.
  */
 export function MultiFileDropzone({
   label,
@@ -87,11 +90,11 @@ export function MultiFileDropzone({
   const t = dict.dropzone;
   const [dragging, setDragging] = React.useState(false);
   const [phase, setPhase] = React.useState<Phase>({ status: "idle" });
-  const [notice, setNotice] = React.useState<string | null>(null);
+  const [notices, setNotices] = React.useState<string[]>([]);
 
   const atLimit = files.length >= maxFiles;
 
-  async function processOne(picked: File): Promise<DropzoneFile | null> {
+  async function processOne(picked: File): Promise<ProcessResult> {
     const kind = detectKind(picked);
     const base: DropzoneFile = {
       name: picked.name,
@@ -100,40 +103,46 @@ export function MultiFileDropzone({
     };
 
     if (kind === "image") {
-      if (picked.size > MAX_IMAGE_BYTES) return null;
       try {
-        const { recognizeImage } = await import("@/lib/ocr/recognize-image");
-        const { text, confidence } = await recognizeImage(
+        const { text, quality } = await recognizeImage(
           picked,
           (progress: OcrProgress) => {
             setPhase((current) =>
               current.status === "reading"
-                ? { ...current, ratio: progress.ratio, step: progress.step }
+                ? {
+                    ...current,
+                    ratio: progress.ratio,
+                    step: describeOcrStep(progress.step, t),
+                  }
                 : current,
             );
           },
         );
-        const meaningfulChars = text.replace(/[^\p{L}\p{N}]/gu, "").length;
-        if (meaningfulChars < MIN_USEFUL_CHARS || confidence < MIN_CONFIDENCE) {
-          return null;
-        }
-        return { ...base, text };
-      } catch {
-        return null;
+        const partiallyReadable = quality === "partial";
+        return {
+          ok: true,
+          file: { ...base, text, partiallyReadable },
+          warning: partiallyReadable ? t.partialWarning(picked.name) : null,
+        };
+      } catch (error) {
+        return {
+          ok: false,
+          message: t.fileFailed(picked.name, describeOcrFailure(error, t)),
+        };
       }
     }
 
     if (kind === "txt") {
       try {
         const text = await picked.text();
-        return { ...base, text };
+        return { ok: true, file: { ...base, text }, warning: null };
       } catch {
-        return { ...base, text: null };
+        return { ok: true, file: { ...base, text: null }, warning: null };
       }
     }
 
     // PDF / DOCX / autre : extraction côté serveur à partir du fichier brut.
-    return { ...base, text: null, raw: picked };
+    return { ok: true, file: { ...base, text: null, raw: picked }, warning: null };
   }
 
   async function pickMany(picked: File[]) {
@@ -141,7 +150,7 @@ export function MultiFileDropzone({
 
     const room = maxFiles - files.length;
     if (room <= 0) {
-      setNotice(t.maxFilesReached(maxFiles));
+      setNotices([t.maxFilesReached(maxFiles)]);
       return;
     }
 
@@ -149,8 +158,9 @@ export function MultiFileDropzone({
     const truncated = picked.length > accepted.length;
 
     onExtractingChange?.(true);
+    setNotices([]);
     const next = [...files];
-    let anyFailed = false;
+    const messages: string[] = [];
 
     for (let i = 0; i < accepted.length; i++) {
       const picking = accepted[i];
@@ -163,24 +173,20 @@ export function MultiFileDropzone({
         total: accepted.length,
       });
       const result = await processOne(picking);
-      if (result) {
-        next.push(result);
+      if (result.ok) {
+        next.push(result.file);
         onFilesChange([...next]);
+        if (result.warning) messages.push(result.warning);
       } else {
-        anyFailed = true;
+        messages.push(result.message);
       }
     }
 
     setPhase({ status: "idle" });
     onExtractingChange?.(false);
 
-    if (truncated) {
-      setNotice(t.tooManySelected(maxFiles, accepted.length));
-    } else if (anyFailed) {
-      setNotice(t.someFilesFailed);
-    } else {
-      setNotice(null);
-    }
+    if (truncated) messages.unshift(t.tooManySelected(maxFiles, accepted.length));
+    setNotices(messages);
   }
 
   function handleInput(event: React.ChangeEvent<HTMLInputElement>) {
@@ -197,7 +203,7 @@ export function MultiFileDropzone({
 
   function removeAt(index: number) {
     onFilesChange(files.filter((_, i) => i !== index));
-    setNotice(null);
+    setNotices([]);
   }
 
   return (
@@ -237,10 +243,17 @@ export function MultiFileDropzone({
                     <span className="text-line" aria-hidden>
                       ·
                     </span>
-                    <span className="inline-flex items-center gap-0.5 font-medium text-success-600">
-                      <CircleCheck className="size-3.5" aria-hidden />
-                      {isImage ? t.textExtracted : t.imported}
-                    </span>
+                    {file.partiallyReadable ? (
+                      <span className="inline-flex items-center gap-0.5 font-medium text-warning-600">
+                        <TriangleAlert className="size-3.5" aria-hidden />
+                        {t.partialText}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-0.5 font-medium text-success-600">
+                        <CircleCheck className="size-3.5" aria-hidden />
+                        {isImage ? t.textExtracted : t.imported}
+                      </span>
+                    )}
                   </p>
                 </div>
                 <button
@@ -290,19 +303,30 @@ export function MultiFileDropzone({
         </div>
       ) : null}
 
-      {notice ? (
-        <div className="flex items-start gap-2.5 rounded-xl border border-warning-100 bg-warning-50/70 p-3">
+      {notices.length > 0 ? (
+        <div
+          role="alert"
+          className="flex items-start gap-2.5 rounded-xl border border-warning-100 bg-warning-50/70 p-3"
+        >
           <TriangleAlert
             className="mt-0.5 size-4 shrink-0 text-warning-600"
             aria-hidden
           />
-          <p className="min-w-0 flex-1 text-fine leading-snug text-ink-700">
-            {notice}
-          </p>
+          {notices.length === 1 ? (
+            <p className="min-w-0 flex-1 text-fine leading-snug text-ink-700">
+              {notices[0]}
+            </p>
+          ) : (
+            <ul className="min-w-0 flex-1 list-disc space-y-1 pl-4 text-fine leading-snug text-ink-700">
+              {notices.map((message) => (
+                <li key={message}>{message}</li>
+              ))}
+            </ul>
+          )}
           <button
             type="button"
             aria-label={t.close}
-            onClick={() => setNotice(null)}
+            onClick={() => setNotices([])}
             className="shrink-0 rounded-md p-1 text-ink-400 transition-colors hover:bg-warning-100 hover:text-warning-700 focus-visible:outline-2 focus-visible:outline-offset-2"
           >
             <X className="size-3.5" aria-hidden />

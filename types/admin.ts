@@ -4,7 +4,7 @@ import type { UserPlan } from "./user";
 
 export type ReportStatus = "new" | "in_progress" | "resolved";
 export type ReportType = "bug" | "suggestion" | "question" | "autre";
-export type AiUsageKind = "summary" | "exam" | "correction" | "assistant";
+export type AiUsageKind = "summary" | "exam" | "correction" | "assistant" | "ocr";
 
 export interface AdminOverviewStats {
   totalUsers: number;

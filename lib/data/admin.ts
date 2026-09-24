@@ -459,7 +459,7 @@ export async function getAdminAiUsage(): Promise<AdminAiUsageData> {
       .limit(20),
   ]);
 
-  const kinds: AiUsageKind[] = ["summary", "exam", "correction", "assistant"];
+  const kinds: AiUsageKind[] = ["summary", "exam", "correction", "assistant", "ocr"];
   const byKind: AdminAiUsageByKind[] = kinds.map((kind) => {
     const row = byKindRows.find((r) => r.kind === kind);
     const total = n(row?.total);
@@ -721,12 +721,13 @@ export async function getAdminStats(): Promise<AdminStatsData> {
     value: n(res[0]?.v),
   }));
 
-  const aiKinds: AiUsageKind[] = ["summary", "exam", "correction", "assistant"];
+  const aiKinds: AiUsageKind[] = ["summary", "exam", "correction", "assistant", "ocr"];
   const aiKindLabel: Record<AiUsageKind, string> = {
     summary: "Résumés",
     exam: "Épreuves",
     correction: "Corrections",
     assistant: "Assistant IA",
+    ocr: "Lecture de photos",
   };
   const aiByKind = aiKinds.map((kind) => ({
     label: aiKindLabel[kind],

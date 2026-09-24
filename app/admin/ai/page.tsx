@@ -17,6 +17,7 @@ const KIND_LABELS: Record<string, string> = {
   exam: "Épreuves",
   correction: "Corrections",
   assistant: "Assistant IA",
+  ocr: "Lecture de photos",
 };
 
 const topUsersColumns: AdminColumn<AdminAiUsageUser>[] = [

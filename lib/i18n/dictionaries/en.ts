@@ -292,6 +292,25 @@ export const en: Dictionary = {
     multiFileName: (count: number) => `${count} files`,
     someFilesFailed:
       "One or more files couldn't be read and were skipped. The others were added successfully.",
+    // ── Reading course photos with AI vision ──────────────────────────────
+    ocrUploading: "Uploading the photo…",
+    ocrReading: "AI is reading the handwriting…",
+    ocrBlurry:
+      "the photo is too blurry to read. Retake it holding the phone still, focused on the text.",
+    ocrTooDark:
+      "the photo is too dark. Retake it somewhere well lit, with no shadow on the page.",
+    ocrGlare:
+      "a glare hides part of the text. Tilt the phone slightly or avoid direct light.",
+    ocrCropped:
+      "the page is cut off in the photo. Reframe so the whole page is visible.",
+    ocrIllegibleHandwriting:
+      "the handwriting couldn't be deciphered. Try a closer, sharper photo of the page.",
+    ocrUnsupported:
+      "this image format isn't supported. Use a JPG or PNG photo.",
+    fileFailed: (name: string, reason: string) => `"${name}": ${reason}`,
+    partialText: "Partly readable",
+    partialWarning: (name: string) =>
+      `Some passages of "${name}" were hard to read and are marked [illisible]. You can continue, or retake a sharper photo for a more complete summary.`,
   },
 
   resumer: {

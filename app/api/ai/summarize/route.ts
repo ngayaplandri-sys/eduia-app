@@ -48,7 +48,8 @@ interface SourceMeta {
  * Extraction du contenu selon le format :
  *  - PDF   → transmis nativement à OpenAI (`input_file`) ;
  *  - DOCX  → texte extrait via `mammoth` ;
- *  - TXT / photo → texte déjà extrait côté client (lecture directe / OCR).
+ *  - TXT / photo → texte déjà extrait avant l'envoi (lecture directe / photo
+ *    transcrite par le modèle de vision via `POST /api/ai/ocr`).
  *
  * Coût : 5 crédits, prélevés atomiquement AVANT l'appel OpenAI — sauf
  * l'admin/propriétaire (accès illimité). Remboursés si la génération ou la

@@ -1,213 +1,207 @@
 "use client";
 
+import type { Dictionary } from "@/lib/i18n/dictionaries";
+
 /**
- * OCR d'image — extraction du texte d'une photo ou d'une capture de cours.
+ * Lecture d'une photo de cours (cahier manuscrit, feuille imprimée, capture
+ * d'écran) par le modèle de vision OpenAI, via `POST /api/ai/ocr`.
  *
- * Tout se déroule dans le navigateur : Tesseract.js + les modèles servis depuis
- * `/public/vendor/tesseract`. Aucune image n'est envoyée à un serveur tant que
- * l'IA n'est pas branchée.
+ * Remplace l'ancien OCR Tesseract.js exécuté dans le navigateur : conçu pour
+ * du texte imprimé, il échouait sur l'écriture manuscrite (confiance trop
+ * basse → photo ignorée sans explication).
  *
- * ┌─ POINT DE BASCULE ───────────────────────────────────────────────────────┐
- * │ `recognizeImage()` est l'unique interface consommée par l'UI             │
- * │ (`components/common/file-dropzone.tsx`).                                 │
- * │ Pour passer à un OCR côté serveur ou à un modèle de vision (OpenAI),     │
- * │ il suffit de réécrire le corps de cette fonction : la signature et les   │
- * │ états (progression / erreur / succès) restent identiques.                │
- * └─────────────────────────────────────────────────────────────────────────┘
+ * Unique interface consommée par l'UI (`FileDropzone`, `MultiFileDropzone`) :
+ * renvoie le texte transcrit, ou lève une `OcrError` portant un motif précis
+ * (photo floue, sombre, reflet, format…) à afficher à l'élève.
  */
 
-const VENDOR = "/vendor/tesseract";
-const LANGS = "fra+eng";
-/** OEM 1 = LSTM uniquement (modèles `*-lstm` de tesseract.js-core). */
-const OEM_LSTM_ONLY = 1;
+export type OcrStep = "preparing" | "uploading" | "reading";
 
 export interface OcrProgress {
   /** Avancement global, de 0 à 1. */
   ratio: number;
-  /** Libellé de l'étape en cours, en français. */
-  step: string;
+  step: OcrStep;
 }
 
 export interface OcrResult {
-  /** Texte extrait, nettoyé. */
+  /** Texte transcrit, prêt à être envoyé à la génération. */
   text: string;
-  /** Indice de confiance moyen renvoyé par Tesseract (0–100). */
-  confidence: number;
+  /** `partial` : texte exploitable mais certains passages sont marqués [illisible]. */
+  quality: "good" | "partial";
 }
 
-interface OcrWorker {
-  recognize(
-    image: Blob,
-  ): Promise<{ data: { text?: string; confidence?: number } }>;
+export type OcrFailure =
+  | "blurry"
+  | "too_dark"
+  | "glare"
+  | "cropped"
+  | "no_text"
+  | "illegible_handwriting"
+  | "unsupported"
+  | "too_large"
+  | "failed";
+
+export class OcrError extends Error {
+  reason: OcrFailure;
+  /** Message déjà traduit renvoyé par le serveur (quota, délai dépassé…), prioritaire. */
+  serverMessage: string | null;
+
+  constructor(reason: OcrFailure, serverMessage: string | null = null) {
+    super(serverMessage ?? reason);
+    this.name = "OcrError";
+    this.reason = reason;
+    this.serverMessage = serverMessage;
+  }
 }
 
-type CreateWorkerFn = (
-  langs: string,
-  oem: number,
-  options: Record<string, unknown>,
-) => Promise<OcrWorker>;
-
-type TesseractNamespace = {
-  createWorker?: CreateWorkerFn;
-  default?: { createWorker?: CreateWorkerFn };
-};
+/** Taille maximale d'une photo acceptée avant redimensionnement. */
+export const MAX_IMAGE_BYTES = 25 * 1024 * 1024;
 
 /**
- * Fenêtres d'avancement par étape Tesseract → barre de progression fluide et
- * (globalement) monotone. Après le 1ᵉʳ passage, moteur et modèle sont en cache :
- * on saute directement à « recognizing text ».
+ * Plus grand côté envoyé au modèle : au-delà, la vision OpenAI redimensionne
+ * de toute façon (mode `high`), l'envoi serait juste plus lent.
  */
-const PHASES: Record<string, { lo: number; hi: number; step: string }> = {
-  "loading tesseract core": {
-    lo: 0,
-    hi: 0.25,
-    step: "Chargement du moteur d'analyse…",
-  },
-  "initializing tesseract": {
-    lo: 0.25,
-    hi: 0.33,
-    step: "Initialisation du moteur…",
-  },
-  "loading language traineddata": {
-    lo: 0.33,
-    hi: 0.55,
-    step: "Chargement du modèle de langue…",
-  },
-  "initializing api": {
-    lo: 0.55,
-    hi: 0.62,
-    step: "Préparation de la lecture…",
-  },
-  "recognizing text": {
-    lo: 0.62,
-    hi: 1,
-    step: "Lecture du texte de l'image…",
-  },
-};
+const MAX_EDGE = 2048;
 
-let workerPromise: Promise<OcrWorker> | null = null;
-let activeProgress: ((p: OcrProgress) => void) | null = null;
-
-function clamp01(n: number): number {
-  if (!Number.isFinite(n)) return 0;
-  return Math.min(1, Math.max(0, n));
-}
-
-async function loadCreateWorker(): Promise<CreateWorkerFn> {
-  const ns = (await import("tesseract.js")) as unknown as TesseractNamespace;
-  const createWorker = ns.createWorker ?? ns.default?.createWorker;
-  if (typeof createWorker !== "function") {
-    throw new Error("tesseract.js : createWorker introuvable");
-  }
-  return createWorker;
-}
-
-async function getWorker(): Promise<OcrWorker> {
-  if (!workerPromise) {
-    workerPromise = (async () => {
-      const createWorker = await loadCreateWorker();
-      return createWorker(LANGS, OEM_LSTM_ONLY, {
-        workerPath: `${VENDOR}/worker.min.js`,
-        corePath: `${VENDOR}/core/tesseract-core-simd-lstm.wasm.js`,
-        langPath: `${VENDOR}/lang`,
-        gzip: false,
-        logger: (message: { status?: string; progress?: number }) => {
-          if (!activeProgress || !message.status) return;
-          const phase = PHASES[message.status];
-          if (!phase) return;
-          const local = clamp01(message.progress ?? 0);
-          activeProgress({
-            ratio: clamp01(phase.lo + (phase.hi - phase.lo) * local),
-            step: phase.step,
-          });
-        },
-      });
-    })();
-
-    // En cas d'échec (asset manquant, navigateur incompatible…), on repart de
-    // zéro au prochain appel plutôt que de rester bloqué sur la promesse rejetée.
-    workerPromise.catch(() => {
-      workerPromise = null;
-    });
-  }
-  return workerPromise;
-}
-
-/** Réduit les très grandes images avant l'OCR (vitesse + mémoire). */
-async function downscale(source: Blob): Promise<Blob> {
-  if (
-    typeof createImageBitmap !== "function" ||
-    typeof document === "undefined"
-  ) {
-    return source;
-  }
-  try {
-    const bitmap = await createImageBitmap(source);
-    const maxEdge = 2200;
-    const scale = Math.min(
-      1,
-      maxEdge / Math.max(bitmap.width, bitmap.height),
-    );
-    if (scale === 1) {
-      bitmap.close?.();
-      return source;
-    }
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.round(bitmap.width * scale);
-    canvas.height = Math.round(bitmap.height * scale);
-    const context = canvas.getContext("2d");
-    if (!context) {
-      bitmap.close?.();
-      return source;
-    }
-    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-    bitmap.close?.();
-    const blob = await new Promise<Blob | null>((resolve) => {
-      canvas.toBlob(resolve, "image/png");
-    });
-    return blob ?? source;
-  } catch {
-    return source;
-  }
-}
-
-function cleanText(raw: string): string {
-  return raw
-    .replace(/\r\n/g, "\n")
-    .replace(/[ \t]+\n/g, "\n")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
-}
-
-// Les appels sont sérialisés : un seul worker Tesseract, une reconnaissance
-// à la fois (les pages « Corriger » ont deux zones d'import).
-let chain: Promise<unknown> = Promise.resolve();
+const UPLOADABLE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 /**
- * Analyse une image et renvoie le texte qu'elle contient.
- * @throws si le moteur ne peut pas être chargé (asset manquant, navigateur non
- *   compatible WebAssembly SIMD…). L'appelant affiche alors l'état d'erreur.
+ * Redimensionne la photo et la ré-encode en JPEG. `createImageBitmap` applique
+ * l'orientation EXIF (photo prise en portrait au téléphone) et décode les
+ * formats que le navigateur sait lire (dont HEIC sur Safari) : le modèle reçoit
+ * toujours une image droite, légère, dans un format qu'il accepte.
  */
-export function recognizeImage(
-  image: Blob,
+async function prepareImage(source: File): Promise<Blob> {
+  if (typeof createImageBitmap === "function" && typeof document !== "undefined") {
+    try {
+      const bitmap = await createImageBitmap(source);
+      const scale = Math.min(1, MAX_EDGE / Math.max(bitmap.width, bitmap.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(bitmap.width * scale);
+      canvas.height = Math.round(bitmap.height * scale);
+      const context = canvas.getContext("2d");
+      if (context) {
+        context.fillStyle = "#ffffff";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+        bitmap.close?.();
+        const blob = await new Promise<Blob | null>((resolve) => {
+          canvas.toBlob(resolve, "image/jpeg", 0.9);
+        });
+        if (blob) return blob;
+      } else {
+        bitmap.close?.();
+      }
+    } catch {
+      // Format non décodable par ce navigateur : on tente l'envoi tel quel.
+    }
+  }
+
+  if (UPLOADABLE_TYPES.has(source.type.toLowerCase())) return source;
+  throw new OcrError("unsupported");
+}
+
+const SERVER_ISSUES: ReadonlySet<string> = new Set([
+  "blurry",
+  "too_dark",
+  "glare",
+  "cropped",
+  "no_text",
+  "illegible_handwriting",
+]);
+
+/**
+ * Transcrit le texte d'une photo de cours.
+ * @throws {OcrError} avec un motif précis si la photo est illisible, trop
+ *   lourde, dans un format non pris en charge, ou si l'analyse a échoué.
+ */
+export async function recognizeImage(
+  image: File,
   onProgress?: (progress: OcrProgress) => void,
 ): Promise<OcrResult> {
-  const task = async (): Promise<OcrResult> => {
-    activeProgress = onProgress ?? null;
-    try {
-      const worker = await getWorker();
-      const prepared = await downscale(image);
-      const { data } = await worker.recognize(prepared);
-      return {
-        text: cleanText(data.text ?? ""),
-        confidence: Math.round(data.confidence ?? 0),
-      };
-    } finally {
-      activeProgress = null;
-    }
-  };
+  if (image.size > MAX_IMAGE_BYTES) throw new OcrError("too_large");
 
-  const run = chain.then(task, task);
-  chain = run.catch(() => {});
-  return run;
+  onProgress?.({ ratio: 0.05, step: "preparing" });
+  const prepared = await prepareImage(image);
+
+  const body = new FormData();
+  body.append("image", prepared, "page.jpg");
+  onProgress?.({ ratio: 0.2, step: "uploading" });
+
+  // La réponse du modèle n'expose pas d'avancement réel : la barre progresse
+  // doucement vers 90 % pendant la lecture, puis se complète à la réponse.
+  let ratio = 0.3;
+  const timer = window.setInterval(() => {
+    ratio += (0.9 - ratio) * 0.08;
+    onProgress?.({ ratio, step: "reading" });
+  }, 400);
+
+  let response: Response;
+  try {
+    response = await fetch("/api/ai/ocr", { method: "POST", body });
+  } catch {
+    throw new OcrError("failed");
+  } finally {
+    window.clearInterval(timer);
+  }
+
+  const data = (await response.json().catch(() => null)) as {
+    text?: string;
+    quality?: "good" | "partial";
+    code?: string;
+    issue?: string;
+    error?: string;
+  } | null;
+
+  if (response.ok && typeof data?.text === "string") {
+    onProgress?.({ ratio: 1, step: "reading" });
+    return { text: data.text, quality: data.quality === "partial" ? "partial" : "good" };
+  }
+
+  if (data?.code === "UNREADABLE") {
+    throw new OcrError(
+      data.issue && SERVER_ISSUES.has(data.issue) ? (data.issue as OcrFailure) : "no_text",
+    );
+  }
+  if (data?.code === "UNSUPPORTED_IMAGE") throw new OcrError("unsupported");
+  if (data?.code === "IMAGE_TOO_LARGE") throw new OcrError("too_large");
+  throw new OcrError("failed", data?.error ?? null);
+}
+
+/** Motif d'échec en toutes lettres (commence par une minuscule, à composer). */
+export function describeOcrFailure(
+  error: unknown,
+  t: Dictionary["dropzone"],
+): string {
+  const lowerFirst = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
+  if (!(error instanceof OcrError)) return lowerFirst(t.analysisFailed);
+  if (error.serverMessage) return lowerFirst(error.serverMessage);
+
+  switch (error.reason) {
+    case "blurry":
+      return t.ocrBlurry;
+    case "too_dark":
+      return t.ocrTooDark;
+    case "glare":
+      return t.ocrGlare;
+    case "cropped":
+      return t.ocrCropped;
+    case "illegible_handwriting":
+      return t.ocrIllegibleHandwriting;
+    case "unsupported":
+      return t.ocrUnsupported;
+    case "no_text":
+      return lowerFirst(t.noReadableText);
+    case "too_large":
+      return lowerFirst(t.imageTooHeavy);
+    case "failed":
+      return lowerFirst(t.analysisFailed);
+  }
+}
+
+/** Libellé traduit de l'étape en cours. */
+export function describeOcrStep(step: OcrStep, t: Dictionary["dropzone"]): string {
+  if (step === "uploading") return t.ocrUploading;
+  if (step === "reading") return t.ocrReading;
+  return t.preparingAnalysis;
 }

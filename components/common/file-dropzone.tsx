@@ -16,7 +16,13 @@ import {
 import { formatBytes } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
 import { useI18n } from "@/lib/i18n/client";
-import type { OcrProgress } from "@/lib/ocr/recognize-image";
+import {
+  recognizeImage,
+  describeOcrFailure,
+  describeOcrStep,
+  OcrError,
+  type OcrProgress,
+} from "@/lib/ocr/recognize-image";
 
 export type DropzoneFileKind = "pdf" | "docx" | "txt" | "image" | "other";
 
@@ -27,24 +33,19 @@ export interface DropzoneFile {
   kind?: DropzoneFileKind;
   /**
    * Texte exploitable par l'IA :
-   * - `image` → texte extrait par OCR ;
+   * - `image` → texte transcrit par le modèle de vision (`recognizeImage`) ;
    * - `txt`  → contenu lu directement ;
    * - `pdf` / `docx` → `null` (extraction faite côté serveur à partir de `raw`).
    */
   text?: string | null;
+  /** Photo lisible seulement en partie (passages marqués [illisible]). */
+  partiallyReadable?: boolean;
   /**
    * Fichier brut, conservé pour les formats dont l'extraction se fait côté
    * serveur (PDF, Word). `undefined` pour TXT / image (déjà transformés en texte).
    */
   raw?: File;
 }
-
-/** Taille maximale d'une image analysable par OCR. */
-const MAX_IMAGE_BYTES = 25 * 1024 * 1024;
-/** En dessous de ce nombre de lettres/chiffres, l'OCR n'a rien d'exploitable. */
-const MIN_USEFUL_CHARS = 8;
-/** En dessous de cette confiance moyenne, on considère l'image illisible. */
-const MIN_CONFIDENCE = 40;
 
 interface FileDropzoneProps {
   label: string;
@@ -92,9 +93,10 @@ function detectKind(file: File): DropzoneFileKind {
  * Zone de dépôt de fichier réutilisable (glisser-déposer + parcourir).
  *
  * Accepte les documents (PDF / Word / TXT) et les images (JPG, PNG, WEBP).
- * Pour une image, le texte est extrait automatiquement par OCR
- * (`lib/ocr/recognize-image`) puis transmis comme n'importe quel document —
- * avec états de chargement, d'erreur et de réussite.
+ * Pour une image, le texte est lu automatiquement par le modèle de vision
+ * (`lib/ocr/recognize-image`), écriture manuscrite comprise, puis transmis comme
+ * n'importe quel document — avec états de chargement, d'erreur (motif précis)
+ * et de réussite.
  */
 export function FileDropzone({
   label,
@@ -123,15 +125,6 @@ export function FileDropzone({
       kind: "image",
     };
 
-    if (picked.size > MAX_IMAGE_BYTES) {
-      setPhase({
-        status: "error",
-        message: t.imageTooHeavy,
-        retry: null,
-      });
-      return;
-    }
-
     setPhase({
       status: "reading",
       fileName: picked.name,
@@ -141,35 +134,33 @@ export function FileDropzone({
     onExtractingChange?.(true);
 
     try {
-      const { recognizeImage } = await import("@/lib/ocr/recognize-image");
-      const { text, confidence } = await recognizeImage(
+      const { text, quality } = await recognizeImage(
         picked,
         (progress: OcrProgress) => {
           setPhase((current) =>
             current.status === "reading"
-              ? { ...current, ratio: progress.ratio, step: progress.step }
+              ? {
+                  ...current,
+                  ratio: progress.ratio,
+                  step: describeOcrStep(progress.step, t),
+                }
               : current,
           );
         },
       );
 
-      const meaningfulChars = text.replace(/[^\p{L}\p{N}]/gu, "").length;
-      if (meaningfulChars < MIN_USEFUL_CHARS || confidence < MIN_CONFIDENCE) {
-        setPhase({
-          status: "error",
-          message: t.noReadableText,
-          retry: picked,
-        });
-        return;
-      }
-
       setPhase({ status: "idle" });
-      onSelect({ ...base, text });
-    } catch {
+      onSelect({ ...base, text, partiallyReadable: quality === "partial" });
+    } catch (error) {
+      const reason = describeOcrFailure(error, t);
+      // Reprendre la même photo n'a de sens que si l'échec peut être passager
+      // (réseau, service) ; une photo floue, sombre ou trop lourde échouerait à
+      // l'identique — l'élève doit en choisir une autre.
+      const retryable = !(error instanceof OcrError) || error.reason === "failed";
       setPhase({
         status: "error",
-        message: t.analysisFailed,
-        retry: picked,
+        message: reason.charAt(0).toUpperCase() + reason.slice(1),
+        retry: retryable ? picked : null,
       });
     } finally {
       onExtractingChange?.(false);
@@ -351,10 +342,17 @@ export function FileDropzone({
             <span className="text-line" aria-hidden>
               ·
             </span>
-            <span className="inline-flex items-center gap-0.5 font-medium text-success-600">
-              <CircleCheck className="size-3.5" aria-hidden />
-              {isImage ? t.textExtracted : t.imported}
-            </span>
+            {file.partiallyReadable ? (
+              <span className="inline-flex items-center gap-0.5 font-medium text-warning-600">
+                <TriangleAlert className="size-3.5" aria-hidden />
+                {t.partialText}
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-0.5 font-medium text-success-600">
+                <CircleCheck className="size-3.5" aria-hidden />
+                {isImage ? t.textExtracted : t.imported}
+              </span>
+            )}
           </p>
           {isImage && charCount !== null ? (
             <p className="mt-0.5 text-meta text-ink-400">

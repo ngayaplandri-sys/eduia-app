@@ -306,6 +306,25 @@ export const fr = {
     multiFileName: (count: number) => `${count} fichiers`,
     someFilesFailed:
       "Un ou plusieurs fichiers n'ont pas pu être lus et ont été ignorés. Les autres ont bien été ajoutés.",
+    // ── Lecture des photos de cours par l'IA (vision) ─────────────────────
+    ocrUploading: "Envoi de la photo…",
+    ocrReading: "Lecture de l'écriture par l'IA…",
+    ocrBlurry:
+      "la photo est trop floue pour être lue. Reprends-la en tenant le téléphone immobile, mise au point sur le texte.",
+    ocrTooDark:
+      "la photo est trop sombre. Reprends-la dans un endroit bien éclairé, sans ombre sur la page.",
+    ocrGlare:
+      "un reflet masque une partie du texte. Incline légèrement le téléphone ou évite la lumière directe.",
+    ocrCropped:
+      "la page est coupée sur la photo. Recadre pour que toute la page soit visible.",
+    ocrIllegibleHandwriting:
+      "l'écriture n'a pas pu être déchiffrée. Essaie une photo plus proche et plus nette de la page.",
+    ocrUnsupported:
+      "ce format d'image n'est pas pris en charge. Utilise une photo JPG ou PNG.",
+    fileFailed: (name: string, reason: string) => `« ${name} » : ${reason}`,
+    partialText: "Lecture partielle",
+    partialWarning: (name: string) =>
+      `Certains passages de « ${name} » étaient difficiles à lire et sont marqués [illisible]. Tu peux continuer, ou reprendre la photo plus nette pour un résumé plus complet.`,
   },
 
   resumer: {
