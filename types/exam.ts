@@ -1,5 +1,11 @@
 export type ExamQuestionKind = "qcm" | "open" | "truefalse";
 
+/** Langue de rédaction d'une épreuve (contenu ET intitulés du document). */
+export type ExamLanguage = "fr" | "en";
+
+/** Palier de difficulté d'une question (progression facile → difficile). */
+export type ExamQuestionDifficulty = "easy" | "medium" | "hard";
+
 export interface ExamChoice {
   letter: string;
   text: string;
@@ -18,19 +24,47 @@ export interface ExamQuestion {
   points: number;
   /** QCM uniquement. */
   choices?: ExamChoice[];
-  /** Question ouverte — sous-questions numérotées. */
+  /** Question ouverte — sous-questions (affichées a, b, c…). */
   subQuestions?: string[];
   /** Question ouverte — éléments de réponse attendus (corrigé). */
   expectedAnswer?: string;
   /** Vrai / Faux — affirmations à trancher. */
   statements?: ExamStatement[];
+  /**
+   * Nombre de lignes de l'espace réponse sur la copie (0 = aucun : QCM,
+   * Vrai/Faux). Absent des épreuves générées avant la structure A/B/C/D.
+   */
+  answerLines?: number;
+  difficulty?: ExamQuestionDifficulty;
+}
+
+/** Tableau de données d'un document à analyser. */
+export interface ExamDocumentTable {
+  columns: string[];
+  rows: string[][];
+}
+
+/** Document / support à analyser (texte, données, situation…), tiré du cours. */
+export interface ExamDocument {
+  title?: string;
+  /** Texte du document (extrait, situation, consigne de lecture…). */
+  content?: string;
+  table?: ExamDocumentTable;
+  /** Provenance (« D'après le cours », référence citée dans le cours…). */
+  source?: string;
 }
 
 export interface ExamPart {
-  /** « PARTIE 1 : QCM ». */
+  /**
+   * Titre de la partie, sans sa lettre (« Connaissances et compréhension ») :
+   * « PARTIE A », « PARTIE B »… sont ajoutés à l'affichage. Les épreuves plus
+   * anciennes contiennent encore « PARTIE 1 : QCM », nettoyé au rendu.
+   */
   title: string;
   points: number;
   instructions?: string;
+  /** Documents / supports à exploiter dans cette partie (partie C surtout). */
+  documents?: ExamDocument[];
   questions: ExamQuestion[];
 }
 
@@ -39,7 +73,7 @@ export interface ExamPart {
  * Point de bascule : mock aujourd'hui, `lib/ai` (OpenAI) + Supabase demain.
  */
 export interface GeneratedExam {
-  /** Titre du document (« ÉPREUVE D'HISTOIRE »). */
+  /** Titre de l'évaluation (« Évaluation de SVT »). */
   title: string;
   subject: string;
   level: string;
@@ -58,6 +92,17 @@ export interface GeneratedExam {
   status: "Prête" | "En cours";
   generatedBy: string;
   generatedAt: string;
+  /**
+   * Langue de rédaction : les intitulés du document (« PARTIE A », « Durée »…)
+   * la suivent. Absente des épreuves plus anciennes → langue de l'interface.
+   */
+  language?: ExamLanguage;
+  /** Établissement, affiché dans l'en-tête s'il a été renseigné. */
+  institution?: string;
+  /** Consignes générales en tête de l'épreuve. */
+  generalInstructions?: string[];
+  /** Difficulté globale demandée (« Progressive »…). */
+  difficulty?: string;
 }
 
 export interface ExamConfig {
@@ -69,6 +114,10 @@ export interface ExamConfig {
   questionCount: number;
   questionMix: string;
   durationLabel: string;
+  /** Barème total de la dernière épreuve (20 par défaut). */
+  totalPoints?: number;
+  /** Établissement de la dernière épreuve, repris pour la suivante. */
+  institution?: string;
 }
 
 /**
@@ -94,4 +143,12 @@ export interface ExamRequest {
   /** Nombre de pages souhaité pour l'épreuve (« 3 pages »). */
   pageCount: string;
   options: Record<string, boolean>;
+  /** Barème total exact de l'épreuve (20 par défaut). */
+  totalPoints: number;
+  /** Difficulté globale (`EXAM_DIFFICULTIES`). */
+  difficulty: string;
+  /** Langue de rédaction de l'épreuve. */
+  language: ExamLanguage;
+  /** Établissement (facultatif, peut être vide). */
+  institution: string;
 }

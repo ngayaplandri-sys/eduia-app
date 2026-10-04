@@ -1,4 +1,9 @@
 import { z } from "zod";
+import {
+  EXAM_DEFAULT_TOTAL_POINTS,
+  EXAM_DIFFICULTIES,
+  EXAM_LANGUAGES,
+} from "@/lib/config/tool-options";
 
 /**
  * Schémas Zod utilisés à deux endroits :
@@ -45,6 +50,12 @@ export const examRequestSchema = z.object({
   durationLabel: z.string().min(1),
   pageCount: z.string().min(1),
   options: optionsSchema,
+  // Barème total exact (20 par défaut), difficulté globale, langue de
+  // rédaction et établissement facultatif — tous optionnels côté client.
+  totalPoints: z.number().int().min(5).max(200).default(EXAM_DEFAULT_TOTAL_POINTS),
+  difficulty: z.string().trim().min(1).max(40).default(EXAM_DIFFICULTIES[0]),
+  language: z.enum(EXAM_LANGUAGES).default("fr"),
+  institution: z.string().trim().max(120).default(""),
 });
 
 const assistantMessageSchema = z.object({
@@ -177,27 +188,75 @@ const aiExamStatementSchema = z.object({
 
 const aiExamQuestionSchema = z.object({
   kind: z.enum(["qcm", "open", "truefalse"]),
-  prompt: z.string(),
-  points: z.number(),
+  prompt: z
+    .string()
+    .describe("Énoncé de la question, SANS numéro (A.1, 1.… sont ajoutés à l'affichage)."),
+  points: z.number().describe("Points de la question (multiple de 0,5)."),
+  difficulty: z.enum(["easy", "medium", "hard"]),
   /** QCM uniquement (4 choix, un seul `correct: true`). */
   choices: z.array(aiExamChoiceSchema).nullable(),
   /** Question ouverte uniquement. */
-  subQuestions: z.array(z.string()).nullable(),
+  subQuestions: z
+    .array(z.string())
+    .nullable()
+    .describe("Sous-questions d'un exercice/problème, SANS lettre ni numéro (a, b, c… ajoutés à l'affichage)."),
   /** Question ouverte uniquement — corrigé attendu. */
   expectedAnswer: z.string().nullable(),
   /** Vrai / Faux uniquement. */
   statements: z.array(aiExamStatementSchema).nullable(),
+  answerLines: z
+    .number()
+    .int()
+    .describe("Lignes d'espace réponse sur la copie : 0 pour QCM et Vrai/Faux, 2-4 pour une question courte, 5-10 pour un exercice/analyse, 12-20 pour une production écrite/composition/problème."),
+});
+
+const aiExamDocumentSchema = z.object({
+  title: z.string().nullable(),
+  content: z
+    .string()
+    .nullable()
+    .describe("Texte du document ou de la situation, construit à partir du contenu du cours."),
+  table: z
+    .object({ columns: z.array(z.string()), rows: z.array(z.array(z.string())) })
+    .nullable()
+    .describe("Tableau de données tiré du cours (remplace un graphique ou une carte), sinon null."),
+  source: z.string().nullable(),
 });
 
 const aiExamPartSchema = z.object({
-  title: z.string(),
+  title: z
+    .string()
+    .describe("Titre de la partie SANS « Partie A » ni lettre (ex. « Connaissances et compréhension »)."),
   points: z.number(),
   instructions: z.string().nullable(),
+  documents: z
+    .array(aiExamDocumentSchema)
+    .nullable()
+    .describe("Documents/supports à exploiter dans cette partie (analyse de document, situation-problème), sinon null."),
   questions: z.array(aiExamQuestionSchema),
 });
 
 export const aiExamSchema = z.object({
-  title: z.string(),
+  /**
+   * Analyse préalable du cours (non affichée) : force le modèle à identifier
+   * matière, niveau, chapitres, notions et compétences AVANT de rédiger.
+   */
+  analysis: z.object({
+    subject: z.string(),
+    level: z.string().nullable(),
+    chapters: z.array(z.string()),
+    keyNotions: z.array(z.string()),
+    skills: z.array(z.string()).describe("Compétences évaluables (restituer, appliquer, analyser, argumenter…)."),
+    plannedParts: z
+      .array(z.string())
+      .describe("Parties retenues pour CETTE matière (2 à 4), dans l'ordre : titre, raison pédagogique en quelques mots, nombre de questions et points prévus (les sommes doivent faire le nombre de questions et le barème demandés)."),
+  }),
+  title: z
+    .string()
+    .describe("Titre de l'évaluation (ex. « Évaluation de SVT »), sans pays, ministère ni système scolaire national."),
+  generalInstructions: z
+    .array(z.string())
+    .describe("2 à 5 consignes générales courtes, adaptées à la matière."),
   /**
    * Ancrage documentaire : condensé FIDÈLE et dense des notions, définitions,
    * faits, dates et données examinables du document source, dans ses propres

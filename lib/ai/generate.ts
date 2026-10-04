@@ -5,6 +5,12 @@ import { getOpenAIClient, OPENAI_MODEL } from "./openai-client";
 import { AIGenerationError } from "./errors";
 import { estimatePageCountFromText } from "./extract";
 import { aiSummarySchema, aiExamSchema, aiCorrectionSchema } from "./schemas";
+import { balanceExamPoints } from "./exam-points";
+import {
+  cleanPartTitle,
+  cleanQuestionPrompt,
+  cleanSubQuestion,
+} from "@/lib/summary/exam-layout";
 import type { AiUsageTokens } from "./usage";
 import type { Locale } from "@/lib/i18n/config";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
@@ -75,12 +81,39 @@ const SUMMARY_SYSTEM_PROMPT =
   "N'écris JAMAIS de numérotation (1., 1.1, I., A)…) dans les titres : elle est ajoutée automatiquement à l'affichage." +
   " Réponds uniquement selon le schéma structuré demandé, sans texte additionnel.";
 
+/**
+ * Structure scolaire universelle des épreuves (pays francophones et
+ * anglophones, sans identité nationale) : parties A → D choisies selon la
+ * matière, jamais forcées. La lettre des parties, la numérotation A.1…, l'en-tête
+ * (établissement, durée, nom…) et le pied (Total / appréciation / signature)
+ * sont ajoutés par l'application : l'IA ne fournit que le contenu.
+ */
+const EXAM_STRUCTURE_RULE =
+  " DÉMARCHE : analyse d'abord ENTIÈREMENT le cours et remplis `analysis` (matière, niveau si indiqué, chapitres/thèmes, notions importantes, compétences évaluables, parties retenues) ; construis ensuite l'épreuve à partir de cette analyse, en couvrant intelligemment les différentes parties importantes du cours. " +
+  "STRUCTURE : une vraie épreuve scolaire en 2 à 4 parties (`parts`), dans cet ordre logique : " +
+  "(A) connaissances et compréhension — définitions, questions de cours, questions courtes, QCM, vrai/faux, propriétés ou calculs de base ; " +
+  "(B) application / exercices — forme selon la matière (mathématiques : calculs, exercices, problèmes ; sciences : exercices, raisonnement scientifique, exploitation de données ; histoire-géographie/éducation civique : questions, analyse ; langues/français : compréhension, langue, analyse) ; " +
+  "(C) analyse de document / activité — fournis dans `documents` un support construit à partir du cours (extrait, tableau de données, situation, consigne d'observation ; un graphique ou une carte se donne sous forme de tableau de données), puis des questions progressives : observation → compréhension → analyse → interprétation ; si ce n'est pas pertinent pour la matière, remplace-la par une activité pédagogique équivalente ; " +
+  "(D) mobilisation des compétences — situation-problème, problème complexe, étude de cas, exercice de synthèse, raisonnement scientifique, composition/dissertation ou production écrite selon la matière, mobilisant plusieurs notions du cours. " +
+  "N'impose JAMAIS les quatre parties si elles ne sont pas pertinentes : mathématiques → connaissances, exercices, problèmes, problème complexe ; histoire/géographie → connaissances, questions/exercices, analyse de document, situation-problème/composition ; SVT → connaissances, exercices, exploitation de documents, raisonnement scientifique ; français → compréhension, langue, analyse, production écrite. " +
+  "Titres de parties courts et explicites, SANS « Partie A » ni lettre ; énoncés et sous-questions SANS numéro (A.1, a)… sont ajoutés par l'application). " +
+  "NOMBRE DE QUESTIONS : le nombre total de questions numérotées (A.1, A.2, B.1…) doit être celui demandé (±1) — un exercice regroupe ses étapes en sous-questions (`subQuestions`) dans UNE seule question, un bloc vrai/faux regroupe 3 à 5 affirmations dans UNE seule question ; écris dans `plannedParts` le nombre de questions et de points prévus par partie et vérifie les totaux avant de rédiger. " +
+  "VRAI/FAUX : l'énoncé est une consigne (ex. « Indique si chaque affirmation est vraie ou fausse. »), jamais une affirmation recopiée ; les affirmations vont dans `statements`. " +
+  "DOCUMENTS ET SITUATIONS : un document ou une situation fournit des données, un contexte ou un extrait à exploiter, mais ne contient JAMAIS la réponse aux questions posées dessus (ne donne pas la formule, la conclusion ou le résultat que l'élève doit trouver) ; l'élève doit observer, calculer, interpréter ou argumenter. `source` : seulement si le cours cite une source réelle, sinon null. " +
+  "`generalInstructions` : 2 à 5 consignes générales courtes et adaptées à la matière (ex. calculatrice autorisée ou non seulement si pertinent, soin, justification des réponses). Elles s'adressent à l'élève comme sur une vraie épreuve : ne mentionne jamais « le cours fourni », un document importé, EduIA ni l'IA. " +
+  "BARÈME : chaque question a ses points (multiples de 0,5) ; `points` d'une partie = somme exacte de ses questions ; le total de toutes les questions doit être EXACTEMENT le barème total demandé. Pondération indicative selon les parties retenues : connaissances ≈ 20-30 %, application ≈ 25-35 %, analyse ≈ 20-30 %, mobilisation des compétences ≈ 20-30 % — la dernière partie (situation-problème, composition…) est la plus complète, composée de plusieurs sous-questions, et pèse au moins 15 % du total. " +
+  "DIFFICULTÉ : respecte le niveau de la classe et la difficulté demandée ; progression facile → moyen → difficile dans l'épreuve et dans chaque partie (renseigne `difficulty`), la dernière partie étant la plus exigeante ; ne rends pas toute l'épreuve difficile. " +
+  "ESPACE RÉPONSE : `answerLines` adapté à la longueur de réponse attendue (0 pour QCM et vrai/faux). " +
+  "FIDÉLITÉ : ne pose aucune question sur une notion absente du cours fourni ; n'invente ni chapitre, ni date, ni formule, ni définition, ni information externe. Les données chiffrées ou le contexte d'un exercice ou d'une situation peuvent être construits pour l'occasion, mais toutes les connaissances, méthodes et formules nécessaires pour répondre doivent venir du cours. " +
+  "NEUTRALITÉ : n'écris jamais le nom d'un pays, d'un ministère, d'un examen ou d'un système scolaire national dans le titre, les consignes ou les questions (sauf si le cours lui-même porte sur ce sujet). ";
+
 const EXAM_SYSTEM_PROMPT =
-  "Tu es EduIA, un assistant pédagogique francophone qui prépare des épreuves scolaires. " +
-  "Génère une épreuve rigoureuse et professionnelle, adaptée au niveau et à la matière indiqués, avec un barème cohérent. " +
-  "Respecte le nombre total de questions demandé et la répartition indiquée. " +
+  "Tu es EduIA, un assistant pédagogique qui prépare des épreuves scolaires professionnelles et imprimables, utilisables dans tous les pays francophones et anglophones. " +
+  "Génère une épreuve rigoureuse, adaptée au niveau et à la matière indiqués, avec un barème exact. " +
+  "Respecte le nombre total de questions demandé et le type de questions choisi : il prime sur la structure (ex. « QCM » seul → toutes les questions sont des QCM, réparties dans les parties pertinentes). " +
   STRICT_SOURCE_RULE +
-  " Toutes les questions doivent porter sur des notions RÉELLEMENT présentes dans le document et pouvoir être répondues à partir de lui seul. " +
+  " Toutes les questions doivent porter sur des notions RÉELLEMENT présentes dans le document et pouvoir être répondues à partir de lui seul." +
+  EXAM_STRUCTURE_RULE +
   "Pour les questions à choix multiples, propose exactement 4 choix dont une seule réponse correcte (correct: true). " +
   "Pour les questions ouvertes, fournis toujours une réponse attendue précise, tirée du document. " +
   "Pour les affirmations vrai/faux, fournis des affirmations claires et leur valeur de vérité. " +
@@ -168,7 +201,8 @@ function shortLabel(raw: string | null | undefined, maxChars = 32): string {
  * données au modèle.
  */
 function stripLeadingNumbering(text: string): string {
-  return text.replace(/^\s*\d+\s*[.)]\s*/, "").trim();
+  // « 1. », « 1) » et, depuis la structure en parties, « A.1 » / « B.2. ».
+  return cleanQuestionPrompt(text.replace(/^\s*\d+\s*[.)]\s*/, ""));
 }
 
 function activeOptionKeys(options: Record<string, boolean>): string[] {
@@ -386,6 +420,18 @@ export async function summarizeCourse(
 
 // ───────────────────────── B. Générer une épreuve ─────────────────────────
 
+/** Traduction des paliers de `EXAM_DIFFICULTIES` en consigne pour l'IA. */
+const EXAM_DIFFICULTY_PROMPTS: Record<string, string> = {
+  Progressive:
+    "progressive — environ 40 % facile, 40 % moyen, 20 % difficile, du plus simple au plus exigeant",
+  Facile:
+    "plutôt facile — surtout des questions faciles et moyennes, quelques questions un peu plus exigeantes en fin d'épreuve",
+  Moyenne:
+    "moyenne — équilibre entre questions faciles, moyennes et difficiles, toujours progressif",
+  Difficile:
+    "exigeante — davantage de questions moyennes et difficiles, mais l'épreuve commence toujours par des questions accessibles",
+};
+
 function buildExamPrompt(
   request: ExamRequest,
   attachmentCount: number,
@@ -400,9 +446,12 @@ function buildExamPrompt(
   if (theme) lines.push(`Chapitre / thème : ${theme}`);
   lines.push(
     `Type d'épreuve : ${request.examType}`,
-    `Nombre total de questions : ${request.questionCount} (respecte ce nombre, ±1 au maximum, toutes parties confondues)`,
-    `Répartition des questions : ${request.questionMix}`,
-    `Durée prévue : ${request.durationLabel}`,
+    `Nombre total de questions : ${request.questionCount} (respecte ce nombre, ±1 au maximum, toutes parties confondues ; un bloc vrai/faux ou un exercice à sous-questions compte pour une question)`,
+    `Type de questions : ${request.questionMix}`,
+    `Durée prévue : ${request.durationLabel} (calibre la quantité de travail sur cette durée)`,
+    `Barème total : EXACTEMENT ${request.totalPoints} points (somme de toutes les questions)`,
+    `Difficulté demandée : ${EXAM_DIFFICULTY_PROMPTS[request.difficulty] ?? request.difficulty}`,
+    `Langue de l'épreuve : ${request.language === "en" ? "anglais (toute l'épreuve en anglais)" : "français (toute l'épreuve en français)"}`,
     `Longueur cible : ${request.pageCount}`,
   );
 
@@ -467,8 +516,11 @@ export async function generateExam(
    */
   sourceGrounding: string | null;
 }> {
+  // Langue de l'ÉPREUVE (choisie dans le formulaire, par défaut celle de
+  // l'interface) — distincte de `locale`, qui ne sert qu'aux messages d'erreur.
+  const language: Locale = request.language ?? locale;
   const attachments = sourceFiles ?? [];
-  const prompt = buildExamPrompt(request, attachments.length, locale);
+  const prompt = buildExamPrompt(request, attachments.length, language);
 
   // Plusieurs fichiers joints (jusqu'à 5) dans le MÊME message utilisateur :
   // l'IA les lit tous ensemble comme un seul document, pas page par page.
@@ -490,10 +542,11 @@ export async function generateExam(
 
   const response = await getOpenAIClient().responses.parse({
     model: OPENAI_MODEL,
-    instructions: EXAM_SYSTEM_PROMPT + languageDirective(locale),
+    instructions: EXAM_SYSTEM_PROMPT + languageDirective(language),
     input,
-    // + le condensé `sourceOutline` du document → marge de sortie élargie.
-    max_output_tokens: 6000,
+    // Analyse du cours + condensé `sourceOutline` + documents à analyser +
+    // corrigés : marge de sortie élargie.
+    max_output_tokens: 12000,
     text: { format: zodTextFormat(aiExamSchema, "generated_exam") },
   });
 
@@ -502,20 +555,41 @@ export async function generateExam(
     dict.ai.noOutput(dict.ai.labelExam),
   );
 
-  const parts: ExamPart[] = data.parts.map((part) => ({
-    title: part.title,
-    points: part.points,
-    instructions: part.instructions ?? undefined,
-    questions: part.questions.map((question) => ({
-      kind: question.kind,
-      prompt: question.prompt,
-      points: question.points,
-      choices: question.choices ?? undefined,
-      subQuestions: question.subQuestions ?? undefined,
-      expectedAnswer: question.expectedAnswer ?? undefined,
-      statements: question.statements ?? undefined,
-    })),
-  }));
+  const generatedParts: ExamPart[] = data.parts
+    .filter((part) => part.questions.length > 0)
+    .map((part) => ({
+      title: cleanPartTitle(part.title),
+      points: part.points,
+      instructions: part.instructions?.trim() || undefined,
+      documents: part.documents
+        ?.map((doc) => ({
+          title: doc.title?.trim() || undefined,
+          content: doc.content?.trim() || undefined,
+          table:
+            doc.table && doc.table.columns.length > 0 && doc.table.rows.length > 0
+              ? doc.table
+              : undefined,
+          source: doc.source?.trim() || undefined,
+        }))
+        .filter((doc) => doc.content || doc.table),
+      questions: part.questions.map((question) => ({
+        kind: question.kind,
+        prompt: cleanQuestionPrompt(question.prompt),
+        points: question.points,
+        choices: question.choices ?? undefined,
+        subQuestions: question.subQuestions?.map(cleanSubQuestion),
+        expectedAnswer: question.expectedAnswer ?? undefined,
+        statements: question.statements ?? undefined,
+        answerLines:
+          question.kind === "open"
+            ? Math.max(2, Math.min(20, Math.round(question.answerLines)))
+            : 0,
+        difficulty: question.difficulty,
+      })),
+    }));
+
+  // Barème EXACT garanti, quel que soit l'arrondi de l'IA.
+  const parts = balanceExamPoints(generatedParts, request.totalPoints);
 
   const exam: GeneratedExam = {
     title: data.title,
@@ -526,9 +600,15 @@ export async function generateExam(
     durationLabel: request.durationLabel,
     pageCountLabel: request.pageCount,
     questionCount: parts.reduce((total, part) => total + part.questions.length, 0),
-    dateLabel: localizedDateLabel(new Date(), locale),
+    dateLabel: localizedDateLabel(new Date(), language),
     parts,
     totalPoints: parts.reduce((total, part) => total + part.points, 0),
+    language,
+    institution: request.institution.trim() || undefined,
+    generalInstructions: data.generalInstructions
+      .map((line) => line.trim())
+      .filter(Boolean),
+    difficulty: request.difficulty,
     status: "Prête",
     generatedBy: "EduIA",
     generatedAt: new Date().toISOString(),
@@ -576,7 +656,7 @@ function buildGradePrompt(
   }
 
   lines.push(
-    "Dans chaque `prompt` renvoyé, reprends l'énoncé de la question SANS le numéro qui le précède dans le texte ci-dessous (ex. \"Quelle est la capitale ?\", jamais \"1. Quelle est la capitale ?\") : la numérotation est déjà affichée séparément par l'application.",
+    "Dans chaque `prompt` renvoyé, reprends l'énoncé de la question SANS le numéro qui le précède dans le texte ci-dessous (ex. \"Quelle est la capitale ?\", jamais \"1. Quelle est la capitale ?\" ni \"A.1 Quelle est la capitale ?\") : la numérotation est déjà affichée séparément par l'application.",
   );
 
   const reference = truncate(request.examReferenceText, MAX_SOURCE_CHARS);

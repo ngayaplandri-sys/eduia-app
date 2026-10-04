@@ -3,27 +3,29 @@
 import { FileQuestion } from "lucide-react";
 import { EmptyState } from "@/components/feedback/empty-state";
 import { ResultActions } from "@/components/common/result-actions";
-import {
-  ResultHeader,
-  DocumentSheet,
-  DocumentTitle,
-  DocumentMetaGrid,
-  DocumentPart,
-  DocumentFooter,
-  QuestionNumber,
-} from "@/components/common/result-document";
+import { ResultHeader, DocumentSheet } from "@/components/common/result-document";
 import { formatActivityDate, slugify } from "@/lib/utils/format";
 import { examToPlainText } from "@/lib/summary/exam-text";
 import { downloadExamPdf, examPdfFile } from "@/lib/summary/exam-pdf";
+import {
+  examDocLabels,
+  examLanguage,
+  layoutExam,
+  localizeExamTypeFor,
+  subQuestionLetter,
+  type ExamDocLabels,
+  type LaidOutDocument,
+  type LaidOutPart,
+  type LaidOutQuestion,
+} from "@/lib/summary/exam-layout";
 import { useI18n } from "@/lib/i18n/client";
 import {
   localizeActivityStatus,
   localizeExamType,
   localizeLevel,
-  localizePageCount,
   localizeSubject,
 } from "@/lib/i18n/labels";
-import type { ExamPart, ExamQuestion, GeneratedExam } from "@/types";
+import type { GeneratedExam } from "@/types";
 
 /** Cercle à cocher (copie vierge). */
 function Bubble() {
@@ -35,119 +37,221 @@ function Bubble() {
   );
 }
 
-function QcmQuestion({ question, n }: { question: ExamQuestion; n: number }) {
+/** Lignes pointillées de l'espace réponse. */
+function AnswerLines({ count }: { count: number }) {
+  if (count <= 0) return null;
   return (
-    <div className="flex gap-3">
-      <QuestionNumber>{n}</QuestionNumber>
-      <div className="min-w-0 flex-1">
-        <p className="text-sm leading-relaxed text-ink-900">{question.prompt}</p>
-        <div className="mt-2.5 grid grid-cols-1 gap-2 sm:grid-cols-2">
-          {question.choices?.map((choice) => (
-            <span
-              key={choice.letter}
-              className="flex items-center gap-2.5 rounded-lg border border-line px-3 py-2 text-fine text-ink-700"
-            >
-              <Bubble />
-              <span>
-                <span className="font-semibold text-ink-900">
-                  {choice.letter}.
-                </span>{" "}
-                {choice.text}
-              </span>
-            </span>
-          ))}
-        </div>
-      </div>
+    <div className="mt-2.5" aria-hidden>
+      {Array.from({ length: count }, (_, i) => (
+        <div key={i} className="h-7 border-b border-dotted border-ink-400/70" />
+      ))}
     </div>
   );
 }
 
-function OpenQuestion({ question, n }: { question: ExamQuestion; n: number }) {
-  const { dict } = useI18n();
+/** Points d'une question, alignés à droite. */
+function Points({ value, labels }: { value: number; labels: ExamDocLabels }) {
   return (
-    <div className="flex gap-3">
-      <QuestionNumber>{n}</QuestionNumber>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-start justify-between gap-3">
-          <p className="text-sm leading-relaxed text-ink-900">
-            {question.prompt}
-          </p>
-          <span className="shrink-0 text-[0.75rem] font-semibold text-primary-600">
-            {dict.generer.points(question.points)}
-          </span>
+    <span className="shrink-0 whitespace-nowrap rounded-md bg-primary-50 px-1.5 py-0.5 text-[0.75rem] font-semibold tabular-nums text-primary-700">
+      {labels.points(value)}
+    </span>
+  );
+}
+
+function ExamDocumentBox({
+  doc,
+  labels,
+}: {
+  doc: LaidOutDocument;
+  labels: ExamDocLabels;
+}) {
+  return (
+    <figure className="rounded-lg border border-line bg-canvas/60 p-4">
+      <figcaption className="text-fine font-bold text-ink-900">
+        {labels.document} {doc.number}
+        {doc.title ? <span className="font-semibold"> — {doc.title}</span> : null}
+      </figcaption>
+      {doc.content ? (
+        <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-ink-800">
+          {doc.content}
+        </p>
+      ) : null}
+      {doc.table ? (
+        <div className="mt-3 overflow-x-auto">
+          <table className="w-full border-collapse text-fine">
+            <thead>
+              <tr>
+                {doc.table.columns.map((column, i) => (
+                  <th
+                    key={i}
+                    className="border border-line bg-surface px-2.5 py-1.5 text-left font-semibold text-ink-900"
+                  >
+                    {column}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {doc.table.rows.map((row, r) => (
+                <tr key={r}>
+                  {row.map((cell, c) => (
+                    <td
+                      key={c}
+                      className="border border-line px-2.5 py-1.5 align-top text-ink-800"
+                    >
+                      {cell}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-        {question.subQuestions && question.subQuestions.length > 0 ? (
-          <ol className="mt-2 space-y-1 text-fine text-ink-700">
-            {question.subQuestions.map((sub, i) => (
+      ) : null}
+      {doc.source ? (
+        <p className="mt-2 text-meta italic text-ink-500">
+          {labels.source} : {doc.source}
+        </p>
+      ) : null}
+    </figure>
+  );
+}
+
+function ExamQuestionItem({
+  item,
+  labels,
+}: {
+  item: LaidOutQuestion;
+  labels: ExamDocLabels;
+}) {
+  const { question } = item;
+  return (
+    <div className="break-inside-avoid">
+      <div className="flex items-start gap-3">
+        <span className="mt-px inline-flex h-6 min-w-9 shrink-0 items-center justify-center rounded-md bg-primary-100 px-1.5 text-badge font-bold tabular-nums text-primary-700">
+          {item.label}
+        </span>
+        <p className="min-w-0 flex-1 whitespace-pre-line text-sm leading-relaxed text-ink-900">
+          {item.prompt}
+        </p>
+        <Points value={question.points} labels={labels} />
+      </div>
+
+      <div className="sm:pl-12">
+        {question.kind === "qcm" && question.choices ? (
+          <div className="mt-2.5 grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {question.choices.map((choice) => (
+              <span
+                key={choice.letter}
+                className="flex items-center gap-2.5 rounded-lg border border-line px-3 py-2 text-fine text-ink-700"
+              >
+                <Bubble />
+                <span>
+                  <span className="font-semibold text-ink-900">{choice.letter}.</span>{" "}
+                  {choice.text}
+                </span>
+              </span>
+            ))}
+          </div>
+        ) : null}
+
+        {question.kind === "truefalse" && question.statements ? (
+          <div className="mt-2 overflow-x-auto">
+            <table className="w-full border-collapse text-fine">
+              <thead>
+                <tr className="border-y border-line text-ink-500">
+                  <th className="py-2 pr-3 text-left font-semibold">{labels.tfStatements}</th>
+                  <th className="w-14 py-2 text-center font-semibold">{labels.tfTrue}</th>
+                  <th className="w-14 py-2 text-center font-semibold">{labels.tfFalse}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {question.statements.map((statement, i) => (
+                  <tr key={i} className="border-b border-line-soft align-top">
+                    <td className="py-2.5 pr-3 text-ink-900">
+                      <span className="mr-1.5 font-semibold text-ink-500">{i + 1}.</span>
+                      {statement.text}
+                    </td>
+                    <td className="py-2.5 text-center">
+                      <Bubble />
+                    </td>
+                    <td className="py-2.5 text-center">
+                      <Bubble />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : null}
+
+        {item.subQuestions.length > 0 ? (
+          <ol className="mt-2 space-y-1.5 text-sm text-ink-800">
+            {item.subQuestions.map((sub, i) => (
               <li key={i} className="flex gap-2">
                 <span className="shrink-0 font-semibold text-ink-500">
-                  {i + 1}.
+                  {subQuestionLetter(i)})
                 </span>
-                <span>{sub}</span>
+                <span className="min-w-0">{sub}</span>
               </li>
             ))}
           </ol>
         ) : null}
+
+        <AnswerLines count={item.answerLines} />
       </div>
     </div>
   );
 }
 
-function TrueFalseQuestion({ question }: { question: ExamQuestion }) {
-  const { dict } = useI18n();
-  const g = dict.generer;
+function ExamPartSection({
+  part,
+  labels,
+}: {
+  part: LaidOutPart;
+  labels: ExamDocLabels;
+}) {
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[22rem] border-collapse text-fine">
-        <thead>
-          <tr className="border-y border-line text-ink-500">
-            <th className="py-2 pr-3 text-left font-semibold">{g.tfStatements}</th>
-            <th className="w-16 py-2 text-center font-semibold">{g.tfTrue}</th>
-            <th className="w-16 py-2 text-center font-semibold">{g.tfFalse}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {question.statements?.map((statement, i) => (
-            <tr key={i} className="border-b border-line-soft align-top">
-              <td className="py-2.5 pr-3 text-ink-900">
-                <span className="mr-1.5 font-semibold text-ink-500">
-                  {i + 1}.
-                </span>
-                {statement.text}
-              </td>
-              <td className="py-2.5 text-center">
-                <Bubble />
-              </td>
-              <td className="py-2.5 text-center">
-                <Bubble />
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <section className="mt-9" aria-labelledby={`exam-part-${part.letter}`}>
+      <header className="flex items-end justify-between gap-3 border-b-2 border-ink-900 pb-2">
+        <div className="min-w-0">
+          <p className="text-badge font-extrabold uppercase tracking-[0.14em] text-primary-600">
+            {labels.part} {part.letter}
+          </p>
+          <h4
+            id={`exam-part-${part.letter}`}
+            className="mt-1 text-base font-extrabold uppercase tracking-[0.03em] text-balance text-ink-900 [overflow-wrap:anywhere] sm:text-lg"
+          >
+            {part.title}
+          </h4>
+        </div>
+        <span className="shrink-0 pb-0.5 text-fine font-bold tabular-nums text-ink-700">
+          {labels.points(part.points)}
+        </span>
+      </header>
+
+      {part.instructions ? (
+        <p className="mt-2.5 text-fine italic text-ink-500">{part.instructions}</p>
+      ) : null}
+
+      <div className="mt-5 space-y-6">
+        {part.documents.map((doc) => (
+          <ExamDocumentBox key={doc.number} doc={doc} labels={labels} />
+        ))}
+        {part.questions.map((item) => (
+          <ExamQuestionItem key={item.label} item={item} labels={labels} />
+        ))}
+      </div>
+    </section>
   );
 }
 
-function PartQuestions({ part }: { part: ExamPart }) {
+/** Champ à remplir de l'en-tête (« Nom et prénom : ______ »). */
+function BlankLine({ className }: { className?: string }) {
   return (
-    <>
-      {part.questions.map((question, i) => {
-        if (question.kind === "truefalse") {
-          return <TrueFalseQuestion key={i} question={question} />;
-        }
-        // Numérotation par partie : compte les questions numérotables avant celle-ci.
-        const n =
-          part.questions
-            .slice(0, i)
-            .filter((q) => q.kind !== "truefalse").length + 1;
-        return question.kind === "qcm" ? (
-          <QcmQuestion key={i} question={question} n={n} />
-        ) : (
-          <OpenQuestion key={i} question={question} n={n} />
-        );
-      })}
-    </>
+    <span
+      className={`inline-block translate-y-1 border-b border-ink-400 ${className ?? "w-full"}`}
+    />
   );
 }
 
@@ -170,6 +274,28 @@ export function ExamResultPanel({ exam }: { exam: GeneratedExam | null }) {
     );
   }
 
+  const labels = examDocLabels(examLanguage(exam, locale));
+  // Épreuves anciennes (sans langue enregistrée) : valeurs localisées comme avant.
+  const legacy = !exam.language;
+  const subject = legacy ? localizeSubject(exam.subject, dict) : exam.subject;
+  const level = legacy ? localizeLevel(exam.level, dict) : exam.level;
+  const examType = legacy
+    ? localizeExamType(exam.examType, dict)
+    : localizeExamTypeFor(exam.examType, labels);
+  const parts = layoutExam(exam);
+
+  // `wide` : ligne pleine largeur (un chapitre long ne se coupe pas en deux).
+  const headerRows: { label: string; value: React.ReactNode; wide?: boolean }[] = [
+    { label: labels.subject, value: subject },
+    { label: labels.level, value: level },
+    ...(exam.theme?.trim()
+      ? [{ label: labels.theme, value: exam.theme.trim(), wide: true }]
+      : []),
+    { label: labels.duration, value: exam.durationLabel },
+    { label: labels.scale, value: labels.points(exam.totalPoints) },
+    { label: labels.date, value: exam.dateLabel },
+  ];
+
   return (
     <section>
       <ResultHeader
@@ -178,12 +304,9 @@ export function ExamResultPanel({ exam }: { exam: GeneratedExam | null }) {
         statusTone={exam.status === "Prête" ? "success" : "warning"}
         actions={
           <ResultActions
-            plainText={examToPlainText(exam, dict)}
+            plainText={examToPlainText(exam, dict, locale)}
             fileName={`epreuve-${fileBase}.txt`}
-            shareTitle={t.shareTitle(
-              localizeSubject(exam.subject, dict),
-              localizeLevel(exam.level, dict),
-            )}
+            shareTitle={t.shareTitle(subject, level)}
             onDownloadPdf={() =>
               downloadExamPdf(exam, dict, locale, `epreuve-${fileBase}.pdf`)
             }
@@ -195,47 +318,77 @@ export function ExamResultPanel({ exam }: { exam: GeneratedExam | null }) {
       />
 
       <DocumentSheet>
-        <DocumentTitle>{exam.title}</DocumentTitle>
+        {/* ── En-tête de l'épreuve ── */}
+        <header className="rounded-lg border-2 border-ink-900">
+          {exam.institution ? (
+            <p className="border-b border-ink-900 px-4 py-2 text-center text-fine font-bold uppercase tracking-[0.06em] text-ink-900 [overflow-wrap:anywhere]">
+              {exam.institution}
+            </p>
+          ) : null}
+          <div className="px-4 py-3.5 text-center">
+            <h3 className="text-lg font-extrabold uppercase tracking-[0.02em] text-balance text-ink-900 [overflow-wrap:anywhere] sm:text-xl">
+              {exam.title}
+            </h3>
+            <p className="mt-1 text-fine font-medium text-ink-500">{examType}</p>
+          </div>
+          <dl className="grid grid-cols-1 gap-x-6 gap-y-1.5 border-t border-ink-900 px-4 py-3 text-fine sm:grid-cols-2">
+            {headerRows.map((row) => (
+              <div key={row.label} className={`flex gap-2 ${row.wide ? "sm:col-span-2" : ""}`}>
+                <dt className="shrink-0 font-semibold text-ink-700">{row.label} :</dt>
+                <dd className="min-w-0 flex-1 break-words text-ink-900">{row.value}</dd>
+              </div>
+            ))}
+          </dl>
+          <div className="flex items-end gap-2 border-t border-ink-900 px-4 py-3 text-fine">
+            <span className="shrink-0 font-semibold text-ink-700">{labels.name} :</span>
+            <BlankLine />
+          </div>
+        </header>
 
-        <DocumentMetaGrid
-          items={[
-            { label: t.metaLevel, value: localizeLevel(exam.level, dict) },
-            { label: t.metaDuration, value: exam.durationLabel },
-            { label: t.metaSubject, value: localizeSubject(exam.subject, dict) },
-            { label: t.metaQuestionCount, value: exam.questionCount },
-            { label: t.metaTheme, value: exam.theme },
-            {
-              label: t.metaLength,
-              value: localizePageCount(exam.pageCountLabel, dict),
-            },
-            {
-              label: t.metaExamType,
-              value: localizeExamType(exam.examType, dict),
-            },
-            { label: t.metaDate, value: exam.dateLabel },
-            {
-              label: t.metaName,
-              value: (
-                <span className="inline-block w-56 max-w-full translate-y-1 border-b border-ink-400" />
-              ),
-            },
-          ]}
-        />
+        {/* ── Consignes générales ── */}
+        {exam.generalInstructions?.length ? (
+          <section className="mt-6 rounded-lg border border-line bg-canvas/60 px-4 py-3">
+            <h4 className="text-fine font-bold uppercase tracking-[0.06em] text-ink-900">
+              {labels.generalInstructions}
+            </h4>
+            <ul className="mt-2 space-y-1">
+              {exam.generalInstructions.map((instruction, i) => (
+                <li key={i} className="flex gap-2 text-fine leading-relaxed text-ink-700">
+                  <span className="mt-[0.45rem] size-1.5 shrink-0 rounded-full bg-ink-400" aria-hidden />
+                  <span>{instruction}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
 
-        {exam.parts.map((part) => (
-          <DocumentPart
-            key={part.title}
-            title={part.title}
-            points={part.points}
-            instructions={part.instructions}
-          >
-            <PartQuestions part={part} />
-          </DocumentPart>
+        {parts.map((part) => (
+          <ExamPartSection key={part.letter} part={part} labels={labels} />
         ))}
 
-        <DocumentFooter>
-          {t.footerGoodWork} <span aria-hidden>🎓</span>
-        </DocumentFooter>
+        {/* ── Fin de l'épreuve : total, appréciation, signature ── */}
+        <footer className="mt-10 break-inside-avoid border-t-2 border-ink-900 pt-5">
+          <p className="flex items-end justify-end gap-2 text-base font-extrabold text-ink-900">
+            {labels.total} :
+            <BlankLine className="w-16" />
+            <span className="tabular-nums">/ {exam.totalPoints}</span>
+          </p>
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-[1fr_12rem]">
+            <div className="rounded-lg border border-line p-3">
+              <p className="text-fine font-semibold text-ink-700">{labels.appreciation}</p>
+              <div className="mt-1" aria-hidden>
+                <div className="h-7 border-b border-dotted border-ink-400/70" />
+                <div className="h-7 border-b border-dotted border-ink-400/70" />
+              </div>
+            </div>
+            <div className="min-h-24 rounded-lg border border-line p-3">
+              <p className="text-fine font-semibold text-ink-700">{labels.signature}</p>
+            </div>
+          </div>
+          <p className="mt-6 text-center text-fine font-semibold text-ink-500">
+            {labels.goodWork}
+          </p>
+        </footer>
       </DocumentSheet>
 
       <p
@@ -243,10 +396,7 @@ export function ExamResultPanel({ exam }: { exam: GeneratedExam | null }) {
         className="mt-3 flex flex-col gap-1 text-meta text-ink-400 sm:flex-row sm:items-center sm:justify-between"
       >
         <span>
-          {t.footerBy(
-            exam.generatedBy,
-            formatActivityDate(exam.generatedAt, locale),
-          )}
+          {t.footerBy(exam.generatedBy, formatActivityDate(exam.generatedAt, locale))}
         </span>
         <span>{t.footerScale(exam.totalPoints)}</span>
       </p>

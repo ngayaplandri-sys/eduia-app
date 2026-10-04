@@ -17,15 +17,19 @@ import {
   EXAM_DURATIONS,
   EXAM_QUESTION_MIX,
   EXAM_QUESTION_COUNTS,
+  EXAM_TOTAL_POINTS,
+  EXAM_DEFAULT_TOTAL_POINTS,
+  EXAM_DIFFICULTIES,
   PAGE_COUNTS,
 } from "@/lib/config/tool-options";
 import { useI18n } from "@/lib/i18n/client";
 import {
+  localizeExamDifficulty,
   localizeExamMix,
   localizeExamType,
   localizePageCount,
 } from "@/lib/i18n/labels";
-import type { ExamConfig, ExamRequest } from "@/types";
+import type { ExamConfig, ExamLanguage, ExamRequest } from "@/types";
 
 export interface GenerateExamInput {
   request: ExamRequest;
@@ -46,7 +50,7 @@ export function ExamConfigPanel({
   errorCode?: string | null;
   onGenerate: (input: GenerateExamInput) => void;
 }) {
-  const { dict } = useI18n();
+  const { dict, locale } = useI18n();
   const t = dict.generer;
 
   const examOptions: readonly ToggleOption[] = [
@@ -66,6 +70,13 @@ export function ExamConfigPanel({
   const [questionMix, setQuestionMix] = React.useState(config.questionMix);
   const [duration, setDuration] = React.useState(config.durationLabel);
   const [pageCount, setPageCount] = React.useState<string>(PAGE_COUNTS[2]);
+  const [totalPoints, setTotalPoints] = React.useState<number>(
+    config.totalPoints ?? EXAM_DEFAULT_TOTAL_POINTS,
+  );
+  const [difficulty, setDifficulty] = React.useState<string>(EXAM_DIFFICULTIES[0]);
+  // Par défaut, l'épreuve est rédigée dans la langue de l'application.
+  const [language, setLanguage] = React.useState<ExamLanguage>(locale);
+  const [institution, setInstitution] = React.useState(config.institution ?? "");
   // Aucune option cochée par défaut : c'est à l'élève de choisir ce qu'il veut
   // inclure avant de lancer la génération, pas à l'application de décider à
   // sa place.
@@ -116,6 +127,10 @@ export function ExamConfigPanel({
       durationLabel: duration,
       pageCount,
       options,
+      totalPoints,
+      difficulty,
+      language,
+      institution: institution.trim(),
     };
 
     onGenerate({ request, files: rawFiles });
@@ -141,6 +156,17 @@ export function ExamConfigPanel({
         </ConfigSection>
 
         <ConfigSection step={2} title={t.step2}>
+          <Field label={t.institution} htmlFor="exam-institution">
+            <Input
+              id="exam-institution"
+              value={institution}
+              onChange={(e) => setInstitution(e.target.value)}
+              placeholder={t.institutionPlaceholder}
+              maxLength={120}
+              autoComplete="organization"
+            />
+          </Field>
+
           <Field label={t.level} htmlFor="exam-level">
             <Input
               id="exam-level"
@@ -232,6 +258,45 @@ export function ExamConfigPanel({
                     {d}
                   </option>
                 ))}
+              </Select>
+            </Field>
+
+            <Field label={t.totalPoints} htmlFor="exam-total-points">
+              <Select
+                id="exam-total-points"
+                value={String(totalPoints)}
+                onChange={(e) => setTotalPoints(Number(e.target.value))}
+              >
+                {EXAM_TOTAL_POINTS.map((n) => (
+                  <option key={n} value={n}>
+                    {t.totalPointsOption(n)}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+
+            <Field label={t.difficulty} htmlFor="exam-difficulty">
+              <Select
+                id="exam-difficulty"
+                value={difficulty}
+                onChange={(e) => setDifficulty(e.target.value)}
+              >
+                {EXAM_DIFFICULTIES.map((d) => (
+                  <option key={d} value={d}>
+                    {localizeExamDifficulty(d, dict)}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+
+            <Field label={t.language} htmlFor="exam-language">
+              <Select
+                id="exam-language"
+                value={language}
+                onChange={(e) => setLanguage(e.target.value as ExamLanguage)}
+              >
+                <option value="fr">{t.languageFr}</option>
+                <option value="en">{t.languageEn}</option>
               </Select>
             </Field>
 

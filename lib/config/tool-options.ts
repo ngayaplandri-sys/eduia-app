@@ -39,6 +39,25 @@ export const EXAM_QUESTION_MIX = [
 
 export const EXAM_QUESTION_COUNTS = [10, 15, 20, 25, 30] as const;
 
+/**
+ * Barème total de l'épreuve générée. 20 par défaut (`EXAM_DEFAULT_TOTAL_POINTS`) :
+ * la somme des points de toutes les questions est ramenée EXACTEMENT à ce total
+ * côté serveur (`balanceExamPoints`).
+ */
+export const EXAM_TOTAL_POINTS = [10, 20, 40, 50, 100] as const;
+export const EXAM_DEFAULT_TOTAL_POINTS = 20;
+
+/** Difficulté globale. « Progressive » : facile → moyen → difficile. */
+export const EXAM_DIFFICULTIES = [
+  "Progressive",
+  "Facile",
+  "Moyenne",
+  "Difficile",
+] as const;
+
+/** Langue de rédaction de l'épreuve (par défaut, celle de l'application). */
+export const EXAM_LANGUAGES = ["fr", "en"] as const;
+
 export const SUMMARY_STYLES = [
   "Résumé clair",
   "Résumé détaillé",

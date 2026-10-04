@@ -6,6 +6,8 @@ import {
   EXAM_DURATIONS,
   EXAM_QUESTION_MIX,
   EXAM_QUESTION_COUNTS,
+  EXAM_TOTAL_POINTS,
+  EXAM_DEFAULT_TOTAL_POINTS,
 } from "@/lib/config/tool-options";
 import type { ExamConfig, ExamRequest, GeneratedExam } from "@/types";
 import { getCurrentUser } from "./user";
@@ -65,6 +67,12 @@ export async function getLatestExam(id?: string): Promise<{
       : EXAM_QUESTION_COUNTS[1],
     questionMix: EXAM_QUESTION_MIX[3],
     durationLabel: exam.durationLabel,
+    // Barème et établissement repris de la dernière épreuve (barème hors liste
+    // proposée → valeur par défaut, 20).
+    totalPoints: (EXAM_TOTAL_POINTS as readonly number[]).includes(row.totalPoints)
+      ? row.totalPoints
+      : EXAM_DEFAULT_TOTAL_POINTS,
+    institution: exam.institution ?? "",
   };
 
   return { config, exam };

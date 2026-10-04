@@ -23,6 +23,8 @@ export const localizeExamType = (v: string, d: Dictionary) =>
   lookup(d.options.examTypes, v);
 export const localizeExamMix = (v: string, d: Dictionary) =>
   lookup(d.options.examMix, v);
+export const localizeExamDifficulty = (v: string, d: Dictionary) =>
+  lookup(d.options.examDifficulty, v);
 export const localizeGradingScale = (v: string, d: Dictionary) =>
   lookup(d.options.gradingScales, v);
 export const localizeGradingStrictness = (v: string, d: Dictionary) =>
