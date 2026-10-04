@@ -68,6 +68,11 @@ const SUMMARY_SYSTEM_PROMPT =
   "Tu es EduIA, un assistant pédagogique francophone qui aide des élèves à réviser efficacement. " +
   "Produis un résumé de cours fidèle, clair et structuré, adapté au niveau scolaire indiqué. " +
   STRICT_SOURCE_RULE +
+  " STRUCTURE OBLIGATOIRE, comme une vraie fiche de cours : organise `sections` en grandes parties (en général 2 à 5) qui suivent le plan logique du cours ; " +
+  "TOUTE grande partie contient au moins une sous-partie (`subsections`, idéalement 2 à 4 quand le contenu le permet), chacune avec un sous-titre précis et son explication (paragraphes et/ou puces) : c'est dans les sous-parties que va TOUT le contenu explicatif. " +
+  "Les `paragraphs` d'une grande partie se limitent à UNE phrase d'introduction facultative (sinon null) et ses `bullets` restent null. " +
+  "Si une notion est trop courte pour former une grande partie, regroupe-la avec une notion voisine en sous-parties d'une même grande partie ; n'invente jamais de contenu pour remplir une sous-partie. " +
+  "N'écris JAMAIS de numérotation (1., 1.1, I., A)…) dans les titres : elle est ajoutée automatiquement à l'affichage." +
   " Réponds uniquement selon le schéma structuré demandé, sans texte additionnel.";
 
 const EXAM_SYSTEM_PROMPT =
@@ -358,6 +363,14 @@ export async function summarizeCourse(
       bullets: section.bullets?.map((bullet) => ({
         lead: bullet.lead ?? undefined,
         text: bullet.text,
+      })),
+      subsections: section.subsections.map((sub) => ({
+        heading: sub.heading,
+        paragraphs: sub.paragraphs ?? undefined,
+        bullets: sub.bullets?.map((bullet) => ({
+          lead: bullet.lead ?? undefined,
+          text: bullet.text,
+        })),
       })),
     })),
     keyConcepts: data.keyConcepts,

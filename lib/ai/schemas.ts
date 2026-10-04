@@ -86,10 +86,30 @@ const aiSummaryBulletSchema = z.object({
   text: z.string(),
 });
 
-const aiSummarySectionSchema = z.object({
-  heading: z.string(),
+/** Sous-partie d'une grande partie (affichée « 1.1 », « 1.2 »…). */
+const aiSummarySubsectionSchema = z.object({
+  heading: z
+    .string()
+    .describe("Sous-titre court, SANS numérotation (1.1, 1.2… est ajouté à l'affichage)."),
   paragraphs: z.array(z.string()).nullable(),
   bullets: z.array(aiSummaryBulletSchema).nullable(),
+});
+
+const aiSummarySectionSchema = z.object({
+  heading: z
+    .string()
+    .describe("Titre de la grande partie, court, SANS numérotation (1, 2… est ajouté à l'affichage)."),
+  paragraphs: z
+    .array(z.string())
+    .nullable()
+    .describe("Au plus UNE phrase d'introduction de la grande partie, sinon null. Le contenu explicatif va dans `subsections`."),
+  bullets: z
+    .array(aiSummaryBulletSchema)
+    .nullable()
+    .describe("null : les puces vont dans les sous-parties."),
+  subsections: z
+    .array(aiSummarySubsectionSchema)
+    .describe("Sous-parties de la grande partie (au moins 1, idéalement 2 à 4), chacune avec son sous-titre et TOUTE son explication."),
 });
 
 const aiSummaryDefinitionSchema = z.object({

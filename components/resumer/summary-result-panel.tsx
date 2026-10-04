@@ -13,6 +13,8 @@ import {
   type MetaItem,
 } from "@/components/common/result-document";
 import { formatActivityDate, slugify } from "@/lib/utils/format";
+import { cn } from "@/lib/utils/cn";
+import { buildSummaryOutline } from "@/lib/summary/outline";
 import { summaryToPlainText } from "@/lib/summary/plain-text";
 import { downloadSummaryPdf, summaryPdfFile } from "@/lib/summary/summary-pdf";
 import { useI18n } from "@/lib/i18n/client";
@@ -23,7 +25,7 @@ import {
   localizeSubject,
   localizeSummaryStyle,
 } from "@/lib/i18n/labels";
-import type { CourseSummary } from "@/types";
+import type { CourseSummary, SummaryBullet } from "@/types";
 
 export function SummaryResultPanel({
   summary,
@@ -122,45 +124,52 @@ export function SummaryResultPanel({
           ]}
         />
 
-        <div className="mt-6 space-y-5">
-          {summary.sections.map((section) => (
-            <section key={section.heading}>
-              <h4 className="text-[0.95rem] font-bold text-ink-900">
-                {section.heading}
-              </h4>
-
-              {section.paragraphs?.map((paragraph, index) => (
-                <p
-                  key={index}
-                  className="mt-2 text-sm leading-relaxed text-ink-700"
+        <div className="mt-8 space-y-10">
+          {buildSummaryOutline(summary.sections).map((part) => (
+            <section key={part.number} aria-labelledby={`part-${part.number}`}>
+              {/* Grande partie : numéro + titre centrés, filet sous le titre. */}
+              <header className="mx-auto flex max-w-2xl flex-col items-center px-2 text-center">
+                <span
+                  className="grid size-8 place-items-center rounded-full bg-primary-100 text-sm font-bold tabular-nums text-primary-700 ring-1 ring-primary-200"
+                  aria-hidden
                 >
-                  {paragraph}
-                </p>
-              ))}
+                  {part.number}
+                </span>
+                <h4
+                  id={`part-${part.number}`}
+                  className="mt-2.5 text-base font-extrabold uppercase tracking-[0.04em] text-balance text-ink-900 [overflow-wrap:anywhere] sm:text-lg"
+                >
+                  <span className="sr-only">{part.number}. </span>
+                  {part.heading}
+                </h4>
+                <span
+                  className="mt-2.5 h-0.5 w-12 rounded-full bg-primary-300"
+                  aria-hidden
+                />
+              </header>
 
-              {section.bullets ? (
-                <ul className="mt-2 space-y-1.5">
-                  {section.bullets.map((bullet, index) => (
-                    <li
-                      key={index}
-                      className="flex gap-2.5 text-sm leading-relaxed text-ink-700"
-                    >
-                      <span
-                        className="mt-[0.5rem] size-1.5 shrink-0 rounded-full bg-primary-300"
-                        aria-hidden
-                      />
-                      <span>
-                        {bullet.lead ? (
-                          <strong className="font-semibold text-ink-900">
-                            {bullet.lead}{" "}
-                          </strong>
-                        ) : null}
-                        {bullet.text}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
+              <OutlineContent
+                paragraphs={part.paragraphs}
+                bullets={part.bullets}
+                className="mt-4"
+              />
+
+              {part.subsections.map((sub) => (
+                <div key={sub.number} className="mt-6">
+                  {/* Sous-partie : « 1.1 Sous-titre », centrée, un cran sous la partie. */}
+                  <h5 className="mx-auto max-w-2xl px-2 text-center text-[0.95rem] font-bold text-balance text-ink-900 [overflow-wrap:anywhere] sm:text-base">
+                    <span className="mr-1.5 font-extrabold tabular-nums text-primary-600">
+                      {sub.number}
+                    </span>
+                    {sub.heading}
+                  </h5>
+                  <OutlineContent
+                    paragraphs={sub.paragraphs}
+                    bullets={sub.bullets}
+                    className="mt-2.5"
+                  />
+                </div>
+              ))}
             </section>
           ))}
         </div>
@@ -234,5 +243,58 @@ export function SummaryResultPanel({
         </DocumentFooter>
       </DocumentSheet>
     </section>
+  );
+}
+
+/**
+ * Explication sous un titre de partie / sous-partie : alignée à gauche pour la
+ * lecture, dans une colonne centrée de largeur confortable (~70 caractères).
+ */
+function OutlineContent({
+  paragraphs,
+  bullets,
+  className,
+}: {
+  paragraphs: string[];
+  bullets: SummaryBullet[];
+  className?: string;
+}) {
+  if (paragraphs.length === 0 && bullets.length === 0) return null;
+
+  return (
+    <div className={cn("mx-auto max-w-[70ch] space-y-2", className)}>
+      {paragraphs.map((paragraph, index) => (
+        <p
+          key={index}
+          className="text-sm leading-relaxed text-pretty text-ink-700"
+        >
+          {paragraph}
+        </p>
+      ))}
+
+      {bullets.length > 0 ? (
+        <ul className="space-y-1.5">
+          {bullets.map((bullet, index) => (
+            <li
+              key={index}
+              className="flex gap-2.5 text-sm leading-relaxed text-ink-700"
+            >
+              <span
+                className="mt-[0.5rem] size-1.5 shrink-0 rounded-full bg-primary-300"
+                aria-hidden
+              />
+              <span>
+                {bullet.lead ? (
+                  <strong className="font-semibold text-ink-900">
+                    {bullet.lead}{" "}
+                  </strong>
+                ) : null}
+                {bullet.text}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
   );
 }

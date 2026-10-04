@@ -6,6 +6,7 @@ import {
   localizeSummaryStyle,
 } from "@/lib/i18n/labels";
 import { localizePageCount } from "@/lib/i18n/labels";
+import { buildSummaryOutline } from "./outline";
 
 /**
  * Version texte brut d'un résumé de cours — alimente le téléchargement `.txt`,
@@ -40,12 +41,19 @@ export function summaryToPlainText(
     "",
   ];
 
-  for (const section of summary.sections) {
-    lines.push(section.heading);
-    for (const p of section.paragraphs ?? []) lines.push(p);
-    for (const b of section.bullets ?? [])
+  for (const part of buildSummaryOutline(summary.sections)) {
+    lines.push(`${part.number}. ${part.heading.toUpperCase()}`);
+    for (const p of part.paragraphs) lines.push(p);
+    for (const b of part.bullets)
       lines.push(`- ${b.lead ? `${b.lead} ` : ""}${b.text}`);
     lines.push("");
+    for (const sub of part.subsections) {
+      lines.push(`   ${sub.number} ${sub.heading}`);
+      for (const p of sub.paragraphs) lines.push(`   ${p}`);
+      for (const b of sub.bullets)
+        lines.push(`   - ${b.lead ? `${b.lead} ` : ""}${b.text}`);
+      lines.push("");
+    }
   }
 
   if (summary.keyConcepts.length > 0) {

@@ -4,10 +4,22 @@ export interface SummaryBullet {
   text: string;
 }
 
+/** Sous-partie d'une grande partie (affichée « 1.1 », « 1.2 »…). */
+export interface SummarySubsection {
+  heading: string;
+  paragraphs?: string[];
+  bullets?: SummaryBullet[];
+}
+
+/**
+ * Grande partie du résumé (affichée « 1 », « 2 »…). `subsections` est absent
+ * des résumés générés avant l'introduction de la hiérarchie à deux niveaux.
+ */
 export interface SummarySection {
   heading: string;
   paragraphs?: string[];
   bullets?: SummaryBullet[];
+  subsections?: SummarySubsection[];
 }
 
 export interface SummaryDefinition {

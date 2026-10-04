@@ -1,4 +1,5 @@
-import type { CourseSummary } from "@/types";
+import type { CourseSummary, SummaryBullet } from "@/types";
+import { buildSummaryOutline } from "./outline";
 import { formatActivityDate } from "@/lib/utils/format";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
 import {
@@ -41,6 +42,30 @@ function metaLine(label: string, value: string): Block {
   };
 }
 
+/** Explication sous un titre : paragraphes puis puces (préfixe en gras). */
+function pushOutlineContent(
+  content: Block[],
+  paragraphs: string[],
+  bullets: SummaryBullet[],
+): void {
+  for (const paragraph of paragraphs) {
+    content.push({ text: paragraph, style: "para" });
+  }
+
+  if (bullets.length > 0) {
+    content.push({
+      ul: bullets.map((bullet): { text: Run[] } | string => {
+        if (bullet.lead) {
+          return { text: [{ text: `${bullet.lead} `, bold: true }, bullet.text] };
+        }
+        return bullet.text;
+      }),
+      style: "para",
+      margin: [0, 2, 0, 6],
+    });
+  }
+}
+
 function buildContent(summary: CourseSummary, dict: Dictionary): Block[] {
   const t = dict.resumer;
   const content: Block[] = [
@@ -73,25 +98,42 @@ function buildContent(summary: CourseSummary, dict: Dictionary): Block[] {
     margin: [0, 4, 0, 12],
   });
 
-  // ── Sections (titres + paragraphes + listes à puces) ──
-  for (const section of summary.sections) {
-    content.push({ text: section.heading, style: "heading" });
+  // ── Plan numéroté : grandes parties (1, 2…) et sous-parties (1.1, 1.2…),
+  // titres centrés, explications alignées à gauche ──
+  for (const part of buildSummaryOutline(summary.sections)) {
+    content.push({
+      stack: [
+        { text: `${part.number}. ${part.heading.toUpperCase()}`, style: "heading" },
+        {
+          // Filet court centré sous le titre (pdfmake ne centre pas un canvas seul).
+          columns: [
+            { width: "*", text: "" },
+            {
+              width: 40,
+              canvas: [
+                { type: "line", x1: 0, y1: 0, x2: 40, y2: 0, lineWidth: 1.5, lineColor: PRIMARY },
+              ],
+            },
+            { width: "*", text: "" },
+          ],
+          margin: [0, 4, 0, 8],
+        },
+      ],
+      unbreakable: true,
+      headlineLevel: 1,
+    });
+    pushOutlineContent(content, part.paragraphs, part.bullets);
 
-    for (const paragraph of section.paragraphs ?? []) {
-      content.push({ text: paragraph, style: "para" });
-    }
-
-    if (section.bullets && section.bullets.length > 0) {
+    for (const sub of part.subsections) {
       content.push({
-        ul: section.bullets.map((bullet): { text: Run[] } | string => {
-          if (bullet.lead) {
-            return { text: [{ text: `${bullet.lead} `, bold: true }, bullet.text] };
-          }
-          return bullet.text;
-        }),
-        style: "para",
-        margin: [0, 2, 0, 6],
+        text: [
+          { text: `${sub.number}  `, color: PRIMARY },
+          { text: sub.heading },
+        ],
+        style: "subheading",
+        headlineLevel: 2,
       });
+      pushOutlineContent(content, sub.paragraphs, sub.bullets);
     }
   }
 
@@ -150,6 +192,16 @@ function buildSummaryDoc(
     pageSize: "A4",
     pageMargins: PDF_PAGE_MARGINS,
     content: buildContent(summary, dict),
+    // Jamais de titre de partie / sous-partie orphelin en bas de page : s'il
+    // commence dans le dernier ~1/8 de la page, il passe à la page suivante
+    // avec son explication.
+    pageBreakBefore: (node: {
+      headlineLevel?: number;
+      startPosition?: { verticalRatio?: number };
+    }) =>
+      Boolean(node.headlineLevel) &&
+      (node.startPosition?.verticalRatio ?? 0) >
+        (node.headlineLevel === 1 ? 0.86 : 0.9),
     footer: (currentPage: number, pageCount: number) => ({
       columns: [
         { text: generatedLine, alignment: "left", fontSize: 7.5, color: MUTED },
@@ -164,7 +216,21 @@ function buildSummaryDoc(
     }),
     styles: {
       title: { fontSize: 16, bold: true, alignment: "center", color: INK },
-      heading: { fontSize: 12, bold: true, color: INK, margin: [0, 12, 0, 4] },
+      heading: {
+        fontSize: 12.5,
+        bold: true,
+        color: INK,
+        alignment: "center",
+        characterSpacing: 0.4,
+        margin: [24, 16, 24, 0],
+      },
+      subheading: {
+        fontSize: 11,
+        bold: true,
+        color: INK,
+        alignment: "center",
+        margin: [36, 10, 36, 5],
+      },
       blockTitle: { fontSize: 11, bold: true, color: PRIMARY, margin: [0, 14, 0, 5] },
       para: { fontSize: 10, lineHeight: 1.35, color: "#33384a", margin: [0, 0, 0, 5] },
     },
