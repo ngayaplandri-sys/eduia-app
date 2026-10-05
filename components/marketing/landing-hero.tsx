@@ -6,7 +6,7 @@ import { Reveal } from "@/components/motion/reveal";
 import { cn } from "@/lib/utils/cn";
 import { getDictionary } from "@/lib/i18n/server";
 import { LANDING_HERO_END_SENTINEL } from "@/lib/config/marketing";
-import { HeroScene } from "./hero-scene";
+import { ParallaxScene } from "./parallax-scene";
 import { ctaArrowClass, ctaGhostDarkClass, ctaPrimaryClass } from "./marketing-ui";
 import { AssistantBubble, CorrectionCard, ExamCard, SummaryCard } from "./scene-cards";
 
@@ -65,7 +65,7 @@ export async function LandingHero({ isAuthenticated }: { isAuthenticated: boolea
         className="pointer-events-none absolute inset-x-0 bottom-[4.5rem] h-px"
       />
 
-      <HeroScene className="relative flex flex-col lg:block lg:min-h-[max(46rem,100svh)]">
+      <ParallaxScene className="relative flex flex-col lg:block lg:min-h-[max(46rem,100svh)]">
         {/* ── Photo (plan moyen + arrière-plan) ── */}
         <div
           className={cn(
@@ -226,7 +226,7 @@ export async function LandingHero({ isAuthenticated }: { isAuthenticated: boolea
             </Reveal>
           </div>
         </div>
-      </HeroScene>
+      </ParallaxScene>
 
       {/* Fondu vers la section suivante (la bande d'indicateurs chevauche ce bord). */}
       <div

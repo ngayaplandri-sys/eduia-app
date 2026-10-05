@@ -3,7 +3,7 @@
 import * as React from "react";
 import { observeOnce } from "@/lib/motion/observe-once";
 
-export type RevealVariant = "up" | "left" | "right" | "scale" | "fade" | "media";
+export type RevealVariant = "up" | "left" | "right" | "scale" | "fade" | "media" | "phone";
 
 interface RevealProps extends React.ComponentProps<"div"> {
   /** Décalage avant la révélation (cascade d'éléments voisins). */

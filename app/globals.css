@@ -450,6 +450,14 @@
   --reveal-scale: 0.97;
   --reveal-blur: 0px;
 }
+/* Smartphones de « Comment ça marche ? » : arrivée lente, du bas, avec un
+   léger flou qui se dissipe. */
+[data-reveal="phone"] {
+  --reveal-y: 60px;
+  --reveal-scale: 0.94;
+  --reveal-blur: 6px;
+  transition-duration: 1.3s, 1.6s, 1.3s;
+}
 [data-reveal][data-revealed] {
   opacity: 1;
   transform: none;
@@ -500,7 +508,7 @@
 }
 
 /* Profondeur au curseur : `--px`/`--py` (−1 → 1) posées en JS sur la scène
-   (voir `hero-scene.tsx`), chaque couche se décale selon sa `--depth`. Propriété
+   (voir `parallax-scene.tsx`), chaque couche se décale selon sa `--depth`. Propriété
    `translate` (indépendante de `transform`) : ne gêne ni la révélation ni la
    parallaxe de scroll posées sur d'autres éléments. */
 @utility depth-layer {
@@ -703,41 +711,6 @@
   }
 }
 
-/* Inclinaison 3D d'un mockup iPhone (section « Comment ça marche ? ») au
-   passage du curseur, desktop uniquement (pointeur fin). `--tilt-x`/`--tilt-y`
-   sont posées en JS sur le conteneur (voir `interactive-phone.tsx`, même
-   technique que `hero-scene.tsx` : écrit directement sur le nœud DOM, pas de
-   re-rendu React par `mousemove`). L'élévation au survol utilise `translate`
-   — une propriété CSS indépendante de `transform` — pour ne jamais entrer en
-   conflit avec la rotation pilotée en JS ni avec le `transform` de `Reveal`
-   (élément ancêtre distinct). Neutralisé en reduced-motion. */
-@utility phone-tilt {
-  transform: perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
-  transition:
-    transform 500ms cubic-bezier(0.22, 1, 0.36, 1),
-    translate 500ms cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow 500ms ease-out;
-  box-shadow:
-    0 30px 60px -25px rgb(27 31 42 / 0.35),
-    0 12px 24px -12px rgb(105 63 168 / 0.18);
-
-  @media (hover: hover) and (pointer: fine) {
-    &:hover {
-      translate: 0 -0.6rem;
-      box-shadow:
-        0 44px 80px -22px rgb(27 31 42 / 0.45),
-        0 20px 44px -14px rgb(105 63 168 / 0.32);
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    transform: none !important;
-    transition: none !important;
-    &:hover {
-      translate: none !important;
-    }
-  }
-}
 
 /* -----------------------------------------------------------------------------
    Micro-interaction au survol — cohérente sur tous les éléments cliquables

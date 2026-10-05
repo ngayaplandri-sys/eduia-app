@@ -95,6 +95,23 @@ export const marketingBenefitIcons: LucideIcon[] = [
 ];
 
 /**
+ * Smartphone photographié de « Comment ça marche ? » (même appareil, version
+ * miroir à droite). Dimensions des images détourées et coins de l'écran
+ * mesurés au pixel près sur l'écran magenta d'origine (voir
+ * `lib/marketing/screen-quad.ts`) : l'interface EduIA, dessinée en
+ * `screen.width` × `screen.height`, est projetée exactement sur la vitre.
+ */
+export const marketingPhone = {
+  width: 764,
+  height: 1792,
+  screen: { width: 390, height: 844, radius: 50 },
+  quads: {
+    left: { tl: [109, 47.2], tr: [713, 99.6], br: [713, 1720.1], bl: [109, 1739.4] },
+    right: { tl: [51, 99.6], tr: [655, 47.2], br: [655, 1739.4], bl: [51, 1720.1] },
+  },
+} as const;
+
+/**
  * Vidéo de démonstration existante (jamais remplacée) + image d'attente
  * extraite de cette même vidéo. Durée réelle du fichier : 27 s.
  */

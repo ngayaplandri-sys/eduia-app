@@ -3,13 +3,14 @@
 import * as React from "react";
 
 /**
- * Profondeur « caméra » du hero : quand la souris bouge, chaque couche
- * `depth-layer` (photo, cartes flottantes) se décale selon sa `--depth`, ce qui
- * sépare premier plan, plan moyen et arrière-plan. Écrit `--px`/`--py`
+ * Profondeur « caméra » d'une scène (hero, « Comment ça marche ? ») : quand
+ * la souris bouge, chaque couche `depth-layer` (photo, téléphones, cartes
+ * flottantes) se décale selon sa `--depth`, ce qui sépare premier plan, plan
+ * moyen et arrière-plan. Écrit `--px`/`--py`
  * (−1 → 1) sur le nœud, une fois par frame au plus, sans re-rendu React.
  * Souris uniquement ; neutralisé sous `prefers-reduced-motion` (CSS).
  */
-export function HeroScene({
+export function ParallaxScene({
   className,
   children,
 }: {
