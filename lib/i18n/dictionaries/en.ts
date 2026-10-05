@@ -944,49 +944,34 @@ export const en: Dictionary = {
       mobileNavLabel: "Mobile navigation",
       sheetTitle: "Navigation",
       sheetDescription: "Navigation and sign-in links",
+      homeAria: "EduIA, back to home",
     },
     hero: {
-      badge: "Your intelligent learning assistant",
-      titleLine1: "Learn better,",
-      titleLine2: "go further",
-      titleAria: "Learn better, go further",
+      badge: "AI built for learning",
+      titleLine1: "From lessons to tests,",
+      titleLine2: "everything gets ",
+      titleAccent: "simpler.",
       subtitle:
-        "EduIA helps you understand your courses, generate tailored tests, and grade your answers using artificial intelligence.",
+        "Clear summaries, tailored tests and detailed corrections, created in seconds from your own course notes.",
       ctaPrimary: "Get started free",
-      ctaSecondary: "See how it works",
+      ctaSecondary: "Watch the demo",
       imageAlt:
-        "Two smiling students in front of a laptop with a brain logo, using artificial intelligence, surrounded by learning icons",
+        "A student revising in the evening at her laptop, in a library bathed in violet light",
+      cards: {
+        summaryLabel: "Summary ready",
+        summaryTitle: "Photosynthesis",
+        summaryMeta: "Biology · Year 13",
+        examLabel: "Test created",
+        examTitle: "Supervised test",
+        examMeta: "4 parts, marked out of 20",
+        correctionLabel: "Detailed correction",
+        correctionScore: "16/20",
+        correctionPraise: "Strong progress",
+        assistantLabel: "AI assistant",
+        assistantQuestion: "Explain the Calvin cycle to me.",
+      },
     },
-    socialProof:
-      "Join the first cohorts learning smarter with EduIA.",
-    video: {
-      aria: "EduIA demo video",
-      fallback: "Your browser does not support video playback.",
-    },
-    features: {
-      heading: "Everything you need to",
-      headingAccent: "succeed",
-      subtitle:
-        "Three tools that work together to help you understand, practice, and improve.",
-      learnMore: "Learn more",
-      items: [
-        {
-          title: "Summarize your courses",
-          description:
-            "Import your courses (PDF, Word, text) and get a clear, structured, easy-to-understand summary.",
-        },
-        {
-          title: "Generate tests",
-          description:
-            "Choose your chapters, level, and question type. The AI creates tests tailored to your needs.",
-        },
-        {
-          title: "Grade your tests",
-          description:
-            "Submit your answers and get a detailed correction, explanations, and tips to improve.",
-        },
-      ],
-    },
+    statsLabel: "EduIA at a glance",
     stats: [
       { value: "100%", label: "Tailored to your level and curriculum" },
       { value: "3 min", label: "To turn a course into a clear summary" },
@@ -994,28 +979,32 @@ export const en: Dictionary = {
       { value: "0 FCFA", label: "To create your account, no card required" },
     ],
     how: {
-      badge: "Simple, fast, effective",
-      heading: "How",
-      headingAccent: "it works",
+      heading: "How it",
+      headingAccent: "works",
+      headingSuffix: "",
+      subtitle: "Three steps, from your notes to real progress.",
       steps: [
         {
           title: "Import your course",
-          description: "Add your file or paste your text. The AI analyzes the content.",
+          description:
+            "PDF, Word, text or a photo of your notebook: EduIA reads it all, even handwriting.",
         },
         {
-          title: "Generate or learn",
-          description: "Get a clear summary or generate a tailored test.",
+          title: "Generate your content",
+          description:
+            "In seconds, a structured summary, a test matched to your level, or both.",
         },
         {
-          title: "Grade and improve",
-          description: "Submit your answers and get your correction plus tips.",
+          title: "Learn, practice and improve",
+          description:
+            "Answer, get corrected question by question and track your progress.",
         },
       ],
       mockup: {
         correctionResultLabel: "Correction result",
         scoreAria: "Score 16 out of 20",
         scoreLabel: "SCORE",
-        praise: "Great job! You're improving fast",
+        praise: "Great job, you're improving fast",
         goodAnswers: "Correct answers",
         errors: "Mistakes",
         percentage: "Percentage",
@@ -1039,9 +1028,205 @@ export const en: Dictionary = {
         resumePoint2: "Standard calculation rules",
         resumePoint3: "Applications and sample exercises",
         resumeCta: "View full summary",
+        resumePagesRead: "Pages read",
+        resumePagesCount: "3 / 5",
+        resumeFormats: ["PDF", "Word", "Photo"],
+        totalPoints: "Total marks",
+        totalPointsValue: "20 marks",
+        language: "Test language",
+        languageValue: "English",
       },
       phoneAriaSummarize: "Preview: summarizing a course with EduIA",
       phoneAriaGrade: "Preview: generating and grading a test with EduIA",
+    },
+    demo: {
+      heading: "See EduIA",
+      headingAccent: "in action",
+      subtitle: "Tour the EduIA interface in under a minute.",
+      play: "Play the video",
+      video: {
+        aria: "EduIA demo video",
+        fallback: "Your browser does not support video playback.",
+      },
+    },
+    features: {
+      heading: "From your notes to",
+      headingAccent: "success",
+      subtitle:
+        "Each tool picks up where the last one stops: your course becomes a complete revision path.",
+      stepsLabel: "The steps of the EduIA path",
+      steps: [
+        {
+          label: "Course",
+          title: "Start with what you already have",
+          body: "A PDF, a Word file, pasted text or up to 5 notebook photos, read as one single course.",
+        },
+        {
+          label: "Summary",
+          title: "A structured summary, true to your course",
+          body: "Main parts, sub-parts, definitions and key points: a real revision sheet, with nothing made up.",
+        },
+        {
+          label: "Test",
+          title: "A test like the ones in class",
+          body: "Parts A to D, exact marking, progressive difficulty, in English or French, ready to print as a PDF.",
+        },
+        {
+          label: "Correction",
+          title: "Corrections that explain",
+          body: "A mark on your scale, an explanation for every answer and concrete tips to improve.",
+        },
+        {
+          label: "Progress",
+          title: "All your work in one place",
+          body: "Your documents, summaries, tests and corrections stay in your history, ready for revision.",
+        },
+      ],
+      previews: {
+        course: {
+          dropTitle: "Drag and drop your files",
+          dropHint: "PDF, Word, text or photo, up to 5 files",
+          files: ["Biology-course.pdf", "Chapter-3.docx", "Notebook-photo.jpg"],
+          reading: "Reading pages",
+          readingCount: "3 / 5",
+        },
+        summary: {
+          title: "Photosynthesis",
+          part1: "Definition and overall equation",
+          sub1: "Role of chloroplasts",
+          sub1Body:
+            "Photosynthesis takes place in chloroplasts, thanks to chlorophyll, which captures light energy.",
+          sub2: "Overall equation",
+          part2: "The two phases",
+        },
+        exam: {
+          title: "Biology assessment",
+          level: "Class: Year 13",
+          duration: "Duration: 2h",
+          scale: "Total: 20 marks",
+          partLabel: "PART A",
+          partTitle: "Knowledge and understanding",
+          partPoints: "8 marks",
+          question: "What is the definition of photosynthesis?",
+          choices: [
+            "Producing organic matter from light",
+            "Consuming oxygen during the night",
+          ],
+          question2: "In which organelle does it take place?",
+          points: "2 marks",
+        },
+        correction: {
+          score: "16/20",
+          scoreLabel: "Final mark",
+          rows: [
+            { question: "A.1", verdict: "Correct", points: "2 / 2" },
+            { question: "A.2", verdict: "Partial", points: "1 / 2" },
+            { question: "B.1", verdict: "Correct", points: "3 / 3" },
+          ],
+          feedback: "A.2: explain the role of the thylakoids in the light phase.",
+        },
+        progress: {
+          heading: "History",
+          items: [
+            { type: "Summary", title: "Photosynthesis", status: "Ready" },
+            { type: "Test", title: "Biology assessment", status: "Ready" },
+            { type: "Correction", title: "Biology assessment", status: "16/20" },
+          ],
+          creditsLabel: "Available credits",
+          creditsValue: "465 / 500",
+        },
+      },
+      extrasHeading: "Also in your space",
+      extras: [
+        {
+          title: "AI assistant",
+          body: "Ask anything, any time: the assistant explains your lessons in plain words.",
+        },
+        {
+          title: "Documents",
+          body: "All your imported courses in one place, filterable by subject.",
+        },
+        {
+          title: "History",
+          body: "Every summary, test and correction, dated and one click away.",
+        },
+      ],
+      extrasPreview: {
+        assistantQuestion: "Why does the dark phase need ATP?",
+        assistantAnswer:
+          "The Calvin cycle uses energy from ATP, made during the light phase, to fix CO2 and build glucose.",
+        documents: ["Biology-course.pdf", "History-Chapter-2.docx", "Maths-Functions.pdf"],
+        documentsFilter: "Biology",
+        history: [
+          { label: "Summary: Photosynthesis", time: "Today" },
+          { label: "Test: Linear functions", time: "Yesterday" },
+          { label: "Correction: 16/20", time: "Monday" },
+        ],
+      },
+    },
+    subjects: {
+      heading: "All your",
+      headingAccent: "subjects",
+      subtitle:
+        "From middle school to university, EduIA adapts to the subject and level you choose.",
+      items: [
+        { name: "Mathematics", topics: "Functions, equations, geometry" },
+        { name: "Physics & Chemistry", topics: "Mechanics, electricity, reactions" },
+        { name: "Biology", topics: "Cells, genetics, ecosystems" },
+        { name: "History", topics: "World wars, decolonisation" },
+        { name: "Geography", topics: "Territories, globalisation" },
+        { name: "Civic education", topics: "Citizenship, rights, institutions" },
+        { name: "French", topics: "Text analysis, essay writing" },
+        { name: "Philosophy", topics: "Consciousness, freedom, truth" },
+        { name: "English", topics: "Grammar, reading, writing" },
+        { name: "And every other subject", topics: "Economics, computing, languages…" },
+      ],
+    },
+    why: {
+      heading: "A smart assistant to help you",
+      headingAccent: "learn better",
+      headingSuffix: ".",
+      subtitle:
+        "Less time formatting your notes, more time understanding and practicing.",
+      benefits: [
+        {
+          title: "Structured summaries",
+          body: "Clear revision sheets organised in parts and sub-parts.",
+        },
+        {
+          title: "Tailored tests",
+          body: "Matched to your level, your subject and your marking scale.",
+        },
+        {
+          title: "Teaching corrections",
+          body: "Every mistake explained, with the right method.",
+        },
+        {
+          title: "Time saved",
+          body: "Your course becomes revision material in seconds.",
+        },
+        {
+          title: "Effective learning",
+          body: "Revise, practice, get corrected, start again.",
+        },
+        {
+          title: "Available everywhere",
+          body: "On computer, tablet and phone, in English or French.",
+        },
+      ],
+      imageAlt:
+        "A student smiling as he takes notes in his notebook, next to his laptop",
+      cards: {
+        sheetLabel: "Revision sheet ready",
+        sheetTitle: "Linear functions",
+        sheetMeta: "Mathematics · Year 11",
+        assistantLabel: "AI assistant",
+        assistantQuestion: "Why does a > 0 make f increasing?",
+      },
+    },
+    proof: {
+      text: "Join the first cohorts learning smarter with EduIA.",
+      testimonialsHeading: "What students say",
     },
     pricing: {
       heading: "Simple",
@@ -1050,12 +1235,16 @@ export const en: Dictionary = {
       subtitle: "Start for free, upgrade to Premium when you want to go further.",
       period: "/mo",
       recommended: "Recommended",
+      credits: (credits: number) => `${credits} credits`,
+      creditsOnce: "granted at signup",
+      creditsMonthly: "every month",
+      choosePlan: "Choose this plan",
       free: {
         name: "Free",
         cta: "Get started free",
         points: (credits: number) => [
           `${credits} credits granted at signup`,
-          "Summaries, tests, corrections, and AI Assistant",
+          "Summaries, tests, corrections and AI assistant",
           "Access to your dashboard",
         ],
       },
@@ -1064,8 +1253,8 @@ export const en: Dictionary = {
         cta: "Upgrade to Premium",
         points: (credits: number) => [
           `${credits} credits every month`,
-          "Unlimited summaries, tests, and corrections within your quota",
-          "AI assistance and document analysis",
+          "Summaries, tests and corrections within your quota",
+          "AI assistant and document analysis",
           "Full history",
         ],
       },
@@ -1075,24 +1264,53 @@ export const en: Dictionary = {
         points: (credits: number) => [
           `${credits} credits every month`,
           "The most generous quota, for heavy use",
-          "AI assistance and document analysis",
+          "AI assistant and document analysis",
           "Full history",
         ],
       },
+      costsHeading: "What each tool costs",
+      costs: {
+        resumer: "Course summary",
+        generer: "Generated test",
+        corriger: "Correction",
+        assistant: "Message to the assistant",
+      },
+      costUnit: (credits: number) => (credits > 1 ? `${credits} credits` : `${credits} credit`),
+    },
+    payment: {
+      heading: "Simple payment, in FCFA",
+      subtitle: "Clear rules, so you always know exactly what you pay.",
+      points: {
+        fcfa: "All prices are shown in FCFA.",
+        noCard: "The free account needs no bank card.",
+        recharge: (price: string) => `Top up credits whenever you need, from ${price}.`,
+        monthly: "Monthly plans: your credits renew every month.",
+      },
+      rechargesHeading: "Credit top-ups",
+      rechargeCta: "See top-ups",
+      methodsHeading: "Accepted payment methods",
     },
     cta: {
-      heading: "Ready to take it to the next level?",
-      subtitle: "Join the students learning smarter with EduIA.",
+      heading: "Ready to learn",
+      headingAccent: "smarter",
+      headingSuffix: "?",
+      subtitle: (credits: number) =>
+        `Create your free account and get ${credits} credits to try every tool.`,
       button: "Get started free",
-      reassurance: "Free · Fast · No credit card required",
+      secondary: "See pricing",
+      reassurance: "Free, no bank card needed.",
+      laptopAria: "Preview of the EduIA dashboard",
+      sampleName: "Awa",
     },
     footer: {
       description: (name: string) =>
-        `${name} is an AI-powered learning assistant: import your courses, generate tailored tests, grade your answers, and improve every day.`,
-      navLabel: "Footer navigation",
-      navHeading: "Navigation",
-      accountLabel: "Account",
+        `${name} is an AI-powered learning assistant: import your courses, generate tailored tests, grade your answers, and make progress every day.`,
+      productHeading: "Product",
+      resourcesHeading: "Resources",
       accountHeading: "Account",
+      languageHeading: "Language",
+      help: "Help & support",
+      contact: "Contact",
       login: "Sign in",
       signup: "Get started free",
       copyright: (name: string, year: number) =>

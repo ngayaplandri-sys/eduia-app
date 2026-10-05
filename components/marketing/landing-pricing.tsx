@@ -1,134 +1,288 @@
 import Link from "next/link";
-import { Check } from "lucide-react";
-import { Card } from "@/components/ui/card";
-import { buttonVariants } from "@/components/ui/button";
+import Image from "next/image";
+import {
+  ArrowRight,
+  Bot,
+  Check,
+  ClipboardCheck,
+  Coins,
+  FilePenLine,
+  FileText,
+  Gift,
+  Repeat,
+  Sparkles,
+  Zap,
+} from "lucide-react";
 import { Reveal } from "@/components/motion/reveal";
+import { TiltSurface } from "@/components/motion/tilt-surface";
 import { cn } from "@/lib/utils/cn";
-import { PLAN_CREDITS } from "@/lib/config/credits";
+import { CREDIT_COSTS, PLAN_CREDITS, RECHARGE_PACKAGES } from "@/lib/config/credits";
+import { paymentMethods } from "@/lib/config/payment-methods";
 import { formatFcfa } from "@/lib/admin/constants";
 import { getDictionary } from "@/lib/i18n/server";
+import { SectionHeading, ctaArrowClass, ctaOutlineClass, ctaPrimaryClass } from "./marketing-ui";
 
-function PriceCard({
-  name,
-  price,
-  period,
-  points,
-  featured,
-  ctaLabel,
-  recommendedLabel,
-}: {
+interface Plan {
   name: string;
   price: string;
   period?: string;
+  credits: string;
+  cadence: string;
   points: string[];
+  cta: string;
+  href: string;
   featured?: boolean;
-  ctaLabel: string;
-  recommendedLabel: string;
-}) {
-  return (
-    <Card
-      variant={featured ? "elevated" : "content"}
+}
+
+function PlanCard({ plan, recommendedLabel }: { plan: Plan; recommendedLabel: string }) {
+  const card = (
+    <TiltSurface
+      maxTilt={2}
       className={cn(
-        "hover-lift relative flex h-full flex-col p-6 sm:p-7",
-        featured && "ring-1 ring-primary-200",
+        "flex h-full flex-col rounded-[1.7rem] p-7 sm:p-8",
+        plan.featured ? "bg-surface" : "bg-canvas ring-1 ring-line",
       )}
     >
-      {featured ? (
-        <span className="absolute -top-3 left-6 rounded-full bg-primary-600 px-3 py-1 text-[0.7rem] font-bold uppercase tracking-wide text-white">
-          {recommendedLabel}
-        </span>
-      ) : null}
-
-      <h3 className="text-title-sm font-bold text-ink-900">{name}</h3>
-      <p className="mt-2 flex items-baseline gap-1">
-        <span className="text-[1.75rem] font-extrabold tracking-[-0.02em] text-ink-900">
-          {price}
-        </span>
-        {period ? (
-          <span className="text-sm font-medium text-ink-400">{period}</span>
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="text-[1.1rem] font-bold text-ink-900">{plan.name}</h3>
+        {plan.featured ? (
+          <span className="inline-flex items-center gap-1 rounded-full bg-primary-600 px-3 py-1 text-[0.72rem] font-bold text-white shadow-[0_8px_18px_-8px_rgb(105_63_168/0.8)]">
+            <Sparkles className="size-3.5" aria-hidden />
+            {recommendedLabel}
+          </span>
         ) : null}
+      </div>
+
+      <p className="mt-5 flex items-baseline gap-1.5">
+        <span className="font-display text-[2.6rem] font-medium leading-none tracking-[-0.02em] text-ink-900 tabular-nums">
+          {plan.price}
+        </span>
+        {plan.period ? <span className="text-sm font-medium text-ink-400">{plan.period}</span> : null}
       </p>
 
-      <ul className="mt-5 flex-1 space-y-2.5">
-        {points.map((point) => (
-          <li key={point} className="flex items-start gap-2.5 text-sm text-ink-600">
-            <Check
+      <p
+        className={cn(
+          "mt-5 flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-fine",
+          plan.featured ? "bg-primary-50 text-primary-700 ring-1 ring-primary-100" : "bg-surface text-ink-700 ring-1 ring-line",
+        )}
+      >
+        <Coins className="size-4 shrink-0" aria-hidden />
+        <span className="font-bold tabular-nums">{plan.credits}</span>
+        <span className="text-ink-500">{plan.cadence}</span>
+      </p>
+
+      <ul className="mt-6 flex-1 space-y-3">
+        {plan.points.map((point) => (
+          <li key={point} className="flex items-start gap-2.5 text-[0.92rem] leading-snug text-ink-700">
+            <span
               className={cn(
-                "mt-0.5 size-4 shrink-0",
-                featured ? "text-primary-600" : "text-success-600",
+                "mt-0.5 flex size-[1.1rem] shrink-0 items-center justify-center rounded-full",
+                plan.featured ? "bg-primary-600 text-white" : "bg-success-100 text-success-700",
               )}
-              aria-hidden
-            />
+            >
+              <Check className="size-3" strokeWidth={3} aria-hidden />
+            </span>
             {point}
           </li>
         ))}
       </ul>
 
       <Link
-        href="/signup"
-        className={cn(
-          buttonVariants({
-            variant: featured ? "primary" : "outline",
-            size: "md",
-            block: true,
-          }),
-          "mt-6",
-        )}
+        href={plan.href}
+        className={cn(plan.featured ? ctaPrimaryClass : ctaOutlineClass, "mt-8 w-full")}
       >
-        {ctaLabel}
+        {plan.cta}
+        <ArrowRight className={ctaArrowClass} aria-hidden />
       </Link>
-    </Card>
+    </TiltSurface>
+  );
+
+  if (!plan.featured) return card;
+
+  // Offre recommandée : liseré en dégradé violet + halo, pas seulement plus haute.
+  return (
+    <div className="relative h-full rounded-[1.8rem] bg-[linear-gradient(160deg,var(--color-primary-300),var(--color-primary-600)_45%,var(--color-primary-200))] p-px shadow-[var(--shadow-glow-lg)]">
+      <div aria-hidden className="absolute -inset-6 -z-10 rounded-[2.5rem] bg-primary-300/30 blur-3xl dark:bg-primary-400/15" />
+      {card}
+    </div>
   );
 }
 
-export async function LandingPricing() {
+/**
+ * Tarifs — offres et prix RÉELS du système de crédits (`lib/config/credits.ts`),
+ * coût de chaque outil, recharges, puis le bloc « Paiement ». Les boutons
+ * mènent au flux existant : inscription pour un visiteur, page `/premium`
+ * (abonnement et recharges) pour un membre connecté.
+ *
+ * Moyens de paiement : uniquement ceux déclarés dans
+ * `lib/config/payment-methods.ts`. Aucun fournisseur n'étant encore branché
+ * (paiement simulé), la liste est vide et aucun logo n'est affiché.
+ */
+export async function LandingPricing({ isAuthenticated }: { isAuthenticated: boolean }) {
   const dict = await getDictionary();
   const t = dict.marketing.pricing;
+  const p = dict.marketing.payment;
+  const signup = "/signup";
+
+  const plans: Plan[] = [
+    {
+      name: t.free.name,
+      price: formatFcfa(PLAN_CREDITS.free.priceFcfa),
+      credits: t.credits(PLAN_CREDITS.free.signupGrant),
+      cadence: t.creditsOnce,
+      points: t.free.points(PLAN_CREDITS.free.signupGrant),
+      cta: isAuthenticated ? dict.marketing.header.dashboardCta : t.free.cta,
+      href: isAuthenticated ? "/dashboard" : signup,
+    },
+    {
+      name: t.premium.name,
+      price: formatFcfa(PLAN_CREDITS.premium.priceFcfa),
+      period: t.period,
+      credits: t.credits(PLAN_CREDITS.premium.monthly),
+      cadence: t.creditsMonthly,
+      points: t.premium.points(PLAN_CREDITS.premium.monthly),
+      cta: isAuthenticated ? t.choosePlan : t.premium.cta,
+      href: isAuthenticated ? "/premium" : signup,
+      featured: true,
+    },
+    {
+      name: t.premiumPlus.name,
+      price: formatFcfa(PLAN_CREDITS.premium_plus.priceFcfa),
+      period: t.period,
+      credits: t.credits(PLAN_CREDITS.premium_plus.monthly),
+      cadence: t.creditsMonthly,
+      points: t.premiumPlus.points(PLAN_CREDITS.premium_plus.monthly),
+      cta: isAuthenticated ? t.choosePlan : t.premiumPlus.cta,
+      href: isAuthenticated ? "/premium" : signup,
+    },
+  ];
+
+  const costs = [
+    { label: t.costs.resumer, cost: CREDIT_COSTS.resumer, icon: FileText, tone: "bg-success-100 text-success-700" },
+    { label: t.costs.generer, cost: CREDIT_COSTS.generer, icon: FilePenLine, tone: "bg-primary-100 text-primary-700" },
+    { label: t.costs.corriger, cost: CREDIT_COSTS.corriger, icon: ClipboardCheck, tone: "bg-warning-100 text-warning-700" },
+    { label: t.costs.assistant, cost: CREDIT_COSTS.assistant, icon: Bot, tone: "bg-info-100 text-info-700" },
+  ];
+
+  const cheapestRecharge = Math.min(...RECHARGE_PACKAGES.map((pkg) => pkg.priceFcfa));
+  const paymentPoints = [
+    { icon: Coins, text: p.points.fcfa },
+    { icon: Gift, text: p.points.noCard },
+    { icon: Zap, text: p.points.recharge(formatFcfa(cheapestRecharge)) },
+    { icon: Repeat, text: p.points.monthly },
+  ];
 
   return (
     <section
       id="tarifs"
-      className="scroll-mt-20 bg-canvas py-20 sm:py-24 lg:py-28"
+      className="relative isolate scroll-mt-20 overflow-hidden bg-surface pb-24 pt-24 sm:pb-28 sm:pt-28 lg:pb-32 lg:pt-32"
     >
-      <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-        <h2 className="text-center text-[1.75rem] font-extrabold tracking-[-0.02em] text-ink-900 sm:text-[2.25rem]">
-          {t.heading} <span className="text-primary-600">{t.headingAccent}</span>
-          {t.headingSuffix ? ` ${t.headingSuffix}` : ""}
-        </h2>
-        <p className="mx-auto mt-3 max-w-xl text-center text-[0.95rem] text-ink-500">
-          {t.subtitle}
-        </p>
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
+        <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-canvas to-transparent" />
+        <div className="absolute left-1/2 top-1/4 h-[30rem] w-[60rem] max-w-[120%] -translate-x-1/2 rounded-[50%] bg-primary-100/70 blur-[130px] dark:bg-primary-200/20" />
+      </div>
 
-        <div className="mt-12 grid gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
-          <Reveal className="h-full">
-            <PriceCard
-              name={t.free.name}
-              price="0 FCFA"
-              points={t.free.points(PLAN_CREDITS.free.signupGrant)}
-              ctaLabel={t.free.cta}
-              recommendedLabel={t.recommended}
-            />
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <SectionHeading
+          before={t.heading}
+          accent={t.headingAccent}
+          after={t.headingSuffix ? ` ${t.headingSuffix}` : ""}
+          subtitle={t.subtitle}
+          align="center"
+        />
+
+        <div className="mx-auto mt-14 grid max-w-6xl grid-cols-1 gap-6 lg:grid-cols-3 lg:items-stretch">
+          {plans.map((plan, i) => (
+            <Reveal
+              key={plan.name}
+              variant={plan.featured ? "scale" : "up"}
+              delayMs={plan.featured ? 180 : i * 110}
+              className="h-full"
+            >
+              <PlanCard plan={plan} recommendedLabel={t.recommended} />
+            </Reveal>
+          ))}
+        </div>
+
+        {/* Coût de chaque outil (valeurs réelles de CREDIT_COSTS). */}
+        <Reveal delayMs={120} className="mx-auto mt-10 max-w-6xl">
+          <div className="rounded-[1.5rem] bg-canvas p-5 ring-1 ring-line sm:p-6">
+            <h3 className="text-fine font-bold text-ink-900">{t.costsHeading}</h3>
+            <ul className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {costs.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <li key={item.label} className="flex items-center gap-3 rounded-xl bg-surface px-3.5 py-3 ring-1 ring-line">
+                    <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-lg", item.tone)}>
+                      <Icon className="size-[1.05rem]" aria-hidden />
+                    </span>
+                    <span className="min-w-0 flex-1 text-fine font-medium text-ink-700">{item.label}</span>
+                    <span className="shrink-0 text-fine font-bold tabular-nums text-ink-900">{t.costUnit(item.cost)}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </Reveal>
+
+        {/* ── Paiement ── */}
+        <div className="mx-auto mt-6 grid max-w-6xl grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
+          <Reveal variant="left" className="h-full">
+            <div className="h-full rounded-[1.5rem] bg-scene-auth p-7 text-white shadow-[var(--shadow-elevated)] sm:p-8">
+              <h3 className="font-display text-[1.75rem] font-medium leading-tight tracking-[-0.01em]">{p.heading}</h3>
+              <p className="mt-2 text-[0.95rem] text-white/70">{p.subtitle}</p>
+              <ul className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {paymentPoints.map((point, i) => {
+                  const Icon = point.icon;
+                  return (
+                    <li key={i} className="flex items-start gap-3">
+                      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-white/12 ring-1 ring-white/15">
+                        <Icon className="size-4" aria-hidden />
+                      </span>
+                      <span className="pt-1.5 text-[0.92rem] leading-snug text-white/85">{point.text}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+
+              {/* Logos : uniquement les moyens de paiement réellement branchés. */}
+              {paymentMethods.length > 0 ? (
+                <div className="mt-7 border-t border-white/10 pt-5">
+                  <p className="text-fine font-semibold text-white/70">{p.methodsHeading}</p>
+                  <ul className="mt-3 flex flex-wrap items-center gap-3">
+                    {paymentMethods.map((method) => (
+                      <li key={method.id} className="flex h-11 items-center rounded-lg bg-white px-3">
+                        <Image src={method.logo} alt={method.label} width={88} height={28} className="h-7 w-auto object-contain" />
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </div>
           </Reveal>
-          <Reveal delayMs={90} className="h-full">
-            <PriceCard
-              name={t.premium.name}
-              price={formatFcfa(PLAN_CREDITS.premium.priceFcfa)}
-              period={t.period}
-              points={t.premium.points(PLAN_CREDITS.premium.monthly)}
-              featured
-              ctaLabel={t.premium.cta}
-              recommendedLabel={t.recommended}
-            />
-          </Reveal>
-          <Reveal delayMs={180} className="h-full">
-            <PriceCard
-              name={t.premiumPlus.name}
-              price={formatFcfa(PLAN_CREDITS.premium_plus.priceFcfa)}
-              period={t.period}
-              points={t.premiumPlus.points(PLAN_CREDITS.premium_plus.monthly)}
-              ctaLabel={t.premiumPlus.cta}
-              recommendedLabel={t.recommended}
-            />
+
+          <Reveal variant="right" delayMs={120} className="h-full">
+            <div className="flex h-full flex-col rounded-[1.5rem] bg-canvas p-7 ring-1 ring-line sm:p-8">
+              <h3 className="text-[1.1rem] font-bold text-ink-900">{p.rechargesHeading}</h3>
+              <ul className="mt-5 flex-1 space-y-2.5">
+                {RECHARGE_PACKAGES.map((pkg) => (
+                  <li key={pkg.id} className="flex items-center justify-between rounded-xl bg-surface px-4 py-3 ring-1 ring-line">
+                    <span className="flex items-center gap-2 text-fine font-semibold text-ink-800">
+                      <Coins className="size-4 text-primary-500" aria-hidden />
+                      {t.credits(pkg.credits)}
+                    </span>
+                    <span className="text-fine font-bold tabular-nums text-ink-900">{formatFcfa(pkg.priceFcfa)}</span>
+                  </li>
+                ))}
+              </ul>
+              <Link
+                href={isAuthenticated ? "/premium#recharge" : signup}
+                className={cn(ctaOutlineClass, "mt-6 w-full")}
+              >
+                {p.rechargeCta}
+                <ArrowRight className={ctaArrowClass} aria-hidden />
+              </Link>
+            </div>
           </Reveal>
         </div>
       </div>

@@ -967,49 +967,34 @@ export const fr = {
       mobileNavLabel: "Navigation mobile",
       sheetTitle: "Navigation",
       sheetDescription: "Liens de navigation et connexion",
+      homeAria: "EduIA, retour à l'accueil",
     },
     hero: {
-      badge: "Votre assistant d'apprentissage intelligent",
-      titleLine1: "Apprends mieux,",
-      titleLine2: "avance plus loin",
-      titleAria: "Apprends mieux, avance plus loin",
+      badge: "L'IA au service de l'apprentissage",
+      titleLine1: "Des cours aux épreuves,",
+      titleLine2: "tout devient ",
+      titleAccent: "plus simple.",
       subtitle:
-        "EduIA t'aide à comprendre tes cours, générer des épreuves adaptées et corriger tes réponses grâce à l'intelligence artificielle.",
+        "Résumés clairs, épreuves adaptées et corrections détaillées, créés en quelques secondes à partir de tes propres cours.",
       ctaPrimary: "Commencer gratuitement",
-      ctaSecondary: "Voir comment ça marche",
+      ctaSecondary: "Voir la démo",
       imageAlt:
-        "Deux élèves souriants devant un ordinateur portable au logo cerveau, utilisant l'intelligence artificielle, entourés d'icônes d'apprentissage",
+        "Une élève révise le soir devant son ordinateur portable, dans une bibliothèque baignée de lumière violette",
+      cards: {
+        summaryLabel: "Résumé généré",
+        summaryTitle: "La photosynthèse",
+        summaryMeta: "SVT · Terminale",
+        examLabel: "Épreuve créée",
+        examTitle: "Devoir surveillé",
+        examMeta: "4 parties, barème sur 20",
+        correctionLabel: "Correction détaillée",
+        correctionScore: "16/20",
+        correctionPraise: "Belle progression",
+        assistantLabel: "Assistant IA",
+        assistantQuestion: "Explique-moi le cycle de Calvin.",
+      },
     },
-    socialProof:
-      "Rejoins les premières promos qui révisent plus intelligemment avec EduIA.",
-    video: {
-      aria: "Vidéo de démonstration d'EduIA",
-      fallback: "Ton navigateur ne prend pas en charge la lecture vidéo.",
-    },
-    features: {
-      heading: "Tout ce dont tu as besoin pour",
-      headingAccent: "réussir",
-      subtitle:
-        "Trois outils qui travaillent ensemble pour t'aider à comprendre, t'entraîner et progresser.",
-      learnMore: "En savoir plus",
-      items: [
-        {
-          title: "Résume tes cours",
-          description:
-            "Importe tes cours (PDF, Word, texte) et obtiens un résumé clair, structuré et facile à comprendre.",
-        },
-        {
-          title: "Génère des épreuves",
-          description:
-            "Choisis tes chapitres, ton niveau et le type de questions. L'IA crée des épreuves adaptées à ton besoin.",
-        },
-        {
-          title: "Corrige tes épreuves",
-          description:
-            "Soumets tes réponses et reçois une correction détaillée, des explications et des conseils pour progresser.",
-        },
-      ],
-    },
+    statsLabel: "EduIA en bref",
     stats: [
       { value: "100 %", label: "Adapté à ton niveau et à ton programme" },
       { value: "3 min", label: "Pour transformer un cours en résumé clair" },
@@ -1017,28 +1002,32 @@ export const fr = {
       { value: "0 FCFA", label: "Pour créer ton compte, sans carte bancaire" },
     ],
     how: {
-      badge: "Simple, rapide, efficace",
       heading: "Comment",
       headingAccent: "ça marche",
+      headingSuffix: " ?",
+      subtitle: "Trois étapes, de ton cours à ta progression.",
       steps: [
         {
           title: "Importe ton cours",
-          description: "Ajoute ton fichier ou colle ton texte. L'IA analyse le contenu.",
+          description:
+            "PDF, Word, texte ou photo de ton cahier : EduIA lit tout, même l'écriture manuscrite.",
         },
         {
-          title: "Génère ou apprends",
-          description: "Obtiens un résumé clair ou génère une épreuve adaptée.",
+          title: "Génère ton contenu",
+          description:
+            "En quelques secondes, un résumé structuré, une épreuve adaptée à ton niveau, ou les deux.",
         },
         {
-          title: "Corrige et progresse",
-          description: "Soumets tes réponses et reçois ta correction et des conseils.",
+          title: "Apprends, entraîne-toi et progresse",
+          description:
+            "Réponds, fais-toi corriger question par question et suis tes progrès.",
         },
       ],
       mockup: {
         correctionResultLabel: "Résultat de la correction",
         scoreAria: "Score 16 sur 20",
         scoreLabel: "SCORE",
-        praise: "Bravo ! Tu progresses très bien",
+        praise: "Bravo, tu progresses très bien",
         goodAnswers: "Bonnes réponses",
         errors: "Erreurs",
         percentage: "Pourcentage",
@@ -1062,9 +1051,205 @@ export const fr = {
         resumePoint2: "Règles de calcul usuelles",
         resumePoint3: "Applications et exercices types",
         resumeCta: "Voir le résumé complet",
+        resumePagesRead: "Pages lues",
+        resumePagesCount: "3 / 5",
+        resumeFormats: ["PDF", "Word", "Photo"],
+        totalPoints: "Barème total",
+        totalPointsValue: "20 points",
+        language: "Langue de l'épreuve",
+        languageValue: "Français",
       },
       phoneAriaSummarize: "Aperçu : résumer un cours avec EduIA",
       phoneAriaGrade: "Aperçu : générer et corriger une épreuve avec EduIA",
+    },
+    demo: {
+      heading: "Vois EduIA",
+      headingAccent: "en action",
+      subtitle: "Découvre l'interface d'EduIA en moins d'une minute.",
+      play: "Lancer la vidéo",
+      video: {
+        aria: "Vidéo de démonstration d'EduIA",
+        fallback: "Ton navigateur ne prend pas en charge la lecture vidéo.",
+      },
+    },
+    features: {
+      heading: "De ton cours à ta",
+      headingAccent: "réussite",
+      subtitle:
+        "Chaque outil prend le relais du précédent : ton cours devient un parcours de révision complet.",
+      stepsLabel: "Les étapes du parcours EduIA",
+      steps: [
+        {
+          label: "Cours",
+          title: "Pars de ce que tu as déjà",
+          body: "Un PDF, un document Word, du texte collé ou jusqu'à 5 photos de ton cahier, lus comme un seul cours.",
+        },
+        {
+          label: "Résumé",
+          title: "Un résumé structuré, fidèle à ton cours",
+          body: "Grandes parties, sous-parties, définitions et points clés : une vraie fiche de révision, sans rien inventer.",
+        },
+        {
+          label: "Épreuve",
+          title: "Une épreuve comme en classe",
+          body: "Parties A à D, barème exact, difficulté progressive, en français ou en anglais, prête à imprimer en PDF.",
+        },
+        {
+          label: "Correction",
+          title: "Une correction qui explique",
+          body: "Une note sur ton barème, l'explication de chaque réponse et des conseils concrets pour progresser.",
+        },
+        {
+          label: "Progression",
+          title: "Tout ton travail au même endroit",
+          body: "Tes documents, résumés, épreuves et corrections restent dans ton historique, prêts pour tes révisions.",
+        },
+      ],
+      previews: {
+        course: {
+          dropTitle: "Glisse-dépose tes fichiers",
+          dropHint: "PDF, Word, texte ou photo, jusqu'à 5 fichiers",
+          files: ["Cours-SVT.pdf", "Chapitre-3.docx", "Photo-cahier.jpg"],
+          reading: "Lecture des pages",
+          readingCount: "3 / 5",
+        },
+        summary: {
+          title: "La photosynthèse",
+          part1: "Définition et bilan",
+          sub1: "Rôle des chloroplastes",
+          sub1Body:
+            "La photosynthèse se déroule dans les chloroplastes, grâce à la chlorophylle qui capte l'énergie lumineuse.",
+          sub2: "Équation bilan",
+          part2: "Les deux phases",
+        },
+        exam: {
+          title: "Évaluation de SVT",
+          level: "Classe : Terminale",
+          duration: "Durée : 2h",
+          scale: "Barème : 20 pts",
+          partLabel: "PARTIE A",
+          partTitle: "Connaissances et compréhension",
+          partPoints: "8 pts",
+          question: "Quelle est la définition de la photosynthèse ?",
+          choices: [
+            "La production de matière organique à partir de lumière",
+            "La consommation de dioxygène pendant la nuit",
+          ],
+          question2: "Dans quel organite se déroule-t-elle ?",
+          points: "2 pts",
+        },
+        correction: {
+          score: "16/20",
+          scoreLabel: "Note obtenue",
+          rows: [
+            { question: "A.1", verdict: "Juste", points: "2 / 2" },
+            { question: "A.2", verdict: "Partiel", points: "1 / 2" },
+            { question: "B.1", verdict: "Juste", points: "3 / 3" },
+          ],
+          feedback: "A.2 : précise le rôle des thylakoïdes dans la phase claire.",
+        },
+        progress: {
+          heading: "Historique",
+          items: [
+            { type: "Résumé", title: "La photosynthèse", status: "Prêt" },
+            { type: "Épreuve", title: "Évaluation de SVT", status: "Prête" },
+            { type: "Correction", title: "Évaluation de SVT", status: "16/20" },
+          ],
+          creditsLabel: "Crédits disponibles",
+          creditsValue: "465 / 500",
+        },
+      },
+      extrasHeading: "Et aussi, dans ton espace",
+      extras: [
+        {
+          title: "Assistant IA",
+          body: "Pose tes questions à toute heure : l'assistant t'explique tes cours simplement.",
+        },
+        {
+          title: "Documents",
+          body: "Tous tes cours importés, au même endroit, filtrables par matière.",
+        },
+        {
+          title: "Historique",
+          body: "Chaque résumé, épreuve et correction, daté et accessible en un clic.",
+        },
+      ],
+      extrasPreview: {
+        assistantQuestion: "Pourquoi la phase sombre a-t-elle besoin d'ATP ?",
+        assistantAnswer:
+          "Le cycle de Calvin utilise l'énergie de l'ATP, produit pendant la phase claire, pour fixer le CO2 et fabriquer du glucose.",
+        documents: ["Cours-SVT.pdf", "Histoire-Chapitre-2.docx", "Maths-Fonctions.pdf"],
+        documentsFilter: "SVT",
+        history: [
+          { label: "Résumé : La photosynthèse", time: "Aujourd'hui" },
+          { label: "Épreuve : Fonctions affines", time: "Hier" },
+          { label: "Correction : 16/20", time: "Lundi" },
+        ],
+      },
+    },
+    subjects: {
+      heading: "Toutes tes",
+      headingAccent: "matières",
+      subtitle:
+        "Du collège au supérieur, EduIA s'adapte à la matière et au niveau que tu indiques.",
+      items: [
+        { name: "Mathématiques", topics: "Fonctions, équations, géométrie" },
+        { name: "Physique-Chimie", topics: "Mécanique, électricité, réactions" },
+        { name: "SVT", topics: "Cellule, génétique, écosystèmes" },
+        { name: "Histoire", topics: "Guerres mondiales, décolonisation" },
+        { name: "Géographie", topics: "Territoires, mondialisation" },
+        { name: "ECM", topics: "Citoyenneté, droits, institutions" },
+        { name: "Français", topics: "Analyse de texte, dissertation" },
+        { name: "Philosophie", topics: "Conscience, liberté, vérité" },
+        { name: "Anglais", topics: "Grammar, reading, writing" },
+        { name: "Et toutes les autres", topics: "Économie, informatique, langues…" },
+      ],
+    },
+    why: {
+      heading: "Un assistant intelligent pour",
+      headingAccent: "mieux apprendre",
+      headingSuffix: ".",
+      subtitle:
+        "Moins de temps à mettre en forme tes cours, plus de temps pour comprendre et t'entraîner.",
+      benefits: [
+        {
+          title: "Résumés structurés",
+          body: "Des fiches claires, organisées en parties et sous-parties.",
+        },
+        {
+          title: "Épreuves adaptées",
+          body: "À ton niveau, à ta matière et à ton barème.",
+        },
+        {
+          title: "Corrections pédagogiques",
+          body: "Chaque erreur expliquée, avec la bonne méthode.",
+        },
+        {
+          title: "Gain de temps",
+          body: "Ton cours devient un support de révision en quelques secondes.",
+        },
+        {
+          title: "Apprentissage efficace",
+          body: "Révise, entraîne-toi, fais-toi corriger, recommence.",
+        },
+        {
+          title: "Accessible partout",
+          body: "Sur ordinateur, tablette et téléphone, en français ou en anglais.",
+        },
+      ],
+      imageAlt:
+        "Un élève sourit en prenant des notes dans son cahier, à côté de son ordinateur portable",
+      cards: {
+        sheetLabel: "Fiche de révision prête",
+        sheetTitle: "Les fonctions affines",
+        sheetMeta: "Mathématiques · Seconde",
+        assistantLabel: "Assistant IA",
+        assistantQuestion: "Pourquoi a > 0 rend f croissante ?",
+      },
+    },
+    proof: {
+      text: "Rejoins les premières promos qui révisent plus intelligemment avec EduIA.",
+      testimonialsHeading: "Ce qu'en disent les élèves",
     },
     pricing: {
       heading: "Des",
@@ -1073,6 +1258,10 @@ export const fr = {
       subtitle: "Commence gratuitement, passe au Premium quand tu veux aller plus loin.",
       period: "/mois",
       recommended: "Recommandé",
+      credits: (credits: number) => `${credits} crédits`,
+      creditsOnce: "offerts à l'inscription",
+      creditsMonthly: "chaque mois",
+      choosePlan: "Choisir cette offre",
       free: {
         name: "Gratuit",
         cta: "Commencer gratuitement",
@@ -1087,8 +1276,8 @@ export const fr = {
         cta: "Passer au Premium",
         points: (credits: number) => [
           `${credits} crédits chaque mois`,
-          "Résumés, épreuves, corrections illimités dans la limite du quota",
-          "Assistance IA et analyse de documents",
+          "Résumés, épreuves et corrections dans la limite de ton quota",
+          "Assistant IA et analyse de documents",
           "Historique complet",
         ],
       },
@@ -1098,24 +1287,53 @@ export const fr = {
         points: (credits: number) => [
           `${credits} crédits chaque mois`,
           "Le quota le plus généreux, pour un usage intensif",
-          "Assistance IA et analyse de documents",
+          "Assistant IA et analyse de documents",
           "Historique complet",
         ],
       },
+      costsHeading: "Ce que coûte chaque outil",
+      costs: {
+        resumer: "Résumé de cours",
+        generer: "Épreuve générée",
+        corriger: "Correction",
+        assistant: "Message à l'assistant",
+      },
+      costUnit: (credits: number) => (credits > 1 ? `${credits} crédits` : `${credits} crédit`),
+    },
+    payment: {
+      heading: "Paiement simple, en FCFA",
+      subtitle: "Des règles claires, pour savoir exactement ce que tu paies.",
+      points: {
+        fcfa: "Tous les prix sont affichés en FCFA.",
+        noCard: "Le compte gratuit ne demande aucune carte bancaire.",
+        recharge: (price: string) => `Recharges de crédits à la carte, dès ${price}.`,
+        monthly: "Abonnement mensuel : tes crédits se renouvellent chaque mois.",
+      },
+      rechargesHeading: "Recharges de crédits",
+      rechargeCta: "Voir les recharges",
+      methodsHeading: "Moyens de paiement acceptés",
     },
     cta: {
-      heading: "Prêt à passer au niveau supérieur ?",
-      subtitle: "Rejoins les élèves qui apprennent plus intelligemment avec EduIA.",
+      heading: "Prêt à apprendre plus",
+      headingAccent: "intelligemment",
+      headingSuffix: " ?",
+      subtitle: (credits: number) =>
+        `Crée ton compte gratuitement et reçois ${credits} crédits pour essayer tous les outils.`,
       button: "Commencer gratuitement",
-      reassurance: "Gratuit · Rapide · Sans carte bancaire",
+      secondary: "Voir les tarifs",
+      reassurance: "Gratuit et sans carte bancaire.",
+      laptopAria: "Aperçu du tableau de bord EduIA",
+      sampleName: "Awa",
     },
     footer: {
       description: (name: string) =>
         `${name} est un assistant d'apprentissage basé sur l'intelligence artificielle : importe tes cours, génère des épreuves adaptées, corrige tes réponses et progresse chaque jour.`,
-      navLabel: "Navigation pied de page",
-      navHeading: "Navigation",
-      accountLabel: "Compte",
+      productHeading: "Produit",
+      resourcesHeading: "Ressources",
       accountHeading: "Compte",
+      languageHeading: "Langue",
+      help: "Aide & support",
+      contact: "Contact",
       login: "Se connecter",
       signup: "Commencer gratuitement",
       copyright: (name: string, year: number) =>
