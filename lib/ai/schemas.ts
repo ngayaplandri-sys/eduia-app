@@ -70,9 +70,10 @@ export const assistantRequestSchema = z.object({
 });
 
 export const gradeRequestSchema = z.object({
-  selectedExam: z.string(),
+  selectedExam: z.string().max(500),
   selectedExamId: z.string().trim().max(64).default(""),
-  level: z.string().min(1),
+  // Facultatif : vide = niveau détecté automatiquement sur l'épreuve importée.
+  level: z.string().trim().max(80).default(""),
   answerFileName: z.string().nullable(),
   answerSourceKind: z.string().nullable(),
   answerText: z.string(),
@@ -273,15 +274,133 @@ export const aiExamSchema = z.object({
 
 export type AIExamOutput = z.infer<typeof aiExamSchema>;
 
+// ───────────────────────── Sortie IA : analyse d'une épreuve importée ─────────────────────────
+
+/**
+ * Analyse préalable d'une épreuve importée dans « Corriger une épreuve » (PDF,
+ * photos, Word… de n'importe quelle source) : lisibilité page par page,
+ * détection de la matière / du niveau / du barème et inventaire des questions.
+ * Faite AVANT tout prélèvement de crédits : une page illisible ou un document
+ * sans question arrête le parcours sans rien facturer.
+ */
+export const aiExamAnalysisSchema = z.object({
+  pages: z
+    .array(
+      z.object({
+        page: z.number().describe("Numéro de la page, dans l'ordre d'envoi (1, 2, 3…)."),
+        readability: z
+          .enum(["good", "partial", "unreadable"])
+          .describe(
+            "good : tout est déchiffrable. partial : globalement lisible, quelques passages illisibles. unreadable : presque rien n'est déchiffrable (photo floue, trop sombre, reflet, page coupée) ou page vide.",
+          ),
+        issue: z
+          .enum(OCR_ISSUES)
+          .describe("Cause principale si partial ou unreadable ; « none » si good."),
+      }),
+    )
+    .describe("Une entrée par page reçue, dans l'ordre."),
+  isExam: z
+    .boolean()
+    .describe(
+      "true si le document contient au moins une question, un exercice ou une consigne à traiter (épreuve, devoir, interrogation, sujet d'examen, fiche d'exercices). false si ce n'est qu'un cours, une leçon ou un texte sans question à traiter.",
+    ),
+  title: z
+    .string()
+    .describe("Titre de l'épreuve tel qu'il est écrit ; à défaut, un titre court et descriptif (ex. « Devoir de mathématiques — Fonctions »)."),
+  subject: z
+    .string()
+    .describe("Matière identifiée (ex. « Mathématiques », « Histoire-Géographie », « SVT », « Physique-Chimie », « Français », « Philosophie », « Anglais »)."),
+  level: z
+    .string()
+    .nullable()
+    .describe("Niveau ou classe s'il est indiqué ou clairement identifiable (ex. « Terminale D », « 3e », « Form 5 ») ; null sinon — ne devine pas."),
+  theme: z
+    .string()
+    .describe("Chapitre(s) ou thème(s) principaux couverts par l'épreuve, en quelques mots."),
+  instructions: z
+    .array(z.string())
+    .describe("Consignes générales de l'épreuve (durée, calculatrice, documents autorisés…), telles qu'écrites ; tableau vide s'il n'y en a pas."),
+  totalPoints: z
+    .number()
+    .nullable()
+    .describe(
+      "Barème total EXPLICITEMENT indiqué sur l'épreuve (ex. « /20 » → 20, « sur 40 » → 40) ; à défaut, somme des points annoncés pour chaque exercice ; null si aucun barème n'apparaît. Ne devine jamais.",
+    ),
+  sections: z
+    .array(
+      z.object({
+        ref: z.string().describe("Nom de l'exercice ou de la partie tel qu'écrit (ex. « Exercice 1 », « Partie B »)."),
+        points: z
+          .number()
+          .nullable()
+          .describe("Points annoncés pour l'exercice ou la partie entière (ex. « Exercice 1 (6 points) » → 6) ; null s'ils ne sont pas indiqués."),
+      }),
+    )
+    .describe("Exercices ou parties de l'épreuve, dans l'ordre ; tableau vide si l'épreuve n'est pas découpée ainsi."),
+  questions: z
+    .array(
+      z.object({
+        ref: z
+          .string()
+          .describe("Numérotation d'origine de la question (ex. « Exercice 2 — 1 », « I.3 », « Question 4 », « Partie B — 2 »)."),
+        section: z
+          .string()
+          .nullable()
+          .describe("`ref` de l'exercice ou de la partie qui contient la question (exactement comme dans `sections`) ; null s'il n'y en a pas."),
+        statement: z
+          .string()
+          .describe("Énoncé complet et fidèle de la question, avec ses sous-questions a), b)… et les données utiles de l'exercice (contexte, valeurs) ; sans numéro en tête, sans réponse."),
+        points: z
+          .number()
+          .nullable()
+          .describe("Points indiqués pour CETTE question précisément ; null s'ils ne sont pas indiqués (même si l'exercice entier est noté). Ne reporte jamais ici les points d'un exercice entier."),
+      }),
+    )
+    .describe(
+      "TOUTES les questions à traiter, dans l'ordre de l'épreuve : une entrée par question numérotée (1), 2)… ou I.1, I.2…) ; les sous-questions a), b)… restent dans la même entrée, sauf si elles ont leurs propres points. Un titre d'exercice ou de partie n'est JAMAIS une entrée à part ; un exercice sans question numérotée compte comme une seule question. 40 entrées au maximum.",
+    ),
+  documents: z
+    .array(
+      z.object({
+        ref: z.string().describe("Nom du document sur l'épreuve (ex. « Document 1 », « Figure 2 », « Tableau »)."),
+        kind: z.enum(["text", "table", "graph", "map", "diagram", "image", "other"]),
+        description: z
+          .string()
+          .describe("Contenu utile à la résolution : texte transcrit, valeurs lues dans le tableau ou le graphique, légende de la carte ou du schéma."),
+      }),
+    )
+    .describe("Documents associés à l'épreuve (textes, tableaux, graphiques, cartes, schémas, images) ; tableau vide s'il n'y en a pas."),
+  containsStudentAnswers: z
+    .boolean()
+    .describe(
+      "true UNIQUEMENT si des réponses rédigées par un élève (manuscrites ou saisies) apparaissent sur le document, en plus des énoncés. false pour un sujet vierge.",
+    ),
+});
+
+export type AIExamAnalysis = z.infer<typeof aiExamAnalysisSchema>;
+
 // ───────────────────────── Sortie IA : correction ─────────────────────────
 
+const aiCorrectionStepSchema = z.object({
+  label: z
+    .string()
+    .describe("Nom court de l'étape, 1 à 4 mots, sans numéro (ex. « Formule », « Données », « On remplace », « Calcul », « Analyse du document », « Conclusion »)."),
+  content: z
+    .string()
+    .describe("Contenu de l'étape : une ou quelques phrases complètes, ou un calcul écrit en clair (sans LaTeX)."),
+});
+
 const aiCorrectionQuestionSchema = z.object({
+  ref: z
+    .string()
+    .nullable()
+    .describe("Numérotation d'origine de la question sur l'épreuve (ex. « Exercice 2 — 1.a ») ; null si l'épreuve ne numérote pas autrement que 1, 2, 3."),
   prompt: z.string(),
   studentAnswer: z.string(),
   expectedAnswer: z
     .string()
     .describe(
-      "Réponse/corrigé attendu. Pour une épreuve EXCLUSIVEMENT mathématique : jamais seulement le résultat final — inclut la formule utilisée, les données substituées et termine par la réponse finale clairement indiquée.",
+      "Réponse correcte attendue, claire et complète (pour un calcul : le résultat final avec son unité ; pour une question rédigée : la réponse construite attendue). La démarche détaillée va dans `steps`.",
     ),
   pointsEarned: z.number(),
   pointsMax: z.number(),
@@ -289,7 +408,12 @@ const aiCorrectionQuestionSchema = z.object({
   feedback: z
     .string()
     .describe(
-      "Explication pédagogique de la réponse. Pour une épreuve EXCLUSIVEMENT mathématique : détaille obligatoirement le raisonnement complet (formule, données substituées, calcul étape par étape avec une courte explication à chaque étape) puis termine par la réponse finale clairement indiquée — jamais seulement le résultat final.",
+      "Explication pédagogique de la réponse : pourquoi c'est la bonne réponse (et, pour une copie, ce qui est juste ou faux dans la réponse de l'élève), adaptée au niveau. Pour une épreuve EXCLUSIVEMENT mathématique : jamais seulement le résultat final — le raisonnement complet est détaillé dans `steps`.",
+    ),
+  steps: z
+    .array(aiCorrectionStepSchema)
+    .describe(
+      "Démarche détaillée, étape par étape, adaptée à la matière et au type de question (méthode, données, formule, remplacement, calculs intermédiaires, analyse de document, raisonnement, conclusion…). Au moins une étape ; jamais seulement le résultat final.",
     ),
 });
 
@@ -298,6 +422,10 @@ export const aiCorrectionSchema = z.object({
   subject: z.string(),
   /** Chapitre / thème identifié. */
   theme: z.string(),
+  level: z
+    .string()
+    .nullable()
+    .describe("Niveau ou classe de l'épreuve s'il est indiqué ou clairement identifiable ; null sinon."),
   /**
    * `true` uniquement si le contenu fourni contient de vraies réponses
    * rédigées par un élève. `false` si aucune copie n'a été fournie, ou si le
@@ -321,6 +449,11 @@ export const aiCorrectionSchema = z.object({
   strengths: z.array(z.string()),
   improvements: z.array(z.string()),
   advice: z.array(z.string()),
+  keyPoints: z
+    .array(z.string())
+    .describe(
+      "« Points à retenir » : 3 à 6 notions importantes que l'élève doit revoir, tirées des questions de l'épreuve (définition, formule, méthode, date, mécanisme…), chacune en une phrase.",
+    ),
 });
 
 export type AICorrectionOutput = z.infer<typeof aiCorrectionSchema>;

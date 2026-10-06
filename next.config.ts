@@ -32,9 +32,11 @@ const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "X-Frame-Options", value: "DENY" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  // Caméra autorisée pour l'app elle-même seulement (« Scanner avec la
+  // caméra » : cours, épreuves, copies), jamais pour un contenu tiers intégré.
   {
     key: "Permissions-Policy",
-    value: "camera=(), microphone=(), geolocation=()",
+    value: "camera=(self), microphone=(), geolocation=()",
   },
   { key: "Content-Security-Policy", value: cspHeader },
   // Ignoré par les navigateurs si reçu en HTTP (dev) — inoffensif à laisser actif.

@@ -4,6 +4,10 @@
  */
 import type { Dictionary } from "./fr";
 
+/** Points de barème (demi-points compris), au format de la langue. */
+const points = (n: number) =>
+  n.toLocaleString("en-GB", { maximumFractionDigits: 2 });
+
 export const en: Dictionary = {
   common: {
     home: "Home",
@@ -109,7 +113,7 @@ export const en: Dictionary = {
     actionGenererCta: "Create a test",
     actionCorrigerTitle: "Grade a test",
     actionCorrigerBody:
-      "Submit your answers and get detailed grading with tips to improve.",
+      "Import or scan any test, even one not made with EduIA: detailed grading, question by question.",
     actionCorrigerCta: "Grade now",
     recentActivity: "Recent activity",
     seeAllHistory: "See all history",
@@ -269,15 +273,9 @@ export const en: Dictionary = {
 
   dropzone: {
     browse: "Browse files",
-    replace: "Replace",
-    retry: "Try again",
-    chooseAnother: "Choose another file",
-    removeFile: "Remove file",
     close: "Close",
-    readImpossible: "Couldn't read the file",
     textExtracted: "Text extracted",
     imported: "Imported",
-    ocrCharsRead: (count: string) => `${count} characters read by OCR`,
     imageTooHeavy: "Image too large (25 MB maximum). Shrink it and try again.",
     preparingAnalysis: "Preparing analysis…",
     noReadableText:
@@ -317,6 +315,28 @@ export const en: Dictionary = {
     partialText: "Partly readable",
     partialWarning: (name: string) =>
       `Some passages of "${name}" were hard to read and are marked [illisible]. You can continue, or retake a sharper photo for a more complete summary.`,
+    // ── Scan a document with the camera ───────────────────────────────────
+    scanWithCamera: "Scan with the camera",
+    scanTitle: "Scan a document",
+    scanHint: "Fit the whole page in the frame, flat and well lit.",
+    scanCapture: "Take the photo",
+    scanDone: (count: number) =>
+      count > 0 ? `Done (${count} page${count > 1 ? "s" : ""})` : "Done",
+    scanCancel: "Cancel",
+    scanStarting: "Opening the camera…",
+    scanDenied:
+      "Camera access was denied. Allow the camera for this site in your browser settings, or use your phone's camera.",
+    scanUnavailable:
+      "No camera is available in this browser. Use your phone's camera or import a photo.",
+    scanUseNative: "Use the phone camera",
+    scanRemovePage: (n: number) => `Remove scanned page ${n}`,
+    scanLimit: (max: number) => `Limit of ${max} pages reached.`,
+    scanTorchOn: "Turn the torch on",
+    scanTorchOff: "Turn the torch off",
+    scanSwitchCamera: "Switch camera",
+    readyForAnalysis: "Ready for analysis",
+    movePageUp: (n: number) => `Move page ${n} up`,
+    movePageDown: (n: number) => `Move page ${n} down`,
   },
 
   resumer: {
@@ -456,26 +476,41 @@ export const en: Dictionary = {
   corriger: {
     metaTitle: "Grade a test",
     metaDescription:
-      "Drop your paper or type your answers: get a mark, per-question feedback and tips to improve.",
-    step1: "Submit your paper",
+      "Import or scan any test — even one not created with EduIA — and get a detailed answer key, question by question.",
+    anySourceTitle:
+      "EduIA can grade your tests, even when they weren't created with EduIA.",
+    anySourceBody:
+      "An old exam, a teacher's test, a photo of a sheet, a PDF or a screenshot: import it and EduIA does the rest.",
+    stepExam: "The test to grade",
+    sourceImport: "Import or scan",
+    sourceEduia: "My EduIA tests",
+    examDropLabel: "Import your test here",
+    examDropHint: "PDF, photo, screenshot or Word · several pages = one test",
+    examFormats: "PDF, Word, TXT or image (JPG, PNG, WEBP) · 15 MB max per file · 10 pages max",
+    examAutoDetect:
+      "EduIA automatically detects the subject, level, questions and mark scheme.",
+    stepCopy: "Your paper (optional)",
+    copyHint:
+      "Add your answers to get a mark for each question. Without a paper, EduIA writes the full answer key for the test.",
     step2: "Grading options",
     dropLabel: "Drop your paper here",
     dropHint: "PDF, Word, TXT or a photo of your paper",
     formats: "PDF, Word, TXT or image (JPG, PNG, WEBP) · 15 MB max",
     orTypeAnswers: "Or type your answers",
     answersPlaceholder: "Copy your answers here, numbered by question…",
-    relatedExam: "Related test",
+    relatedExam: "Test generated with EduIA",
     noExamSaved: "No saved test",
-    level: "Level / Year",
-    levelPlaceholder: "Enter your level or year group (e.g. Year 13)",
-    questionsMeta: (count: number, subject: string, level: string) =>
-      `${count} questions · ${subject} · ${level}`,
+    level: "Level / Year (optional)",
+    levelPlaceholder: "Detected automatically (e.g. Year 13)",
     scale: "Mark scale",
+    scaleHint:
+      "The mark scheme printed on the test is always kept; this one is only used when the test has none.",
     strictness: "Strictness",
     correctionPages: "Number of pages for the answer key",
     optConseils: "Add personalised tips",
     optExplications: "Add detailed explanations",
     submit: "Grade my paper",
+    submitExam: "Grade the test",
     submitAnswerKey: "Generate the answer key",
     submitting: "Grading in progress…",
     analyzingImage: "Analysing the image…",
@@ -483,40 +518,77 @@ export const en: Dictionary = {
       "With no paper submitted, the AI reuses the test and its source course to produce the answer key: expected answers, mark scheme and explanations.",
     resultTitle: "Generated grading",
     resultTitleAnswerKey: "Answer key generated",
+    newCorrection: "New grading",
     emptyTitle: "No grading yet",
     emptyBody:
-      "Drop a paper or type your answers, then start the grading: the detailed report will appear here.",
-    loadingSr: "Grading your paper…",
+      "Import or scan a test (or drop your paper), then start grading: the detailed answer key will appear here.",
+    loadingSr: "Grading the test…",
     loadingHeading: "Grading in progress",
     loadingBanner:
-      "EduIA is reading your paper, marking each question and writing a report in 10 to 40 seconds.",
+      "EduIA is reading the test, solving each question and writing the answer key — up to 2 to 3 minutes for a full test.",
+    stageAnalyzing: "Analysing the test",
+    stageAnalyzingBody: "Reading the pages, detecting the subject, questions and mark scheme.",
+    stageDetected: (subject: string, level: string | null, count: number) =>
+      [subject, level, `${count} question${count > 1 ? "s" : ""} detected`]
+        .filter(Boolean)
+        .join(" · "),
+    stageEduiaMatched: "EduIA test recognised: its source course is used.",
+    stageCorrecting: "Detailed grading",
+    stageCorrectingBody: "Solving each question, with working and explanations.",
     timeout:
-      "Grading took too long. Try again, or with a shorter paper.",
+      "Grading took too long. Try again, or import the test in several parts.",
     connectionLost:
       "Connection lost. Check your internet connection and try again.",
     genericFailure: "Grading failed. Try again in a moment.",
-    docTitle: "Detailed answer key",
+    imageUnreadable:
+      "This image is too blurry to be graded correctly. Please retake the photo with better lighting and make sure the whole page is visible.",
+    pdfUnreadable:
+      "This document is unreadable and can't be graded correctly. Import a sharper version, or well-lit photos of each page.",
+    pageRef: (n: number, name: string) => `Page ${n} (${name})`,
+    pageUnreadable: (pages: string, message: string) => `${pages}: ${message}`,
+    notAnExam:
+      "No questions were detected in this document. Check that you imported the test itself (not just a course), then try again.",
+    partialNotice: (pages: string | null) =>
+      pages
+        ? `Some passages (${pages}) were hard to read: double-check the related questions in the answer key.`
+        : "Some passages of the test were hard to read: double-check the related questions in the answer key.",
+    copyLabel: "Paper",
+    answerKeyBadge: "Answer key",
+    docTitle: "Test answer key",
     metaLevel: "Level / Year",
     metaSubject: "Subject",
     metaTheme: "Chapter / Topic",
     metaDate: "Date",
     metaLength: "Answer key length",
+    metaScale: "Mark scheme",
+    metaSource: "Test",
+    scaleFromExam: (max: string) => `Out of ${max} — the test's mark scheme`,
+    scaleProposed: (max: string) => `Out of ${max} — split suggested by EduIA`,
+    sourceExternal: "Imported (not from EduIA)",
+    sourceEduiaLabel: "Generated with EduIA",
+    questionLabel: (n: number) => `Question ${n}`,
+    statementLabel: "Question",
     yourAnswer: "Your answer",
-    expectedAnswer: "Expected answer",
+    expectedAnswer: "Correct answer",
+    stepsLabel: "Working",
+    explanationLabel: "Explanation",
     explanation: "Explanation:",
     scoreAria: "Mark obtained",
+    totalLabel: "Total",
+    totalAnswerKey: "Total marks",
     detailByQuestion: "Per-question breakdown",
     answerKeyByQuestion: "Answer key, question by question",
+    keyPoints: "Key points to remember",
     strengths: "Strengths",
     improvements: "Areas to work on",
     advice: "Tips to improve",
     methodAdvice: "Method tips",
-    ptShort: (earned: number, max: number) => `${earned} / ${max} pts`,
-    ptMax: (max: number) => `${max} pts`,
+    ptShort: (earned: number, max: number) => `${points(earned)} / ${points(max)} pts`,
+    ptMax: (max: number) => `${points(max)} pts`,
     footer: (by: string, date: string, max: number) =>
-      `Grading generated by ${by} · ${date} · Marked out of ${max}`,
+      `Grading generated by ${by} · ${date} · Marked out of ${points(max)}`,
     footerAnswerKey: (by: string, date: string, max: number) =>
-      `Answer key generated by ${by} · ${date} · Marked out of ${max}`,
+      `Answer key generated by ${by} · ${date} · Marked out of ${points(max)}`,
     shareTitle: (title: string) => `Grading · ${title}`,
   },
 
@@ -800,7 +872,7 @@ export const en: Dictionary = {
       },
       grade: {
         q: "How do I grade a test?",
-        a: "In “Grade a test”, choose the reference test, drop your paper or type your answers, set the mark scale, then start grading. You get a mark, per-question feedback and tips to improve.",
+        a: "In “Grade a test”, import or scan the test — even one not created with EduIA (an old exam, a photo, a PDF…) — or pick one of your EduIA tests. EduIA detects the subject and questions, then writes a detailed answer key. Add your paper if you want a mark for each question.",
       },
       account: {
         q: "How do I manage my account?",

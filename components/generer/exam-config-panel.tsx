@@ -7,8 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, Field } from "@/components/ui/select";
 import { ConfigSection } from "@/components/common/config-section";
-import type { DropzoneFile } from "@/components/common/file-dropzone";
-import { MultiFileDropzone } from "@/components/common/multi-file-dropzone";
+import {
+  MultiFileDropzone,
+  type DropzoneFile,
+} from "@/components/common/multi-file-dropzone";
 import { OptionsList, type ToggleOption } from "@/components/common/options-list";
 import { InlineErrorBanner } from "@/components/common/inline-error-banner";
 import { InsufficientCreditsBanner } from "@/components/credits/insufficient-credits-banner";

@@ -66,12 +66,13 @@ const MAX_EDGE = 2048;
 const UPLOADABLE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 /**
- * Redimensionne la photo et la ré-encode en JPEG. `createImageBitmap` applique
+ * Redimensionne la photo et la ré-encode en JPEG (aussi utilisée pour les pages
+ * d'épreuve envoyées telles quelles à la correction). `createImageBitmap` applique
  * l'orientation EXIF (photo prise en portrait au téléphone) et décode les
  * formats que le navigateur sait lire (dont HEIC sur Safari) : le modèle reçoit
  * toujours une image droite, légère, dans un format qu'il accepte.
  */
-async function prepareImage(source: File): Promise<Blob> {
+export async function prepareImage(source: File): Promise<Blob> {
   if (typeof createImageBitmap === "function" && typeof document !== "undefined") {
     try {
       const bitmap = await createImageBitmap(source);

@@ -1,7 +1,22 @@
 /** Verdict d'une question corrigée — pilote la couleur du badge. */
 export type CorrectionVerdict = "correct" | "partial" | "incorrect";
 
+/**
+ * Étape de la démarche détaillée d'une question (« Formule », « On remplace »,
+ * « Calcul », « Analyse du document », « Conclusion »…), choisie par l'IA selon
+ * la matière et le type de question.
+ */
+export interface CorrectionStep {
+  label: string;
+  content: string;
+}
+
 export interface CorrectionQuestion {
+  /**
+   * Numérotation d'origine de la question sur l'épreuve (« Exercice 2 — 1.a »),
+   * quand elle diffère du simple rang. Absente sur les anciennes corrections.
+   */
+  ref?: string;
   prompt: string;
   /** Réponse fournie par l'élève. */
   studentAnswer: string;
@@ -12,6 +27,8 @@ export interface CorrectionQuestion {
   verdict: CorrectionVerdict;
   /** Explication pédagogique de l'IA sur la réponse. */
   feedback: string;
+  /** Démarche détaillée (méthode, données, calculs, conclusion…). */
+  steps?: CorrectionStep[];
 }
 
 /**
@@ -26,6 +43,35 @@ export interface CorrectionQuestion {
 export type CorrectionMode = "graded" | "answer-key";
 
 /**
+ * Origine de l'épreuve corrigée :
+ *  - `eduia` : épreuve générée par EduIA (choisie dans la liste, ou importée et
+ *    reconnue automatiquement) — corrigée à partir de son cours d'origine ;
+ *  - `external` : épreuve importée d'ailleurs (ancien sujet, photo, PDF…),
+ *    corrigée à partir de son contenu et des connaissances générales du modèle.
+ *
+ * Absente sur les corrections antérieures (ou sans épreuve, copie seule).
+ */
+export type CorrectionExamSource = "eduia" | "external";
+
+/**
+ * Événements de progression de `POST /api/ai/grade` (flux NDJSON, une ligne
+ * JSON par événement) : l'analyse de l'épreuve, puis la correction.
+ */
+export type CorrectionStreamEvent =
+  | { type: "stage"; stage: "analyzing" | "correcting" }
+  | {
+      type: "analysis";
+      subject: string;
+      level: string | null;
+      title: string;
+      questionCount: number;
+      /** L'épreuve importée a été reconnue comme une épreuve EduIA de l'élève. */
+      matchedEduia: boolean;
+    }
+  | { type: "result"; correction: ExamCorrection }
+  | { type: "error"; error: string; code?: string };
+
+/**
  * Rapport de correction — présenté comme un véritable bilan pédagogique.
  * Point de bascule : mock aujourd'hui, `lib/ai` (OpenAI) + Supabase demain.
  */
@@ -37,6 +83,17 @@ export interface ExamCorrection {
   dateLabel: string;
   /** Corrigé type sans copie (`answer-key`) ou copie notée (`graded`, défaut). */
   mode?: CorrectionMode;
+  /** Origine de l'épreuve (voir `CorrectionExamSource`). */
+  examSource?: CorrectionExamSource;
+  /**
+   * Origine du barème : `exam` = barème indiqué sur l'épreuve (respecté tel
+   * quel), `proposed` = aucun barème lisible, répartition proposée par EduIA.
+   */
+  pointsSource?: "exam" | "proposed";
+  /** Avertissement de lecture (page partiellement lisible…), affiché en tête. */
+  notice?: string;
+  /** Notions importantes à revoir (« Points à retenir »). */
+  keyPoints?: string[];
   /** Longueur générée du corrigé, en pages (« 4 pages »). */
   pageCountLabel: string;
   /** Note obtenue et barème (ex. 15 / 20). En mode `answer-key`, `score` vaut 0. */
@@ -83,6 +140,7 @@ export interface CorrectionRequest {
   selectedExam: string;
   /** `id` de l'épreuve de référence en base — sert à charger son corrigé. `""` si aucune. */
   selectedExamId: string;
+  /** Niveau saisi par l'élève ; `""` = détecté automatiquement sur l'épreuve. */
   level: string;
   answerFileName: string | null;
   /** Nature de la copie importée (« image », « pdf », « txt »…). */

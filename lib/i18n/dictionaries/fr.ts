@@ -11,6 +11,10 @@
  * si bien que `en: Dictionary` exige les mêmes clés/types — pas les mêmes textes.
  */
 
+/** Points de barème (demi-points compris), au format de la langue. */
+const points = (n: number) =>
+  n.toLocaleString("fr-FR", { maximumFractionDigits: 2 });
+
 export const fr = {
   common: {
     home: "Accueil",
@@ -117,7 +121,7 @@ export const fr = {
     actionGenererCta: "Créer une épreuve",
     actionCorrigerTitle: "Corriger une épreuve",
     actionCorrigerBody:
-      "Soumets tes réponses et reçois une correction détaillée avec des conseils pour progresser.",
+      "Importe ou scanne n'importe quelle épreuve, même hors EduIA : correction détaillée, question par question.",
     actionCorrigerCta: "Corriger maintenant",
     recentActivity: "Activité récente",
     seeAllHistory: "Voir tout l'historique",
@@ -281,15 +285,9 @@ export const fr = {
 
   dropzone: {
     browse: "Parcourir les fichiers",
-    replace: "Remplacer",
-    retry: "Réessayer",
-    chooseAnother: "Choisir un autre fichier",
-    removeFile: "Retirer le fichier",
     close: "Fermer",
-    readImpossible: "Lecture impossible",
     textExtracted: "Texte extrait",
     imported: "Importé",
-    ocrCharsRead: (count: string) => `${count} caractères lus par OCR`,
     imageTooHeavy: "Image trop lourde (25 Mo maximum). Réduis-la puis réessaie.",
     preparingAnalysis: "Préparation de l'analyse…",
     noReadableText:
@@ -331,6 +329,28 @@ export const fr = {
     partialText: "Lecture partielle",
     partialWarning: (name: string) =>
       `Certains passages de « ${name} » étaient difficiles à lire et sont marqués [illisible]. Tu peux continuer, ou reprendre la photo plus nette pour un résumé plus complet.`,
+    // ── Scanner un document avec la caméra ────────────────────────────────
+    scanWithCamera: "Scanner avec la caméra",
+    scanTitle: "Scanner un document",
+    scanHint: "Place toute la page dans le cadre, bien à plat et bien éclairée.",
+    scanCapture: "Prendre la photo",
+    scanDone: (count: number) =>
+      count > 0 ? `Terminer (${count} page${count > 1 ? "s" : ""})` : "Terminer",
+    scanCancel: "Annuler",
+    scanStarting: "Ouverture de la caméra…",
+    scanDenied:
+      "Accès à la caméra refusé. Autorise la caméra pour ce site dans les réglages du navigateur, ou utilise l'appareil photo du téléphone.",
+    scanUnavailable:
+      "Aucune caméra n'est disponible dans ce navigateur. Utilise l'appareil photo du téléphone ou importe une photo.",
+    scanUseNative: "Utiliser l'appareil photo",
+    scanRemovePage: (n: number) => `Retirer la page scannée ${n}`,
+    scanLimit: (max: number) => `Limite de ${max} pages atteinte.`,
+    scanTorchOn: "Allumer la lampe",
+    scanTorchOff: "Éteindre la lampe",
+    scanSwitchCamera: "Changer de caméra",
+    readyForAnalysis: "Prête pour l'analyse",
+    movePageUp: (n: number) => `Remonter la page ${n}`,
+    movePageDown: (n: number) => `Descendre la page ${n}`,
   },
 
   resumer: {
@@ -472,26 +492,42 @@ export const fr = {
   corriger: {
     metaTitle: "Corriger une épreuve",
     metaDescription:
-      "Dépose ta copie ou saisis tes réponses : reçois une note, un commentaire par question et des conseils pour progresser.",
-    step1: "Déposer ta copie",
+      "Importe ou scanne n'importe quelle épreuve — même si elle n'a pas été créée avec EduIA — et reçois une correction détaillée, question par question.",
+    anySourceTitle:
+      "EduIA peut corriger vos épreuves, même lorsqu'elles n'ont pas été créées avec EduIA.",
+    anySourceBody:
+      "Ancien sujet, épreuve d'un professeur, photo d'une feuille, PDF ou capture d'écran : importe-la, EduIA s'occupe du reste.",
+    stepExam: "L'épreuve à corriger",
+    sourceImport: "Importer ou scanner",
+    sourceEduia: "Mes épreuves EduIA",
+    examDropLabel: "Importe ton épreuve ici",
+    examDropHint:
+      "PDF, photo, capture d'écran ou Word · plusieurs pages = une seule épreuve",
+    examFormats: "PDF, Word, TXT ou image (JPG, PNG, WEBP) · 15 Mo max par fichier · 10 pages max",
+    examAutoDetect:
+      "EduIA détecte automatiquement la matière, le niveau, les questions et le barème.",
+    stepCopy: "Ta copie (facultatif)",
+    copyHint:
+      "Ajoute tes réponses pour être noté question par question. Sans copie, EduIA rédige le corrigé complet de l'épreuve.",
     step2: "Options de correction",
     dropLabel: "Dépose ta copie ici",
     dropHint: "PDF, Word, TXT ou photo de ta copie",
     formats: "PDF, Word, TXT ou image (JPG, PNG, WEBP) · 15 Mo max",
     orTypeAnswers: "Ou saisis tes réponses",
     answersPlaceholder: "Recopie ici tes réponses, numérotées par question…",
-    relatedExam: "Épreuve concernée",
+    relatedExam: "Épreuve générée avec EduIA",
     noExamSaved: "Aucune épreuve enregistrée",
-    level: "Niveau / Classe",
-    levelPlaceholder: "Entre ton niveau ou ta classe (ex. Terminale)",
-    questionsMeta: (count: number, subject: string, level: string) =>
-      `${count} questions · ${subject} · ${level}`,
+    level: "Niveau / Classe (facultatif)",
+    levelPlaceholder: "Détecté automatiquement (ex. Terminale)",
     scale: "Barème",
+    scaleHint:
+      "Le barème indiqué sur l'épreuve est toujours respecté ; celui-ci ne sert que si l'épreuve n'en indique pas.",
     strictness: "Niveau d'exigence",
     correctionPages: "Nombre de pages du corrigé",
     optConseils: "Ajouter des conseils personnalisés",
     optExplications: "Ajouter des explications détaillées",
     submit: "Corriger ma copie",
+    submitExam: "Corriger l'épreuve",
     submitAnswerKey: "Générer le corrigé",
     submitting: "Correction en cours…",
     analyzingImage: "Analyse de l'image…",
@@ -499,41 +535,78 @@ export const fr = {
       "Sans copie déposée, l'IA reprend l'épreuve et son cours d'origine pour produire le corrigé type : réponses attendues, barème et explications.",
     resultTitle: "Correction générée",
     resultTitleAnswerKey: "Corrigé généré",
+    newCorrection: "Nouvelle correction",
     emptyTitle: "Aucune correction pour l'instant",
     emptyBody:
-      "Dépose une copie ou saisis tes réponses, puis lance la correction : le bilan détaillé s'affichera ici.",
-    loadingSr: "Correction de la copie en cours…",
+      "Importe ou scanne une épreuve (ou dépose ta copie), puis lance la correction : le corrigé détaillé s'affichera ici.",
+    loadingSr: "Correction de l'épreuve en cours…",
     loadingHeading: "Correction en cours",
     loadingBanner:
-      "EduIA lit ta copie, note chaque question et rédige un bilan en 10 à 40 secondes.",
+      "EduIA lit l'épreuve, résout chaque question et rédige le corrigé — jusqu'à 2 à 3 minutes pour une épreuve complète.",
+    stageAnalyzing: "Analyse de l'épreuve",
+    stageAnalyzingBody: "Lecture des pages, détection de la matière, des questions et du barème.",
+    stageDetected: (subject: string, level: string | null, count: number) =>
+      [subject, level, `${count} question${count > 1 ? "s" : ""} détectée${count > 1 ? "s" : ""}`]
+        .filter(Boolean)
+        .join(" · "),
+    stageEduiaMatched: "Épreuve EduIA reconnue : son cours d'origine est utilisé.",
+    stageCorrecting: "Correction détaillée",
+    stageCorrectingBody: "Résolution de chaque question, démarche et explications.",
     timeout:
-      "La correction a pris trop de temps. Réessaie, ou avec une copie plus courte.",
+      "La correction a pris trop de temps. Réessaie, ou importe l'épreuve en plusieurs parties.",
     connectionLost:
       "Connexion interrompue. Vérifie ta connexion internet puis réessaie.",
     genericFailure:
-      "La correction de la copie a échoué. Réessaie dans un instant.",
-    docTitle: "Corrigé détaillé",
+      "La correction a échoué. Réessaie dans un instant.",
+    imageUnreadable:
+      "Cette image est trop floue pour être corrigée correctement. Merci de reprendre la photo avec une meilleure luminosité et de vérifier que toute la page est visible.",
+    pdfUnreadable:
+      "Ce document est illisible et ne peut pas être corrigé correctement. Importe une version plus nette, ou des photos bien éclairées de chaque page.",
+    pageRef: (n: number, name: string) => `Page ${n} (${name})`,
+    pageUnreadable: (pages: string, message: string) => `${pages} : ${message}`,
+    notAnExam:
+      "Aucune question n'a été détectée dans ce document. Vérifie que tu as bien importé le sujet de l'épreuve (et pas seulement un cours), puis réessaie.",
+    partialNotice: (pages: string | null) =>
+      pages
+        ? `Certains passages (${pages}) étaient difficiles à lire : vérifie les énoncés concernés dans la correction.`
+        : "Certains passages de l'épreuve étaient difficiles à lire : vérifie les énoncés concernés dans la correction.",
+    copyLabel: "Copie",
+    answerKeyBadge: "Corrigé type",
+    docTitle: "Correction de l'épreuve",
     metaLevel: "Niveau / Classe",
     metaSubject: "Matière",
     metaTheme: "Chapitre / Thème",
     metaDate: "Date",
     metaLength: "Longueur du corrigé",
+    metaScale: "Barème",
+    metaSource: "Épreuve",
+    scaleFromExam: (max: string) => `Sur ${max} — barème de l'épreuve`,
+    scaleProposed: (max: string) => `Sur ${max} — répartition proposée par EduIA`,
+    sourceExternal: "Importée (hors EduIA)",
+    sourceEduiaLabel: "Générée avec EduIA",
+    questionLabel: (n: number) => `Question ${n}`,
+    statementLabel: "Énoncé",
     yourAnswer: "Ta réponse",
-    expectedAnswer: "Correction attendue",
+    expectedAnswer: "Réponse correcte",
+    stepsLabel: "Démarche",
+    explanationLabel: "Explication",
     explanation: "Explication :",
     scoreAria: "Note obtenue",
+    totalLabel: "Total",
+    totalAnswerKey: "Total du barème",
     detailByQuestion: "Détail par question",
     answerKeyByQuestion: "Corrigé par question",
+    keyPoints: "Points à retenir",
     strengths: "Points forts",
     improvements: "Points à travailler",
     advice: "Conseils pour progresser",
     methodAdvice: "Conseils de méthode",
-    ptShort: (earned: number, max: number) => `${earned} / ${max} pt`,
-    ptMax: (max: number) => `${max} pt`,
+    ptShort: (earned: number, max: number) => `${points(earned)} / ${points(max)} pt`,
+    ptMax: (max: number) => `${points(max)} pt`,
     footer: (by: string, date: string, max: number) =>
-      `Correction générée par ${by} · ${date} · Barème sur ${max} points`,
+      `Correction générée par ${by} · ${date} · Barème sur ${points(max)} points`,
     footerAnswerKey: (by: string, date: string, max: number) =>
-      `Corrigé généré par ${by} · ${date} · Barème sur ${max} points`,
+      `Corrigé généré par ${by} · ${date} · Barème sur ${points(max)} points`,
     shareTitle: (title: string) => `Correction · ${title}`,
   },
 
@@ -821,7 +894,7 @@ export const fr = {
       },
       grade: {
         q: "Comment corriger une épreuve ?",
-        a: "Dans « Corriger une épreuve », choisis l'épreuve de référence, dépose ta copie ou saisis tes réponses, règle le barème, puis lance la correction. Tu obtiens une note, un commentaire par question et des conseils pour progresser.",
+        a: "Dans « Corriger une épreuve », importe ou scanne l'épreuve — même si elle n'a pas été créée avec EduIA (ancien sujet, photo, PDF…) — ou choisis une de tes épreuves EduIA. EduIA détecte la matière et les questions, puis rédige un corrigé détaillé. Ajoute ta copie si tu veux être noté question par question.",
       },
       account: {
         q: "Comment gérer mon compte ?",

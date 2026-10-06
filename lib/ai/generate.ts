@@ -4,8 +4,16 @@ import type { ResponseInput } from "openai/resources/responses/responses";
 import { getOpenAIClient, OPENAI_MODEL } from "./openai-client";
 import { AIGenerationError } from "./errors";
 import { estimatePageCountFromText } from "./extract";
-import { aiSummarySchema, aiExamSchema, aiCorrectionSchema } from "./schemas";
+import {
+  aiSummarySchema,
+  aiExamSchema,
+  aiCorrectionSchema,
+  type AICorrectionOutput,
+  type AIExamAnalysis,
+} from "./schemas";
 import { balanceExamPoints } from "./exam-points";
+import { normalizeCorrectionPoints } from "./correction-points";
+import { attachmentsToContent, type ExamAttachment } from "./attachments";
 import {
   cleanPartTitle,
   cleanQuestionPrompt,
@@ -15,6 +23,7 @@ import type { AiUsageTokens } from "./usage";
 import type { Locale } from "@/lib/i18n/config";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
 import type {
+  CorrectionQuestion,
   CorrectionRequest,
   ExamCorrection,
   ExamPart,
@@ -32,6 +41,17 @@ import type {
 function languageDirective(locale: Locale): string {
   return locale === "en"
     ? " Write the ENTIRE structured output in English (every field: title, headings, paragraphs, bullets, definitions, questions, feedback, advice…), regardless of the language of the source course."
+    : "";
+}
+
+/**
+ * Les étapes de démarche sont nommées en français dans les consignes : en
+ * anglais, on fixe leurs équivalents naturels (pas de calque « On replaces »).
+ */
+function correctionLanguageDirective(locale: Locale): string {
+  return locale === "en"
+    ? languageDirective(locale) +
+        " Name the steps (`steps.label`) with natural English terms: « Formule » → Formula, « Méthode » → Method, « Données » → Given data, « On cherche » → Unknown, « On remplace » → Substitution, « Calcul » → Calculation, « Simplification » → Simplification, « Résultat » → Result, « Conversion des unités » → Unit conversion, « Analyse du document » → Document analysis, « Informations relevées » → Key information, « Mise en relation » → Linking the evidence, « Réponse rédigée » → Written answer, « Plan proposé » → Suggested outline, « Conclusion » → Conclusion."
     : "";
 }
 
@@ -128,7 +148,24 @@ const EXAM_SYSTEM_PROMPT =
  * par question).
  */
 const MATH_DETAILED_CORRECTION_RULE =
-  " RÈGLE MATHÉMATIQUES (automatique, ne s'applique qu'aux épreuves/copies portant EXCLUSIVEMENT sur les mathématiques — n'affecte aucune autre matière) : pour CHAQUE question, `feedback` (et `expectedAnswer` pour un corrigé type) doit dérouler le raisonnement complet, JAMAIS seulement le résultat final. Structure obligatoire, dans l'ordre : (1) rappelle la formule ou méthode utilisée ; (2) montre les données de l'énoncé substituées dans la formule ; (3) détaille chaque étape de calcul avec une courte explication de ce qu'elle fait ; (4) termine par la réponse finale clairement indiquée (ex. « Réponse : x = 5 »), sur sa propre ligne. Un résultat donné sans cette démonstration est un feedback incomplet — ne le fais jamais pour une épreuve de mathématiques.";
+  " RÈGLE MATHÉMATIQUES (automatique, ne s'applique qu'aux épreuves/copies portant EXCLUSIVEMENT sur les mathématiques — n'affecte aucune autre matière) : pour CHAQUE question, `steps` doit dérouler le raisonnement complet, JAMAIS seulement le résultat final. Étapes obligatoires, dans l'ordre : (1) « Formule » ou « Méthode » utilisée ; (2) « Données » connues de l'énoncé ; (3) « On remplace » : les valeurs substituées dans la formule ; (4) un « Calcul » par calcul intermédiaire, avec une courte explication de ce qu'il fait ; (5) « Simplification » si nécessaire ; (6) « Résultat » : la réponse finale clairement indiquée (ex. « x = 5 »). `expectedAnswer` reprend la réponse finale ; `feedback` donne une courte explication qui permet à l'élève de comprendre. Un résultat donné sans cette démonstration est une correction incomplète — ne le fais jamais pour une épreuve de mathématiques.";
+
+/**
+ * Démarche pédagogique commune à tous les modes de correction : la réponse
+ * correcte (`expectedAnswer`), la démarche détaillée étape par étape (`steps`,
+ * étapes choisies selon la matière) et l'explication (`feedback`) — jamais la
+ * seule réponse finale. Complète `MATH_DETAILED_CORRECTION_RULE`.
+ */
+const CORRECTION_PEDAGOGY_RULE =
+  " DÉMARCHE PÉDAGOGIQUE (toutes les matières) : pour CHAQUE question, ne donne jamais seulement la réponse finale. `expectedAnswer` = la réponse correcte, claire et complète ; `steps` = la démarche détaillée, étape par étape ; `feedback` = l'explication qui fait comprendre pourquoi c'est la bonne réponse, adaptée au niveau de l'élève. Choisis les étapes selon la matière : " +
+  "MATHÉMATIQUES — « Formule » ou « Méthode », « Données », « On remplace », un « Calcul » par calcul intermédiaire, « Simplification » si utile, « Résultat » ; " +
+  "PHYSIQUE-CHIMIE — « Données », « On cherche », « Formule », « Conversion des unités » si nécessaire, « Calcul », « Résultat » avec son unité, puis le raisonnement dans `feedback` ; " +
+  "HISTOIRE, GÉOGRAPHIE, ÉDUCATION CIVIQUE (ECM) — une réponse construite et développée adaptée au niveau, jamais une phrase isolée ; pour une question sur document : « Analyse du document », « Informations relevées », « Réponse » (à partir du document), « Connaissances complémentaires » si nécessaire ; " +
+  "SVT — « Données / observations », « Analyse des documents », « Mécanisme », « Mise en relation », « Conclusion » ; " +
+  "FRANÇAIS, PHILOSOPHIE, LANGUES — selon le type de question (compréhension, analyse, grammaire, vocabulaire, argumentation, commentaire, dissertation, rédaction) : « Méthode », « Repérage » ou « Analyse », « Réponse rédigée » ou « Plan proposé », « Conclusion », en expliquant pourquoi la réponse est correcte ; " +
+  "QUESTION COURTE (QCM, vrai/faux, définition) — 1 à 3 étapes suffisent ; pour un QCM, justifie le bon choix et pourquoi les autres sont faux. " +
+  "Chaque `label` est court (1 à 4 mots, sans numéro). Écris les formules en texte lisible avec des symboles simples (x², √, ×, ÷, ≤, π, Δ), jamais en LaTeX ni entre $. " +
+  "`keyPoints` (« Points à retenir ») : 3 à 6 notions importantes que l'élève doit revoir, tirées des questions de l'épreuve.";
 
 /**
  * Utilisée quand une épreuve de référence est disponible pour comparaison : le
@@ -145,6 +182,7 @@ const CORRECTION_WITH_REFERENCE_SYSTEM_PROMPT =
   "Si `hasRealAnswers` est faux : NE NOTE RIEN ; rédige à la place, pour CHAQUE question, un vrai corrigé type — la réponse exacte attendue (`expectedAnswer`) et l'explication de la démarche (`feedback`, justifications, méthode, pièges fréquents), à partir du document source et/ou de l'épreuve fournis, sans jamais mentionner une copie ou une réponse d'élève absente. " +
   "Donne toujours des conseils concrets et actionnables pour progresser. " +
   "Réponds uniquement selon le schéma structuré demandé, sans texte additionnel." +
+  CORRECTION_PEDAGOGY_RULE +
   MATH_DETAILED_CORRECTION_RULE;
 
 /**
@@ -161,6 +199,7 @@ const CORRECTION_NO_REFERENCE_SYSTEM_PROMPT =
   "Appuie-toi sur le document source fourni s'il y en a un : les réponses attendues et le barème doivent alors en découler, pas de connaissances externes. " +
   "Donne toujours des conseils concrets et actionnables pour progresser. " +
   "Réponds uniquement selon le schéma structuré demandé, sans texte additionnel." +
+  CORRECTION_PEDAGOGY_RULE +
   MATH_DETAILED_CORRECTION_RULE;
 
 const ANSWER_KEY_SYSTEM_PROMPT =
@@ -170,6 +209,26 @@ const ANSWER_KEY_SYSTEM_PROMPT =
   "Il n'y a AUCUNE copie d'élève : tu ne notes rien, tu rédiges le corrigé de référence. Renseigne toujours `hasRealAnswers` à `false`. " +
   "Adapte le niveau de détail à l'exigence demandée. " +
   "Réponds uniquement selon le schéma structuré demandé, sans texte additionnel." +
+  CORRECTION_PEDAGOGY_RULE +
+  MATH_DETAILED_CORRECTION_RULE;
+
+/**
+ * Épreuve EXTERNE (importée, non générée par EduIA) sans cours fourni : le
+ * modèle résout lui-même chaque question à partir du contenu de l'épreuve, de
+ * ses connaissances générales et du raisonnement — sans jamais prétendre avoir
+ * consulté une source qu'il n'a pas consultée.
+ */
+const EXTERNAL_CORRECTION_SYSTEM_PROMPT =
+  "Tu es EduIA, un professeur-correcteur expérimenté, rigoureux et bienveillant. Tu corriges une épreuve scolaire IMPORTÉE par l'élève : elle peut venir de n'importe quelle source (ancien sujet, sujet donné par un professeur, autre établissement, autre plateforme, photo d'une feuille papier). Ne suppose jamais qu'elle a été créée par EduIA. " +
+  "Aucun cours n'est fourni, et c'est normal : ne le reproche pas, ne le réclame pas, corrige quand même. Appuie-toi UNIQUEMENT sur : (1) le contenu explicite de l'épreuve — énoncés, données, documents, tableaux, graphiques, cartes, schémas et images des pages jointes ; (2) tes connaissances générales de modèle ; (3) le raisonnement nécessaire pour résoudre chaque question. " +
+  "HONNÊTETÉ : tu n'as accès ni à Internet ni à aucun document extérieur. Ne prétends jamais avoir consulté un site, un manuel, un programme officiel ou un corrigé officiel, et n'invente aucune source, citation ou référence. Si une question dépend d'une information absente de l'épreuve et impossible à déduire (texte non fourni, passage illisible), dis-le clairement dans `feedback` et donne la démarche attendue au lieu d'inventer. " +
+  "EXACTITUDE : résous chaque question toi-même avec soin ; vérifie chaque calcul, chaque unité, chaque signe et la cohérence du résultat avec l'énoncé ; pour un document, appuie-toi sur ce qu'il montre réellement. " +
+  "STRUCTURE : une entrée `questions` par question de la liste fournie, dans le même ordre et en même nombre ; `ref` = sa numérotation d'origine ; `prompt` = son énoncé, sans numéro. Adapte le vocabulaire et le niveau de détail au niveau scolaire de l'épreuve. " +
+  "BARÈME : respecte EXACTEMENT les points indiqués sur l'épreuve, question par question ; les points annoncés pour un exercice entier se répartissent entre ses questions ; sans barème indiqué, propose une répartition raisonnable (questions plus longues ou plus difficiles = plus de points) sur le total demandé. " +
+  "COPIE : s'il y a de vraies réponses d'élève (copie jointe, réponses saisies ou réponses écrites sur l'épreuve), renseigne `hasRealAnswers` à true, recopie fidèlement chaque réponse dans `studentAnswer`, note chaque question (`pointsEarned` entre 0 et `pointsMax`, `verdict`) selon le niveau d'exigence demandé et explique ce qui est juste ou faux dans `feedback`. Sinon, `hasRealAnswers` = false et tu rédiges le corrigé complet : `studentAnswer` vide, `pointsEarned` = 0, `verdict` = correct, `strengths` et `improvements` vides. En cas de doute sur la présence de vraies réponses, privilégie true. " +
+  "`summary` : 1 à 3 phrases de présentation du corrigé ou de bilan de la copie ; `appreciation` : 1 à 3 mots (« Corrigé type » sans copie) ; `advice` : conseils de méthode concrets pour réussir ce type d'épreuve. " +
+  "Réponds uniquement selon le schéma structuré demandé, sans texte additionnel." +
+  CORRECTION_PEDAGOGY_RULE +
   MATH_DETAILED_CORRECTION_RULE;
 
 function truncate(text: string | null | undefined, max: number): string | null {
@@ -632,19 +691,54 @@ export interface GradeExamInput extends CorrectionRequest {
    * dont l'épreuve est issue. Sert à garder le corrigé fidèle au document.
    */
   documentContext?: string | null;
+  /** Barème de l'épreuve EduIA de référence : points par question, dans l'ordre. */
+  referencePoints?: number[] | null;
+  /** Total des points de l'épreuve EduIA de référence. */
+  referenceTotal?: number | null;
+  /** Niveau de l'épreuve EduIA de référence (si l'élève n'en saisit pas). */
+  referenceLevel?: string | null;
+  /**
+   * Analyse d'une épreuve importée d'une source EXTERNE (non reconnue comme
+   * une épreuve EduIA de l'élève) : active la correction sans cours.
+   */
+  externalAnalysis?: AIExamAnalysis | null;
+}
+
+/** Pages transmises au modèle pendant la correction. */
+export interface GradeAttachments {
+  /** Pages de l'épreuve importée (mode externe). */
+  exam?: ExamAttachment[];
+  /**
+   * Copie de l'élève jointe en fichier (PDF), ou l'épreuve importée elle-même
+   * quand elle porte déjà les réponses de l'élève.
+   */
+  copy?: ExamAttachment[];
 }
 
 type CorrectionMode = NonNullable<ExamCorrection["mode"]>;
 
+/** Total visé quand l'épreuve n'impose pas son barème (`GRADING_SCALES`). */
+function scaleTarget(scale: string): number | null {
+  const match = /^\/\s*(\d+)$/.exec(scale.trim());
+  return match ? Number(match[1]) : null;
+}
+
+/**
+ * Matières où la justesse dépend d'un raisonnement ou de calculs : la
+ * correction sans cours y demande davantage de réflexion au modèle.
+ */
+const SCIENTIFIC_SUBJECT =
+  /math|physi|chimi|svt|science|biolog|g[ée]olog|technolog|informatique|statisti|[ée]conom|comptab|calcul|alg[èe]bre|g[ée]om[ée]trie/i;
+
 function buildGradePrompt(
   request: GradeExamInput,
   answerText: string,
-  hasAttachment: boolean,
+  attachmentCount: number,
   mode: CorrectionMode,
 ): string {
   const lines = [
     `Épreuve : ${request.selectedExam || "non précisée"}`,
-    `Niveau : ${request.level}`,
+    `Niveau : ${request.level || request.referenceLevel || "non précisé (déduis-le du contenu)"}`,
     `Barème demandé : ${request.scale}`,
     `Niveau d'exigence : ${request.strictness}`,
     `Longueur cible du corrigé : ${request.pageCount}`,
@@ -682,7 +776,7 @@ function buildGradePrompt(
       '"""',
       "",
       "Il n'y a AUCUNE copie d'élève. À partir du document source ci-dessus ET de cette épreuve, produis le CORRIGÉ TYPE complet :",
-      "- pour CHAQUE question de l'épreuve, remplis `expectedAnswer` avec la réponse complète et exacte attendue (issue du document), et `feedback` avec l'explication de la démarche (justifications, méthode, pièges fréquents) ;",
+      "- pour CHAQUE question de l'épreuve, remplis `expectedAnswer` avec la réponse complète et exacte attendue (issue du document), `steps` avec la démarche détaillée et `feedback` avec l'explication (justifications, méthode, pièges fréquents) ;",
       "- n'invente rien : n'utilise que ce qui figure dans le document source et l'épreuve ;",
       '- laisse `studentAnswer` vide (""), `pointsEarned` à 0, `verdict` à "correct", et `pointsMax` = barème de la question ;',
       "- laisse `strengths` et `improvements` vides ;",
@@ -702,7 +796,7 @@ function buildGradePrompt(
   } else if (!documentContext) {
     lines.push(
       "",
-      "Aucune épreuve de référence n'a été fournie : identifie la matière et le thème à partir du contenu fourni, et corrige en te basant sur le programme scolaire français. Le contenu fourni est la copie réelle de l'élève (`hasRealAnswers` = vrai).",
+      "Aucune épreuve de référence n'a été fournie : identifie la matière, le niveau et le thème à partir du contenu fourni, et corrige en t'appuyant sur ce contenu et sur tes connaissances générales. Le contenu fourni est la copie réelle de l'élève (`hasRealAnswers` = vrai).",
     );
   } else {
     lines.push(
@@ -713,26 +807,183 @@ function buildGradePrompt(
 
   if (answerText) {
     lines.push("", "Voici le contenu fourni à examiner :", '"""', answerText, '"""');
-  } else if (hasAttachment) {
+    if (attachmentCount > 0) {
+      lines.push(
+        "",
+        "La suite de ce contenu est jointe en pièce(s) jointe(s) ci-dessous, dans l'ordre : lis-la intégralement, elle fait partie du même document.",
+      );
+    }
+  } else if (attachmentCount > 0) {
     lines.push(
       "",
-      "Le contenu à examiner est joint en pièce jointe (fichier) : lis-le intégralement avant de déterminer `hasRealAnswers`.",
+      attachmentCount > 1
+        ? `Le contenu à examiner est joint en ${attachmentCount} pièces jointes ci-dessous, dans l'ordre (pages successives d'un même document) : lis-les intégralement avant de déterminer \`hasRealAnswers\`.`
+        : "Le contenu à examiner est joint en pièce jointe (fichier) : lis-le intégralement avant de déterminer `hasRealAnswers`.",
     );
   }
 
   return lines.join("\n");
 }
 
+/**
+ * Prompt de la correction d'une épreuve EXTERNE : contexte détecté par
+ * l'analyse, barème à respecter, liste exacte des questions (pour une entrée
+ * de correction par question, dans l'ordre), puis la copie éventuelle. Les
+ * pages de l'épreuve (et de la copie) suivent en pièces jointes.
+ */
+function buildExternalGradePrompt(
+  request: GradeExamInput,
+  analysis: AIExamAnalysis,
+  options: {
+    level: string;
+    target: number;
+    pointsFromExam: boolean;
+    answerText: string;
+    examPageCount: number;
+    copyAttachmentCount: number;
+  },
+): string {
+  const lines = [
+    "ÉPREUVE IMPORTÉE par l'élève (source externe, aucun cours fourni).",
+    `Titre : ${analysis.title}`,
+    `Matière détectée : ${analysis.subject}`,
+    `Niveau : ${options.level || "non indiqué — déduis-le du contenu de l'épreuve"}`,
+  ];
+  if (analysis.theme.trim()) lines.push(`Thème : ${analysis.theme.trim()}`);
+  if (analysis.instructions.length > 0) {
+    lines.push(`Consignes de l'épreuve : ${analysis.instructions.join(" ; ")}`);
+  }
+  lines.push(
+    options.pointsFromExam
+      ? `Barème indiqué sur l'épreuve : ${options.target} points au total. Respecte exactement les points indiqués pour chaque question.`
+      : `Aucun barème n'est indiqué sur l'épreuve : propose une répartition raisonnable sur ${options.target} points au total.`,
+    `Niveau d'exigence : ${request.strictness}`,
+    `Longueur cible du corrigé : ${request.pageCount}`,
+  );
+
+  const activeOptions = activeOptionKeys(request.options);
+  if (activeOptions.length > 0) {
+    lines.push(`Éléments à inclure : ${activeOptions.join(", ")}.`);
+  }
+
+  if (analysis.documents.length > 0) {
+    lines.push(
+      "",
+      "Documents de l'épreuve, relevés pendant l'analyse (vérifie-les sur les pages jointes) :",
+      ...analysis.documents.map(
+        (doc) => `- ${doc.ref} (${doc.kind}) : ${doc.description}`,
+      ),
+    );
+  }
+
+  lines.push(
+    "",
+    `Questions à corriger — exactement ${analysis.questions.length} entrées dans \`questions\`, dans cet ordre (les titres d'exercices ne sont que des repères, jamais des entrées) :`,
+    ...analysis.questions.flatMap((question, index) => {
+      const previous = analysis.questions[index - 1];
+      const section =
+        question.section && question.section !== previous?.section
+          ? analysis.sections.find((entry) => entry.ref === question.section)
+          : null;
+      return [
+        ...(section
+          ? [
+              `— ${section.ref}${
+                section.points !== null ? ` (${section.points} points pour tout l'exercice)` : ""
+              } —`,
+            ]
+          : []),
+        `${index + 1}. [${question.ref}]${
+          question.points !== null ? ` (${question.points} pt)` : ""
+        } ${question.statement}`,
+      ];
+    }),
+    "",
+    options.examPageCount > 1
+      ? `Les ${options.examPageCount} pages de l'épreuve sont jointes ci-dessous, dans l'ordre : elles forment UNE SEULE épreuve. Lis-les toutes pour les énoncés exacts, les données, les documents et les figures.`
+      : "La page de l'épreuve est jointe ci-dessous : lis-la pour les énoncés exacts, les données, les documents et les figures.",
+  );
+
+  if (options.answerText) {
+    lines.push("", "Réponses de l'élève (copie) :", '"""', options.answerText, '"""');
+  }
+  if (options.copyAttachmentCount > 0) {
+    lines.push(
+      "",
+      "La copie de l'élève est jointe après les pages de l'épreuve (pages marquées « Copie ») : lis-la intégralement.",
+    );
+  }
+  if (!options.answerText && options.copyAttachmentCount === 0) {
+    lines.push(
+      "",
+      analysis.containsStudentAnswers
+        ? "Des réponses d'élève semblent écrites directement sur les pages de l'épreuve : si c'est bien le cas, corrige-les (`hasRealAnswers` = true) ; sinon, rédige le corrigé complet."
+        : "Il n'y a aucune copie d'élève : rédige le corrigé complet de chaque question (`hasRealAnswers` = false).",
+    );
+  }
+
+  return lines.join("\n");
+}
+
+/** Mise en forme commune d'une question corrigée renvoyée par le modèle. */
+function mapCorrectionQuestions(
+  questions: AICorrectionOutput["questions"],
+): CorrectionQuestion[] {
+  return questions.map((question) => {
+    const ref = question.ref?.trim();
+    return {
+      ref: ref || undefined,
+      prompt: stripLeadingNumbering(question.prompt),
+      studentAnswer: question.studentAnswer,
+      expectedAnswer: question.expectedAnswer,
+      pointsEarned: question.pointsEarned,
+      pointsMax: question.pointsMax,
+      verdict: question.verdict,
+      feedback: question.feedback,
+      steps: question.steps
+        .map((step) => ({ label: step.label.trim(), content: step.content.trim() }))
+        .filter((step) => step.content.length > 0),
+    };
+  });
+}
+
+/** Corrigé type : aucune note, aucune « réponse de l'élève ». */
+function asAnswerKey(questions: CorrectionQuestion[]): CorrectionQuestion[] {
+  return questions.map((question) => ({
+    ...question,
+    studentAnswer: "",
+    pointsEarned: 0,
+    verdict: "correct" as const,
+  }));
+}
+
+function cleanList(items: string[]): string[] {
+  return items.map((item) => item.trim()).filter(Boolean);
+}
+
+/**
+ * Délai maximal d'un appel de correction : la route le ramène au temps qui
+ * lui reste, pour que l'échec survienne (et que les crédits soient remboursés)
+ * avant que la plateforme ne coupe la fonction.
+ */
+const DEFAULT_GRADE_TIMEOUT_MS = 240_000;
+
 export async function gradeExam(
   request: GradeExamInput,
   dict: Dictionary,
   locale: Locale,
-  sourceFile?: SummarizeSourceFile,
+  attachments: GradeAttachments = {},
+  timeoutMs = DEFAULT_GRADE_TIMEOUT_MS,
 ): Promise<{ correction: ExamCorrection; usage: AiUsageTokens }> {
+  if (request.externalAnalysis) {
+    return gradeExternalExam(request, request.externalAnalysis, dict, locale, attachments, timeoutMs);
+  }
+
+  const copyAttachments = attachments.copy ?? [];
   const answer =
     truncate(request.answerSourceText, MAX_SOURCE_CHARS) ??
     truncate(request.answerText, MAX_SOURCE_CHARS);
-  const hasStudentWork = Boolean(answer) || Boolean(sourceFile);
+  const hasStudentWork = Boolean(answer) || copyAttachments.length > 0;
 
   // Sans aucun contenu fourni : corrigé type déterministe (aucun appel ne peut
   // trancher "hasRealAnswers" puisqu'il n'y a rien à examiner). Avec un
@@ -746,49 +997,42 @@ export async function gradeExam(
     throw new AIGenerationError("", 400, "noAnswerToGrade");
   }
 
-  const prompt = buildGradePrompt(request, answer ?? "", Boolean(sourceFile), requestMode);
-  const input: string | ResponseInput = sourceFile
-    ? [
-        {
-          role: "user",
-          content: [
-            { type: "input_text", text: prompt },
-            {
-              type: "input_file",
-              filename: sourceFile.filename,
-              file_data: sourceFile.dataUrl,
-            },
-          ],
-        },
-      ]
-    : prompt;
+  const prompt = buildGradePrompt(request, answer ?? "", copyAttachments.length, requestMode);
+  const input: string | ResponseInput =
+    copyAttachments.length > 0
+      ? [
+          {
+            role: "user",
+            content: [
+              { type: "input_text", text: prompt },
+              ...attachmentsToContent(copyAttachments),
+            ],
+          },
+        ]
+      : prompt;
 
-  const response = await getOpenAIClient().responses.parse({
-    model: OPENAI_MODEL,
-    instructions:
-      (requestMode === "answer-key"
-        ? ANSWER_KEY_SYSTEM_PROMPT
-        : hasReference
-          ? CORRECTION_WITH_REFERENCE_SYSTEM_PROMPT
-          : CORRECTION_NO_REFERENCE_SYSTEM_PROMPT) + languageDirective(locale),
-    input,
-    // Un corrigé détaillé (N questions × réponse attendue + feedback + conseils)
-    // est le plus verbeux des trois outils — marge large pour éviter la troncature.
-    max_output_tokens: 8000,
-    text: { format: zodTextFormat(aiCorrectionSchema, "exam_correction") },
-  });
+  const response = await getOpenAIClient().responses.parse(
+    {
+      model: OPENAI_MODEL,
+      instructions:
+        (requestMode === "answer-key"
+          ? ANSWER_KEY_SYSTEM_PROMPT
+          : hasReference
+            ? CORRECTION_WITH_REFERENCE_SYSTEM_PROMPT
+            : CORRECTION_NO_REFERENCE_SYSTEM_PROMPT) + correctionLanguageDirective(locale),
+      input,
+      // Corrigé détaillé (N questions × réponse + démarche + explication +
+      // conseils) : le plus verbeux des outils — marge large contre la troncature.
+      max_output_tokens: 16000,
+      text: { format: zodTextFormat(aiCorrectionSchema, "exam_correction") },
+    },
+    { timeout: timeoutMs, maxRetries: 0 },
+  );
 
-  const parsed = requireParsed(
+  const data = requireParsed(
     response.output_parsed,
     dict.ai.noOutput(dict.ai.labelCorrection),
   );
-  const data = {
-    ...parsed,
-    questions: parsed.questions.map((question) => ({
-      ...question,
-      prompt: stripLeadingNumbering(question.prompt),
-    })),
-  };
 
   // `requestMode === "answer-key"` (aucun contenu envoyé) reste déterministe.
   // `requestMode === "graded"` AVEC épreuve de référence : requalifié par le
@@ -805,29 +1049,30 @@ export async function gradeExam(
         ? "answer-key"
         : "graded";
 
-  const maxScore = data.questions.reduce((total, question) => total + question.pointsMax, 0);
+  // Barème : celui de l'épreuve EduIA de référence quand il y en a une (points
+  // de chaque question respectés à l'identique), sinon le barème choisi.
+  const questions = normalizeCorrectionPoints(mapCorrectionQuestions(data.questions), {
+    target: hasReference
+      ? (request.referenceTotal ?? null)
+      : scaleTarget(request.scale),
+    fixed: hasReference ? request.referencePoints : null,
+  });
+
+  const maxScore = questions.reduce((total, question) => total + question.pointsMax, 0);
   const score =
     mode === "answer-key"
       ? 0
-      : data.questions.reduce((total, question) => total + question.pointsEarned, 0);
-
-  const questions =
-    mode === "answer-key"
-      ? data.questions.map((question) => ({
-          ...question,
-          studentAnswer: "",
-          pointsEarned: 0,
-          verdict: "correct" as const,
-        }))
-      : data.questions;
+      : questions.reduce((total, question) => total + question.pointsEarned, 0);
 
   const correction: ExamCorrection = {
     examTitle: request.selectedExam || dict.activity.types["Épreuve"],
     subject: data.subject,
-    level: request.level,
+    level: request.level || request.referenceLevel || data.level?.trim() || "",
     theme: data.theme,
     dateLabel: localizedDateLabel(new Date(), locale),
     mode,
+    examSource: hasReference ? "eduia" : undefined,
+    pointsSource: hasReference ? "exam" : undefined,
     pageCountLabel: request.pageCount,
     score,
     maxScore: maxScore || 20,
@@ -835,10 +1080,150 @@ export async function gradeExam(
     appreciation: shortLabel(data.appreciation),
     summary: data.summary,
     status: "Corrigée",
-    questions,
+    questions: mode === "answer-key" ? asAnswerKey(questions) : questions,
     strengths: mode === "answer-key" ? [] : data.strengths,
     improvements: mode === "answer-key" ? [] : data.improvements,
     advice: data.advice,
+    keyPoints: cleanList(data.keyPoints),
+    correctedBy: "EduIA",
+    correctedAt: new Date().toISOString(),
+  };
+
+  return { correction, usage: readUsage(response) };
+}
+
+/**
+ * Correction d'une épreuve EXTERNE, sans cours : le modèle résout chaque
+ * question à partir des pages de l'épreuve (lues nativement : figures,
+ * tableaux, cartes compris) et de ses connaissances générales, avec un
+ * raisonnement étendu pour la justesse des calculs. Le barème indiqué sur
+ * l'épreuve est imposé tel quel ; sans barème, la répartition proposée est
+ * ramenée au total choisi et signalée comme telle.
+ */
+async function gradeExternalExam(
+  request: GradeExamInput,
+  analysis: AIExamAnalysis,
+  dict: Dictionary,
+  locale: Locale,
+  attachments: GradeAttachments,
+  timeoutMs: number,
+): Promise<{ correction: ExamCorrection; usage: AiUsageTokens }> {
+  const examAttachments = attachments.exam ?? [];
+  const copyAttachments = attachments.copy ?? [];
+  const answer =
+    truncate(request.answerSourceText, MAX_SOURCE_CHARS) ??
+    truncate(request.answerText, MAX_SOURCE_CHARS) ??
+    "";
+  const hasCopy =
+    answer.length > 0 || copyAttachments.length > 0 || analysis.containsStudentAnswers;
+
+  // Barème écrit sur l'épreuve : points par question, points par exercice
+  // (partagés entre ses questions), total. Le total écrit fait foi.
+  const questionPoints = analysis.questions.map((question) =>
+    question.points !== null && question.points > 0 ? question.points : null,
+  );
+  const groups = analysis.sections
+    .filter((section) => section.points !== null && section.points > 0)
+    .map((section) => ({
+      indices: analysis.questions
+        .map((question, index) => (question.section === section.ref ? index : -1))
+        .filter((index) => index >= 0),
+      total: section.points as number,
+    }))
+    .filter((group) => group.indices.length > 0);
+  const coveredByGroups = new Set(groups.flatMap((group) => group.indices));
+  const everyQuestionPriced =
+    analysis.questions.length > 0 &&
+    analysis.questions.every(
+      (_, index) => questionPoints[index] !== null || coveredByGroups.has(index),
+    );
+  const writtenTotal = everyQuestionPriced
+    ? groups.reduce((total, group) => total + group.total, 0) +
+      questionPoints.reduce<number>(
+        (total, points, index) => total + (coveredByGroups.has(index) ? 0 : (points ?? 0)),
+        0,
+      )
+    : null;
+  const explicitTotal =
+    analysis.totalPoints !== null && analysis.totalPoints > 0
+      ? analysis.totalPoints
+      : writtenTotal;
+  const pointsFromExam = explicitTotal !== null;
+  const target = explicitTotal ?? scaleTarget(request.scale) ?? 20;
+  const level = request.level || analysis.level?.trim() || "";
+
+  const prompt = buildExternalGradePrompt(request, analysis, {
+    level,
+    target,
+    pointsFromExam,
+    answerText: answer,
+    examPageCount: examAttachments.length,
+    copyAttachmentCount: copyAttachments.length,
+  });
+
+  const response = await getOpenAIClient().responses.parse(
+    {
+      model: OPENAI_MODEL,
+      instructions: EXTERNAL_CORRECTION_SYSTEM_PROMPT + correctionLanguageDirective(locale),
+      input: [
+        {
+          role: "user",
+          content: [
+            { type: "input_text", text: prompt },
+            ...attachmentsToContent(examAttachments),
+            ...attachmentsToContent(copyAttachments),
+          ],
+        },
+      ],
+      // Sans cours, la justesse repose sur le raisonnement du modèle : sans
+      // lui, des calculs simples sont faux. Plus poussé en sciences.
+      reasoning: { effort: SCIENTIFIC_SUBJECT.test(analysis.subject) ? "medium" : "low" },
+      // Raisonnement + corrigé détaillé de toute l'épreuve.
+      max_output_tokens: 32000,
+      text: { format: zodTextFormat(aiCorrectionSchema, "exam_correction") },
+    },
+    { timeout: timeoutMs, maxRetries: 0 },
+  );
+
+  const data = requireParsed(
+    response.output_parsed,
+    dict.ai.noOutput(dict.ai.labelCorrection),
+  );
+
+  const mode: CorrectionMode = hasCopy && data.hasRealAnswers ? "graded" : "answer-key";
+  const questions = normalizeCorrectionPoints(mapCorrectionQuestions(data.questions), {
+    target,
+    fixed: questionPoints,
+    groups,
+  });
+
+  const maxScore = questions.reduce((total, question) => total + question.pointsMax, 0);
+  const score =
+    mode === "answer-key"
+      ? 0
+      : questions.reduce((total, question) => total + question.pointsEarned, 0);
+
+  const correction: ExamCorrection = {
+    examTitle: analysis.title.trim() || dict.activity.types["Épreuve"],
+    subject: analysis.subject.trim() || data.subject,
+    level: level || data.level?.trim() || "",
+    theme: data.theme.trim() || analysis.theme.trim(),
+    dateLabel: localizedDateLabel(new Date(), locale),
+    mode,
+    examSource: "external",
+    pointsSource: pointsFromExam ? "exam" : "proposed",
+    pageCountLabel: request.pageCount,
+    score,
+    maxScore: maxScore || target,
+    appreciation:
+      mode === "answer-key" ? dict.corriger.answerKeyBadge : shortLabel(data.appreciation),
+    summary: data.summary,
+    status: "Corrigée",
+    questions: mode === "answer-key" ? asAnswerKey(questions) : questions,
+    strengths: mode === "answer-key" ? [] : data.strengths,
+    improvements: mode === "answer-key" ? [] : data.improvements,
+    advice: data.advice,
+    keyPoints: cleanList(data.keyPoints),
     correctedBy: "EduIA",
     correctedAt: new Date().toISOString(),
   };

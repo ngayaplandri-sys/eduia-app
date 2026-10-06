@@ -2,6 +2,8 @@
 
 import * as React from "react";
 import {
+  ChevronDown,
+  ChevronUp,
   CloudUpload,
   FileText,
   Trash2,
@@ -14,13 +16,39 @@ import {
 import { formatBytes } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
 import { useI18n } from "@/lib/i18n/client";
-import type { DropzoneFile, DropzoneFileKind } from "@/components/common/file-dropzone";
+import { CameraScanButton } from "@/components/common/camera-scanner";
 import {
   recognizeImage,
+  prepareImage,
   describeOcrFailure,
   describeOcrStep,
+  OcrError,
+  MAX_IMAGE_BYTES,
   type OcrProgress,
 } from "@/lib/ocr/recognize-image";
+
+export type DropzoneFileKind = "pdf" | "docx" | "txt" | "image" | "other";
+
+export interface DropzoneFile {
+  name: string;
+  size: string;
+  /** Catégorie déduite du type MIME / de l'extension. */
+  kind?: DropzoneFileKind;
+  /**
+   * Texte exploitable par l'IA :
+   * - `image` → texte transcrit par le modèle de vision (`recognizeImage`) ;
+   * - `txt`  → contenu lu directement ;
+   * - `pdf` / `docx` → `null` (extraction faite côté serveur à partir de `raw`).
+   */
+  text?: string | null;
+  /** Photo lisible seulement en partie (passages marqués [illisible]). */
+  partiallyReadable?: boolean;
+  /**
+   * Fichier brut transmis au serveur : PDF / Word (extraction côté serveur) et,
+   * en mode `imageMode="raw"`, toutes les pages (photos comprises, redimensionnées).
+   */
+  raw?: File;
+}
 
 type ProcessResult =
   | { ok: true; file: DropzoneFile; warning: string | null }
@@ -29,7 +57,7 @@ type ProcessResult =
 function detectKind(file: File): DropzoneFileKind {
   const type = file.type.toLowerCase();
   const name = file.name.toLowerCase();
-  if (type.startsWith("image/") || /\.(jpe?g|png|webp)$/.test(name)) {
+  if (type.startsWith("image/") || /\.(jpe?g|png|webp|heic|heif)$/.test(name)) {
     return "image";
   }
   if (type === "application/pdf" || name.endsWith(".pdf")) return "pdf";
@@ -45,6 +73,18 @@ function detectKind(file: File): DropzoneFileKind {
   return "other";
 }
 
+/** Miniature d'une page photographiée (URL locale libérée au démontage). */
+function ImageThumb({ file }: { file: File }) {
+  const imgRef = React.useRef<HTMLImageElement>(null);
+  React.useEffect(() => {
+    const objectUrl = URL.createObjectURL(file);
+    if (imgRef.current) imgRef.current.src = objectUrl;
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [file]);
+  // eslint-disable-next-line @next/next/no-img-element -- aperçu local (URL blob)
+  return <img ref={imgRef} alt="" className="size-full object-cover" />;
+}
+
 interface MultiFileDropzoneProps {
   label: string;
   hint: string;
@@ -56,6 +96,18 @@ interface MultiFileDropzoneProps {
   onFilesChange: (files: DropzoneFile[]) => void;
   /** Nombre maximum de fichiers/pages importables en une fois (défaut : 5). */
   maxFiles?: number;
+  /**
+   * Traitement des photos :
+   *  - `transcribe` (défaut) : texte lu par l'IA dès l'import (`recognizeImage`) ;
+   *  - `raw` : la photo elle-même est transmise (redimensionnée), pour que le
+   *    modèle voie aussi graphiques, cartes et schémas — sa lisibilité est
+   *    vérifiée côté serveur, à l'analyse.
+   */
+  imageMode?: "transcribe" | "raw";
+  /** Bouton « Scanner avec la caméra » (défaut : affiché). */
+  scan?: boolean;
+  /** Zone vide plus basse, pour une étape secondaire du formulaire. */
+  compact?: boolean;
   /** Notifie le parent quand une extraction (OCR) est en cours. */
   onExtractingChange?: (busy: boolean) => void;
   id?: string;
@@ -66,14 +118,15 @@ type Phase =
   | { status: "reading"; fileName: string; ratio: number; step: string; index: number; total: number };
 
 /**
- * Zone de dépôt multi-fichiers (jusqu'à `maxFiles`) — variante de `FileDropzone`
- * pour les outils acceptant plusieurs pages/fichiers traités comme UN seul
- * document (« Résumer un cours », « Générer une épreuve »).
+ * Zone de dépôt multi-fichiers (jusqu'à `maxFiles`) pour les outils acceptant
+ * plusieurs pages/fichiers traités comme UN seul document (« Résumer un
+ * cours », « Générer une épreuve », « Corriger une épreuve »).
  *
- * Même pipeline d'extraction par fichier (lecture IA pour une photo, lecture
- * directe pour un TXT, extraction serveur pour PDF/DOCX via `raw`), appliqué
- * séquentiellement à chaque fichier ajouté. Une photo illisible n'est jamais
- * écartée en silence : son nom et le motif précis sont affichés.
+ * Chaque fichier ajouté — importé, glissé-déposé ou scanné avec la caméra —
+ * passe par le même pipeline (lecture IA d'une photo, lecture directe d'un
+ * TXT, extraction serveur des PDF/DOCX via `raw`). Les pages se réordonnent
+ * (l'IA les lit dans cet ordre). Une photo illisible n'est jamais écartée en
+ * silence : son nom et le motif précis sont affichés.
  */
 export function MultiFileDropzone({
   label,
@@ -83,6 +136,9 @@ export function MultiFileDropzone({
   files,
   onFilesChange,
   maxFiles = 5,
+  imageMode = "transcribe",
+  scan = true,
+  compact = false,
   onExtractingChange,
   id,
 }: MultiFileDropzoneProps) {
@@ -93,6 +149,7 @@ export function MultiFileDropzone({
   const [notices, setNotices] = React.useState<string[]>([]);
 
   const atLimit = files.length >= maxFiles;
+  const busy = phase.status === "reading";
 
   async function processOne(picked: File): Promise<ProcessResult> {
     const kind = detectKind(picked);
@@ -101,6 +158,25 @@ export function MultiFileDropzone({
       size: formatBytes(picked.size, locale),
       kind,
     };
+
+    if (kind === "image" && imageMode === "raw") {
+      try {
+        if (picked.size > MAX_IMAGE_BYTES) throw new OcrError("too_large");
+        const prepared = await prepareImage(picked);
+        const name = picked.name.replace(/\.[a-z0-9]+$/i, "") + ".jpg";
+        const raw = new File([prepared], name, { type: prepared.type || "image/jpeg" });
+        return {
+          ok: true,
+          file: { ...base, name, size: formatBytes(raw.size, locale), text: null, raw },
+          warning: null,
+        };
+      } catch (error) {
+        return {
+          ok: false,
+          message: t.fileFailed(picked.name, describeOcrFailure(error, t)),
+        };
+      }
+    }
 
     if (kind === "image") {
       try {
@@ -132,7 +208,7 @@ export function MultiFileDropzone({
       }
     }
 
-    if (kind === "txt") {
+    if (kind === "txt" && imageMode !== "raw") {
       try {
         const text = await picked.text();
         return { ok: true, file: { ...base, text }, warning: null };
@@ -141,7 +217,7 @@ export function MultiFileDropzone({
       }
     }
 
-    // PDF / DOCX / autre : extraction côté serveur à partir du fichier brut.
+    // PDF / DOCX / autre (et TXT en mode `raw`) : traitement côté serveur.
     return { ok: true, file: { ...base, text: null, raw: picked }, warning: null };
   }
 
@@ -206,26 +282,51 @@ export function MultiFileDropzone({
     setNotices([]);
   }
 
+  function move(index: number, offset: -1 | 1) {
+    const target = index + offset;
+    if (target < 0 || target >= files.length) return;
+    const next = [...files];
+    [next[index], next[target]] = [next[target], next[index]];
+    onFilesChange(next);
+  }
+
+  const dragHandlers = {
+    onDragOver: (event: React.DragEvent<HTMLLabelElement>) => {
+      event.preventDefault();
+      setDragging(true);
+    },
+    onDragLeave: (event: React.DragEvent<HTMLLabelElement>) => {
+      event.preventDefault();
+      setDragging(false);
+    },
+    onDrop,
+  };
+
   return (
     <div className="space-y-2.5">
       {files.length > 0 ? (
-        <div className="space-y-2">
+        <ol className="space-y-2">
           {files.map((file, index) => {
             const isImage = file.kind === "image";
+            const thumb = isImage && file.raw ? file.raw : null;
             return (
-              <div
+              <li
                 key={`${file.name}-${index}`}
-                className="flex items-start gap-3 rounded-xl border border-line bg-canvas/40 p-3"
+                className="flex items-center gap-3 rounded-xl border border-line bg-canvas/40 p-3"
               >
                 <span
                   className={cn(
-                    "flex size-9 shrink-0 items-center justify-center rounded-lg",
-                    isImage
-                      ? "bg-success-100 text-success-600"
-                      : "bg-danger-100 text-danger-500",
+                    "flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg",
+                    thumb
+                      ? "border border-line bg-surface"
+                      : isImage
+                        ? "bg-success-100 text-success-600"
+                        : "bg-danger-100 text-danger-500",
                   )}
                 >
-                  {isImage ? (
+                  {thumb ? (
+                    <ImageThumb file={thumb} />
+                  ) : isImage ? (
                     <ScanText className="size-4" aria-hidden />
                   ) : (
                     <FileText className="size-4" aria-hidden />
@@ -251,26 +352,53 @@ export function MultiFileDropzone({
                     ) : (
                       <span className="inline-flex items-center gap-0.5 font-medium text-success-600">
                         <CircleCheck className="size-3.5" aria-hidden />
-                        {isImage ? t.textExtracted : t.imported}
+                        {thumb
+                          ? t.readyForAnalysis
+                          : isImage
+                            ? t.textExtracted
+                            : t.imported}
                       </span>
                     )}
                   </p>
                 </div>
+                {files.length > 1 ? (
+                  <div className="flex shrink-0 flex-col">
+                    <button
+                      type="button"
+                      aria-label={t.movePageUp(index + 1)}
+                      disabled={index === 0 || busy}
+                      onClick={() => move(index, -1)}
+                      className="rounded-md p-1 text-ink-400 transition-colors hover:bg-primary-50 hover:text-primary-700 focus-visible:outline-2 focus-visible:outline-offset-2 disabled:pointer-events-none disabled:opacity-30"
+                    >
+                      <ChevronUp className="size-4" aria-hidden />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={t.movePageDown(index + 1)}
+                      disabled={index === files.length - 1 || busy}
+                      onClick={() => move(index, 1)}
+                      className="rounded-md p-1 text-ink-400 transition-colors hover:bg-primary-50 hover:text-primary-700 focus-visible:outline-2 focus-visible:outline-offset-2 disabled:pointer-events-none disabled:opacity-30"
+                    >
+                      <ChevronDown className="size-4" aria-hidden />
+                    </button>
+                  </div>
+                ) : null}
                 <button
                   type="button"
                   aria-label={t.removeFileNamed(file.name)}
+                  disabled={busy}
                   onClick={() => removeAt(index)}
-                  className="shrink-0 rounded-md p-1.5 text-ink-400 transition-colors hover:bg-danger-50 hover:text-danger-600 focus-visible:outline-2 focus-visible:outline-offset-2"
+                  className="shrink-0 rounded-md p-1.5 text-ink-400 transition-colors hover:bg-danger-50 hover:text-danger-600 focus-visible:outline-2 focus-visible:outline-offset-2 disabled:pointer-events-none disabled:opacity-40"
                 >
                   <Trash2 className="size-4" aria-hidden />
                 </button>
-              </div>
+              </li>
             );
           })}
-        </div>
+        </ol>
       ) : null}
 
-      {phase.status === "reading" ? (
+      {busy ? (
         <div className="rounded-xl border border-line bg-canvas/40 p-3.5">
           <div className="flex items-center gap-3">
             <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary-100 text-primary-600">
@@ -340,19 +468,11 @@ export function MultiFileDropzone({
         </p>
       ) : null}
 
-      {phase.status !== "reading" && !atLimit ? (
+      {!busy && !atLimit ? (
         files.length > 0 ? (
           <label
             htmlFor={id}
-            onDragOver={(event) => {
-              event.preventDefault();
-              setDragging(true);
-            }}
-            onDragLeave={(event) => {
-              event.preventDefault();
-              setDragging(false);
-            }}
-            onDrop={onDrop}
+            {...dragHandlers}
             className={cn(
               "flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed px-4 py-3 text-center text-fine font-semibold transition-colors",
               dragging
@@ -374,24 +494,22 @@ export function MultiFileDropzone({
         ) : (
           <label
             htmlFor={id}
-            onDragOver={(event) => {
-              event.preventDefault();
-              setDragging(true);
-            }}
-            onDragLeave={(event) => {
-              event.preventDefault();
-              setDragging(false);
-            }}
-            onDrop={onDrop}
+            {...dragHandlers}
             className={cn(
-              "flex cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed px-4 py-8 text-center transition-colors",
+              "flex cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed px-4 text-center transition-colors",
+              compact ? "py-5" : "py-8",
               dragging
                 ? "border-primary-400 bg-primary-50"
                 : "border-primary-200 bg-primary-50/60 hover:border-primary-300 hover:bg-primary-50",
             )}
           >
-            <span className="mb-2 flex size-12 items-center justify-center rounded-full bg-primary-100 text-primary-600">
-              <CloudUpload className="size-6" aria-hidden />
+            <span
+              className={cn(
+                "mb-2 flex items-center justify-center rounded-full bg-primary-100 text-primary-600",
+                compact ? "size-10" : "size-12",
+              )}
+            >
+              <CloudUpload className={compact ? "size-5" : "size-6"} aria-hidden />
             </span>
             <span className="text-sm font-bold text-ink-900">{label}</span>
             <span className="text-fine text-ink-500">{hint}</span>
@@ -409,6 +527,13 @@ export function MultiFileDropzone({
             />
           </label>
         )
+      ) : null}
+
+      {scan && !busy && !atLimit ? (
+        <CameraScanButton
+          maxShots={maxFiles - files.length}
+          onCapture={(captured) => void pickMany(captured)}
+        />
       ) : null}
 
       {atLimit ? (
