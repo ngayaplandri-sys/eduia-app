@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, CirclePlay, Sparkles } from "lucide-react";
+import { ArrowRight, BookOpen, CirclePlay } from "lucide-react";
 import heroNight from "@/public/landing/hero-night-study.jpg";
 import { Reveal } from "@/components/motion/reveal";
 import { cn } from "@/lib/utils/cn";
@@ -185,7 +185,7 @@ export async function LandingHero({ isAuthenticated }: { isAuthenticated: boolea
           <div className="hero-copy-exit -mt-24 max-w-[36rem] sm:-mt-28 lg:mt-0 lg:max-w-[min(42rem,50%)]">
             <Reveal variant="fade" delayMs={100}>
               <span className="glass-dark inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[0.8rem] font-medium text-white/85">
-                <Sparkles className="size-3.5 text-[#cbb6f3]" aria-hidden />
+                <BookOpen className="size-3.5 text-[#cbb6f3]" aria-hidden />
                 {t.badge}
               </span>
             </Reveal>
