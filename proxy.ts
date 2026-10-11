@@ -15,7 +15,7 @@ import { getSessionCookie } from "better-auth/cookies";
  * « Sauter la page de connexion quand on est déjà connecté » est géré côté
  * client dans `AuthForm`, où une session invalide n'entraîne aucune redirection.
  */
-const AUTH_PAGES = ["/login", "/signup"];
+const AUTH_PAGES = ["/login", "/signup", "/forgot-password", "/reset-password"];
 
 /** Page de retour de paiement Maketou (voir `app/billing/maketou/return`). */
 const MAKETOU_RETURN_PATH = "/billing/maketou/return";

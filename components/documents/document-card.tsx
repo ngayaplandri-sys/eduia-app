@@ -37,8 +37,8 @@ export function DocumentCard({
   onDelete,
 }: {
   file: DocumentFile;
-  onRename?: (id: string, name: string) => void;
-  onDelete?: (id: string) => void;
+  onRename?: (id: string, name: string) => Promise<boolean>;
+  onDelete?: (id: string) => Promise<boolean>;
 }) {
   const kind = KIND[file.fileKind] ?? KIND_FALLBACK;
   const { dict, locale } = useI18n();
@@ -95,6 +95,7 @@ export function DocumentCard({
             id={file.id}
             name={file.name}
             summaryId={file.summaryId}
+            files={file.files}
             onRename={onRename}
             onDelete={onDelete}
           />

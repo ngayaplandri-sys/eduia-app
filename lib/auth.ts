@@ -3,6 +3,8 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
 import { db, schema } from "./db/client";
 import { grantSignupCredits } from "./db/credit-grants";
+import { isEmailConfigured, sendEmail } from "./email/send";
+import { resetPasswordEmail } from "./email/reset-password-email";
 
 /**
  * Instance Better Auth (auto-hébergée) — e-mail / mot de passe.
@@ -31,6 +33,34 @@ export const auth = betterAuth({
     enabled: true,
     minPasswordLength: 8,
     autoSignIn: true,
+    // « Mot de passe oublié » : actif seulement si l'envoi d'e-mails est
+    // configuré (`lib/email/send.ts`) — sinon la page de connexion l'indique.
+    // Lien valable 1 h, à usage unique ; toutes les sessions du compte sont
+    // fermées après le changement. Un échec d'envoi est journalisé sans être
+    // renvoyé au navigateur (la réponse ne révèle jamais si le compte existe).
+    ...(isEmailConfigured()
+      ? {
+          sendResetPassword: async ({ user, url }: { user: { id: string; email: string; name: string }; url: string }) => {
+            try {
+              await sendEmail(
+                resetPasswordEmail({
+                  to: user.email,
+                  name: user.name,
+                  url,
+                  locale: (user as { locale?: string | null }).locale,
+                }),
+              );
+            } catch (error) {
+              console.error("[auth] e-mail de réinitialisation non envoyé :", {
+                userId: user.id,
+                message: (error as Error)?.message,
+              });
+            }
+          },
+        }
+      : {}),
+    resetPasswordTokenExpiresIn: 60 * 60,
+    revokeSessionsOnPasswordReset: true,
   },
   // Connexion Google : activée seulement si les identifiants OAuth sont fournis
   // (voir .env.example) — évite de casser le démarrage tant qu'ils ne sont pas
@@ -96,6 +126,7 @@ export const auth = betterAuth({
     customRules: {
       "/sign-in/email": { window: 900, max: 5 }, // 5 tentatives / 15 min / IP
       "/sign-up/email": { window: 3600, max: 10 }, // 10 inscriptions / heure / IP
+      "/request-password-reset": { window: 3600, max: 5 }, // 5 e-mails / heure / IP
     },
     // Stockage "memory" (par défaut) : suffisant pour un serveur Node unique
     // (Railway, Render, VPS…). Sur un déploiement serverless multi-instances

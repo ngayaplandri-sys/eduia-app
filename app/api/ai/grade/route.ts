@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser, hasUnlimitedAccess } from "@/lib/data/user";
 import {
@@ -18,6 +18,11 @@ import {
 } from "@/lib/data/correction";
 import { gradeRequestSchema } from "@/lib/ai/schemas";
 import { describeAIError } from "@/lib/ai/errors";
+import {
+  collectUploadedFiles,
+  deleteStoredFiles,
+  describeUploadIntakeError,
+} from "@/lib/uploads/server";
 import { OPENAI_MODEL } from "@/lib/ai/openai-client";
 import { logAiUsage } from "@/lib/ai/usage";
 import { detectImageMime } from "@/lib/ai/ocr";
@@ -216,12 +221,21 @@ export async function POST(request: Request) {
   }
   const gradeRequest = { ...parsed.data };
 
-  const filesOf = (field: string) =>
-    form
-      .getAll(field)
-      .filter((entry): entry is File => entry instanceof File && entry.size > 0);
-  const examFiles = filesOf("examFiles");
-  const copyFiles = filesOf("copyFiles");
+  // Au-delà de 4 Mo au total, les fichiers arrivent par le stockage privé
+  // (`lib/uploads`), effacé une fois la correction terminée.
+  let examFiles: File[];
+  let copyFiles: File[];
+  try {
+    const examIntake = await collectUploadedFiles(form, "examFiles", user.id);
+    after(() => deleteStoredFiles(examIntake.tempPathnames));
+    const copyIntake = await collectUploadedFiles(form, "copyFiles", user.id);
+    after(() => deleteStoredFiles(copyIntake.tempPathnames));
+    examFiles = examIntake.files;
+    copyFiles = copyIntake.files;
+  } catch (error) {
+    const { status, error: message } = describeUploadIntakeError(error, dict);
+    return NextResponse.json({ error: message }, { status });
+  }
 
   if (examFiles.length > MAX_EXAM_FILES || copyFiles.length > MAX_UPLOAD_FILES) {
     return NextResponse.json(

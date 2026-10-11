@@ -12,6 +12,7 @@ export const mockDocuments: DocumentFile[] = [
     uploadedAt: "2024-05-12T14:30:00",
     hasSummary: true,
     summaryId: null,
+    files: [],
   },
   {
     id: "doc_philo_conscience",
@@ -24,6 +25,7 @@ export const mockDocuments: DocumentFile[] = [
     uploadedAt: "2024-05-09T09:10:00",
     hasSummary: true,
     summaryId: null,
+    files: [],
   },
   {
     id: "doc_svt_genetique",
@@ -36,6 +38,7 @@ export const mockDocuments: DocumentFile[] = [
     uploadedAt: "2024-05-06T18:45:00",
     hasSummary: false,
     summaryId: null,
+    files: [],
   },
   {
     id: "doc_maths_suites",
@@ -48,6 +51,7 @@ export const mockDocuments: DocumentFile[] = [
     uploadedAt: "2024-05-04T11:20:00",
     hasSummary: true,
     summaryId: null,
+    files: [],
   },
   {
     id: "doc_geo_oceans",
@@ -60,6 +64,7 @@ export const mockDocuments: DocumentFile[] = [
     uploadedAt: "2024-04-28T16:05:00",
     hasSummary: false,
     summaryId: null,
+    files: [],
   },
   {
     id: "doc_phys_ondes",
@@ -72,6 +77,7 @@ export const mockDocuments: DocumentFile[] = [
     uploadedAt: "2024-04-25T08:30:00",
     hasSummary: false,
     summaryId: null,
+    files: [],
   },
   {
     id: "doc_fr_roman",
@@ -84,6 +90,7 @@ export const mockDocuments: DocumentFile[] = [
     uploadedAt: "2024-04-20T13:50:00",
     hasSummary: true,
     summaryId: null,
+    files: [],
   },
   {
     id: "doc_hist_ch1",
@@ -96,5 +103,6 @@ export const mockDocuments: DocumentFile[] = [
     uploadedAt: "2024-04-15T10:00:00",
     hasSummary: false,
     summaryId: null,
+    files: [],
   },
 ];

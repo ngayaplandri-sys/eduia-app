@@ -29,22 +29,25 @@ import {
 /**
  * Actions d'une carte de document : « Résumer » + menu (Ouvrir, Renommer,
  * Télécharger, Supprimer). « Ouvrir » navigue vers le résumé réellement lié à
- * ce document (`summaryId`, calculé côté serveur) ; le renommage et la
- * suppression agissent sur la liste locale — la persistance (Supabase) et le
- * fichier réel restent à connecter.
+ * ce document (`summaryId`, calculé côté serveur) ; « Télécharger » renvoie le
+ * fichier d'origine conservé (lien signé, via `/api/documents/…`) ; le
+ * renommage et la suppression sont enregistrés en base par la bibliothèque
+ * (`onRename` / `onDelete` renvoient `false` en cas d'échec).
  */
 export function DocumentActions({
   id,
   name,
   summaryId,
+  files,
   onRename,
   onDelete,
 }: {
   id: string;
   name: string;
   summaryId: string | null;
-  onRename?: (id: string, name: string) => void;
-  onDelete?: (id: string) => void;
+  files: { name: string; size: number }[];
+  onRename?: (id: string, name: string) => Promise<boolean>;
+  onDelete?: (id: string) => Promise<boolean>;
 }) {
   const { toast } = useToast();
   const { dict } = useI18n();
@@ -58,14 +61,13 @@ export function DocumentActions({
     setRenameOpen(true);
   }
 
-  function saveRename(event: React.FormEvent) {
+  async function saveRename(event: React.FormEvent) {
     event.preventDefault();
     const next = draft.trim();
-    if (next && next !== name) {
-      onRename?.(id, next);
-      toast(t.renamed, "success");
-    }
     setRenameOpen(false);
+    if (!next || next === name || !onRename) return;
+    const ok = await onRename(id, next);
+    toast(ok ? t.renamed : t.renameFailed, ok ? "success" : "default");
   }
 
   return (
@@ -102,10 +104,23 @@ export function DocumentActions({
             <PenLine />
             {t.rename}
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => toast(t.downloadSoon)}>
-            <Download />
-            {t.download}
-          </DropdownMenuItem>
+          {files.length === 0 ? (
+            <DropdownMenuItem onSelect={() => toast(t.downloadUnavailable)}>
+              <Download />
+              {t.download}
+            </DropdownMenuItem>
+          ) : (
+            files.map((file, index) => (
+              <DropdownMenuItem key={index} asChild>
+                <a href={`/api/documents/${id}/files/${index}`} download={file.name}>
+                  <Download />
+                  <span className="max-w-[16rem] truncate">
+                    {files.length === 1 ? t.download : t.downloadFile(file.name)}
+                  </span>
+                </a>
+              </DropdownMenuItem>
+            ))
+          )}
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onSelect={() => setDeleteOpen(true)}
@@ -124,6 +139,7 @@ export function DocumentActions({
               <Input
                 id={`rename-${id}`}
                 value={draft}
+                maxLength={160}
                 onChange={(e) => setDraft(e.target.value)}
               />
             </Field>
@@ -148,9 +164,10 @@ export function DocumentActions({
         description={t.deleteBody(name)}
         confirmLabel={dict.common.delete}
         destructive
-        onConfirm={() => {
-          onDelete?.(id);
-          toast(t.deleted, "success");
+        onConfirm={async () => {
+          if (!onDelete) return;
+          const ok = await onDelete(id);
+          toast(ok ? t.deleted : t.deleteFailed, ok ? "success" : "default");
         }}
       />
     </div>

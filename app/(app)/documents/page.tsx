@@ -38,7 +38,7 @@ export default async function DocumentsPage({
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <p className="max-w-xl text-sm text-ink-500">{dict.documents.intro}</p>
-        <ImportDocumentButton />
+        <ImportDocumentButton label={dict.documents.importButton} />
       </div>
 
       <DocumentStatsGrid stats={stats} />

@@ -13,6 +13,7 @@ import {
 } from "./correction-report-loading";
 import { ToolWorkspaceLayout } from "@/components/common/tool-workspace-layout";
 import { useI18n } from "@/lib/i18n/client";
+import { UploadFailedError, buildUploadForm } from "@/lib/uploads/client";
 import type {
   CorrectionConfig,
   CorrectionStreamEvent,
@@ -105,15 +106,11 @@ export function CorrectionWorkspace({
       resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }),
     );
 
-    const body = new FormData();
-    body.append("payload", JSON.stringify(request));
-    for (const file of examFiles) body.append("examFiles", file, file.name);
-    for (const file of copyFiles) body.append("copyFiles", file, file.name);
-
     const controller = new AbortController();
     const timer = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
     try {
+      const body = await buildUploadForm(request, { examFiles, copyFiles }, controller.signal);
       const response = await fetch("/api/ai/grade", {
         method: "POST",
         body,
@@ -148,9 +145,11 @@ export function CorrectionWorkspace({
       if (!finished) fail(t.genericFailure);
     } catch (caught) {
       fail(
-        caught instanceof DOMException && caught.name === "AbortError"
-          ? t.timeout
-          : t.connectionLost,
+        caught instanceof UploadFailedError
+          ? dict.ai.uploadFailed
+          : caught instanceof DOMException && caught.name === "AbortError"
+            ? t.timeout
+            : t.connectionLost,
       );
     } finally {
       window.clearTimeout(timer);

@@ -27,6 +27,7 @@ import type {
   GeneratedExam,
   ExamCorrection,
   AssistantMessage,
+  StoredDocumentFile,
 } from "../../types";
 import { user } from "./auth-schema";
 
@@ -46,8 +47,10 @@ export const documents = pgTable("documents", {
   sizeLabel: text().notNull(),
   pageCount: integer().notNull().default(0),
   hasSummary: boolean().notNull().default(false),
-  /** Chemin dans un futur stockage de blobs (Neon n'a pas de Storage). */
+  /** Inutilisée (remplacée par `files`), conservée pour ne supprimer aucune donnée. */
   storagePath: text(),
+  /** Fichiers d'origine conservés dans le stockage privé (Vercel Blob). */
+  files: jsonb().$type<StoredDocumentFile[]>().notNull().default([]),
   uploadedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
 });
 

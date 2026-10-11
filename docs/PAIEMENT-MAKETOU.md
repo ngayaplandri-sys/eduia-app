@@ -1,13 +1,13 @@
 # Paiement Maketou — mise en service
 
 EduIA encaisse les abonnements Premium / Premium+ et les recharges de crédits via
-**Maketou** (Mobile Money et carte). Tout le code est en place ; il reste les
-étapes ci-dessous, qui se font dans les tableaux de bord (Maketou, Vercel,
-cron-job.org). Aucune modification de code n'est nécessaire.
+**Maketou** (Mobile Money et carte). Tout le code est en place ; les étapes
+ci-dessous se font dans les tableaux de bord (Maketou, Vercel). Aucune
+modification de code n'est nécessaire.
 
 > **État (11/10/2026) :** site en production sur **https://eduai.fyi**.
-> Étapes 1, 2, 3 et 5 faites (produits, clé API, variables Vercel, contrôle
-> `check` tout vert). **Restent : l'étape 4 (cron-job.org) et l'étape 6
+> Étapes 1 à 5 faites (produits, clé API, variables Vercel, vérification
+> automatique des paiements, contrôle `check` tout vert). **Reste : l'étape 6
 > (premier vrai paiement)**, à faire avant d'ouvrir le paiement aux élèves.
 > L'intégration a été testée de bout en bout contre une imitation locale de
 > l'API Maketou (achat, double clic, onglet fermé, échec, paiement tardif,
@@ -20,8 +20,9 @@ cron-job.org). Aucune modification de code n'est nécessaire.
 2. L'élève paie sur la page Maketou, puis revient sur `/billing/maketou/return`.
 3. EduIA demande à Maketou si le panier est payé. **Seule cette réponse
    serveur accorde l'accès**, une seule fois, même en cas de double clic.
-4. Si l'élève ferme la page avant le retour, une tâche planifiée vérifie les
-   paiements en attente **toutes les 5 minutes** et accorde l'accès.
+4. Si l'élève ferme la page avant le retour, son paiement est vérifié **dès
+   qu'il revient sur EduIA** (puis chaque minute pendant sa visite), et une
+   tâche planifiée vérifie **chaque jour** tous les paiements en attente.
 
 Règles :
 
@@ -84,11 +85,19 @@ appliquée à la base Neon actuelle ; sur une nouvelle base : `npm run db:migrat
 Une offre dont le produit n'est pas renseigné reste affichée avec un bouton
 désactivé « Paiement bientôt disponible ».
 
-## 4. Tâche planifiée toutes les 5 minutes (cron-job.org)
+## 4. Vérification automatique des paiements (déjà en place)
 
-Le plan Vercel Hobby n'autorise qu'une tâche par jour (déjà configurée dans
-`vercel.json`, en filet de sécurité). Pour les 5 minutes, utiliser
-**cron-job.org** (gratuit) :
+Rien à configurer : un paiement resté en attente est vérifié
+
+- **au retour de l'élève dans l'app** (`PendingPaymentSync`, dans la mise en
+  page de l'espace élève) : dès l'ouverture d'une page, puis chaque minute
+  pendant 5 minutes ; l'élève voit « Paiement Maketou confirmé » ;
+- **chaque jour vers 4 h (UTC)** par Vercel Cron (`vercel.json`, offre Hobby :
+  une exécution par jour au maximum), qui traite aussi les paiements des élèves
+  qui ne reviennent pas et la fin des abonnements arrivés à échéance.
+
+Facultatif — vérification **toutes les 5 minutes** même sans visite de l'élève,
+avec **cron-job.org** (gratuit) :
 
 1. Créer un compte sur https://cron-job.org → **Create cronjob**.
 2. URL : `https://eduai.fyi/api/billing/maketou/reconcile` — exactement ce domaine :
@@ -112,8 +121,8 @@ curl -H "Authorization: Bearer VOTRE_CRON_SECRET" https://eduai.fyi/api/billing/
 La réponse liste chaque contrôle avec `"ok": true` ou `false` : variables, clé
 API et adresse de retour (testées sans créer de panier), page de retour,
 dernière exécution de la tâche planifiée. Aucune valeur secrète n'est affichée.
-Tout doit être à `true` (la tâche planifiée passe à `true` après sa première
-exécution).
+Tout doit être à `true` (la tâche planifiée est à `true` si elle a tourné
+dans les 26 dernières heures).
 
 ## 6. Premier vrai paiement (obligatoire avant l'ouverture)
 
@@ -126,8 +135,9 @@ Il n'existe pas de bac à sable Maketou : chaque paiement est réel.
 3. Payer, revenir sur EduIA : la page doit afficher « Paiement confirmé — accès
    activé » et les crédits doivent apparaître.
 4. Dans le tableau de bord Maketou, vérifier que le montant encaissé correspond.
-5. Refaire un paiement et **fermer l'onglet** juste après avoir payé : les
-   crédits doivent arriver dans les 5 minutes (tâche planifiée).
+5. Refaire un paiement et **fermer l'onglet** juste après avoir payé, puis
+   rouvrir EduIA : « Paiement Maketou confirmé » s'affiche et les crédits
+   apparaissent (vérification au retour dans l'app).
 6. Dans l'espace admin → **Paiements**, les commandes apparaissent avec le
    fournisseur `maketou` et l'identifiant du panier en référence.
 
@@ -135,9 +145,10 @@ Il n'existe pas de bac à sable Maketou : chaque paiement est réel.
 
 - **« Paiement bientôt disponible » partout** : clé API ou `APP_URL` absente ou
   mal formée → lancer le contrôle (étape 5), il nomme la variable en cause.
-- **Paiement fait mais accès non activé** : vérifier que la tâche cron-job.org
-  tourne (étape 4) ; un paiement confirmé est accordé dans les 5 minutes, et même
-  plusieurs jours plus tard pour un paiement tardif.
+- **Paiement fait mais accès non activé** : l'élève doit ouvrir EduIA avec le
+  compte qui a payé (vérification au retour) ; sinon la tâche quotidienne
+  l'accorde dans les 24 h, et même plusieurs jours plus tard pour un paiement
+  tardif. Vercel → projet → **Settings → Cron Jobs** montre ses exécutions.
 - **Une ligne « paiement à vérifier »** dans les journaux Vercel (`[maketou]`) :
   cas rare (deux paliers payés en même temps) — vérifier le compte et rembourser
   depuis Maketou si nécessaire. La remarque est aussi enregistrée dans

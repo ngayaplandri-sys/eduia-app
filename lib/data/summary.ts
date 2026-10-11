@@ -120,7 +120,7 @@ function toActivityFileKind(kind: SummarySourceKind | null): "pdf" | "doc" {
  */
 export async function saveCourseSummary(
   input: SaveCourseSummaryInput,
-): Promise<{ summaryId: string }> {
+): Promise<{ summaryId: string; documentId: string | null }> {
   const { userId, request, summary, source } = input;
 
   return db.transaction(async (tx) => {
@@ -177,6 +177,6 @@ export async function saveCourseSummary(
       occurredAt: new Date(),
     });
 
-    return { summaryId: row.id };
+    return { summaryId: row.id, documentId };
   });
 }

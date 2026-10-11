@@ -11,6 +11,7 @@ import { InlineErrorBanner } from "@/components/common/inline-error-banner";
 import { useToast } from "@/components/ui/toast";
 import { authClient } from "@/lib/auth-client";
 import { siteConfig } from "@/lib/config/site";
+import { supportConfig } from "@/lib/config/support";
 import { useI18n } from "@/lib/i18n/client";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
 
@@ -63,7 +64,14 @@ function translateError(
   }
 }
 
-export function AuthForm({ mode }: { mode: "login" | "signup" }) {
+export function AuthForm({
+  mode,
+  passwordResetEnabled = false,
+}: {
+  mode: "login" | "signup";
+  /** `true` si l'envoi d'e-mails est configuré (lien « Mot de passe oublié » actif). */
+  passwordResetEnabled?: boolean;
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { dict } = useI18n();
@@ -231,10 +239,17 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
             >
               {t.password}
             </label>
-            {isSignup ? null : (
+            {isSignup ? null : passwordResetEnabled ? (
+              <Link
+                href="/forgot-password"
+                className="text-fine font-medium text-primary-600 transition-colors hover:text-primary-700"
+              >
+                {t.forgotPassword}
+              </Link>
+            ) : (
               <button
                 type="button"
-                onClick={() => toast(t.forgotPasswordComingSoon)}
+                onClick={() => toast(t.forgotPasswordUnavailable(supportConfig.email))}
                 className="text-fine font-medium text-primary-600 transition-colors hover:text-primary-700"
               >
                 {t.forgotPassword}

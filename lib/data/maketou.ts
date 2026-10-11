@@ -474,6 +474,30 @@ export async function confirmMaketouCheckout(
   }
 }
 
+/**
+ * Paiements récents de l'élève encore en attente (au plus 3), à confirmer dès
+ * son retour dans l'app (`PendingPaymentSync`) : un élève qui a payé puis
+ * fermé l'onglet avant la page de retour reçoit son achat à sa visite
+ * suivante, sans attendre le rapprochement quotidien. Les appels à Maketou
+ * restent bornés par les verrous de `confirmMaketouCheckout`.
+ */
+export async function pendingCartIdsToConfirm(userId: string): Promise<string[]> {
+  if (apiKeyIssue()) return [];
+  const rows = await db
+    .select({ cartId: schema.maketouCheckouts.cartId })
+    .from(schema.maketouCheckouts)
+    .where(
+      and(
+        eq(schema.maketouCheckouts.buyerUserId, userId),
+        eq(schema.maketouCheckouts.status, "PENDING"),
+        gt(schema.maketouCheckouts.createdAt, sql`now() - interval '72 hours'`),
+      ),
+    )
+    .orderBy(desc(schema.maketouCheckouts.createdAt))
+    .limit(3);
+  return rows.map((row) => row.cartId);
+}
+
 // ───────────────────────────── Rapprochement planifié ─────────────────────────────
 
 const JOB_NAME = "maketou-reconcile";
@@ -731,10 +755,12 @@ export async function checkMaketouSetup(): Promise<MaketouCheck[]> {
     .from(schema.jobLeases)
     .where(eq(schema.jobLeases.name, JOB_NAME))
     .limit(1);
+  // Vercel Cron (offre Hobby) : une exécution par jour, à une minute
+  // quelconque de l'heure prévue — au plus ~25 h entre deux passages.
   const lastRun = lease?.lastRunAt ?? null;
   checks.push({
     name: "rapprochement planifié",
-    ok: Boolean(lastRun) && Date.now() - (lastRun as Date).getTime() < 15 * 60 * 1000,
+    ok: Boolean(lastRun) && Date.now() - (lastRun as Date).getTime() < 26 * 60 * 60 * 1000,
     detail: lastRun
       ? `dernière exécution ${lastRun.toISOString()} (${lease?.lastStopReason ?? "?"})`
       : "jamais exécuté",

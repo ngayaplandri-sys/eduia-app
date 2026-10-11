@@ -12,13 +12,16 @@ const isDev = process.env.NODE_ENV === "development";
 // profil Google OAuth, voir lib/auth.ts) pointe vers ce domaine, affichée
 // telle quelle (Avatar, bande de réassurance de la landing…) sans jamais la
 // re-héberger côté serveur.
+// `connect-src` autorise l'API du stockage Vercel Blob (vercel.com/api/blob et
+// *.blob.vercel-storage.com) : les fichiers de plus de 4 Mo y sont déposés
+// directement depuis le navigateur (voir lib/uploads/client.ts).
 const cspHeader = `
   default-src 'self';
   script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""};
   style-src 'self' 'unsafe-inline';
   img-src 'self' data: blob: https://*.googleusercontent.com;
   font-src 'self' data:;
-  connect-src 'self';
+  connect-src 'self' https://vercel.com https://*.blob.vercel-storage.com;
   object-src 'none';
   base-uri 'self';
   form-action 'self';

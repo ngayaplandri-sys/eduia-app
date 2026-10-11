@@ -649,9 +649,7 @@ export const fr = {
       "Retrouve tous les cours et fichiers que tu as importés dans EduIA : résume-les, génère des épreuves ou télécharge-les.",
     intro:
       "Retrouve tous les cours et fichiers importés dans EduIA. Résume-les, génère des épreuves ou télécharge-les à tout moment.",
-    importButton: "Importer un document",
-    importSelected: (names: string) =>
-      `« ${names} » sélectionné. L'envoi vers le stockage (Supabase Storage) sera branché ici.`,
+    importButton: "Importer un cours",
     statDocuments: "Documents",
     statStorage: "Espace utilisé",
     statStorageAria: "Espace de stockage utilisé",
@@ -684,19 +682,21 @@ export const fr = {
     rename: "Renommer",
     download: "Télécharger",
     delete: "Supprimer",
-    previewSoon:
-      "L'aperçu du document sera disponible une fois le stockage (Supabase Storage) connecté.",
     openUnavailable:
       "Aucun résumé n'est encore associé à ce document. Résume-le pour pouvoir l'ouvrir.",
-    downloadSoon:
-      "Le téléchargement du fichier d'origine sera disponible une fois le stockage connecté.",
+    downloadFile: (name: string) => `Télécharger « ${name} »`,
+    downloadUnavailable:
+      "Le fichier d'origine de ce document n'est pas disponible : il a été importé avant la conservation des fichiers, ou ton espace de stockage était plein.",
     renameTitle: "Renommer le document",
     renameBody: "Choisis un nouveau nom pour ce document.",
     renameField: "Nom du document",
-    renamed: "Document renommé. La persistance sera assurée par Supabase.",
+    renamed: "Document renommé.",
+    renameFailed: "Le document n'a pas pu être renommé. Réessaie.",
     deleteTitle: "Supprimer ce document ?",
-    deleteBody: (name: string) => `« ${name} » sera retiré de ta bibliothèque.`,
-    deleted: "Document supprimé de la liste.",
+    deleteBody: (name: string) =>
+      `« ${name} » et son fichier d'origine seront supprimés de ta bibliothèque. Les résumés déjà générés restent disponibles.`,
+    deleted: "Document supprimé.",
+    deleteFailed: "Le document n'a pas pu être supprimé. Réessaie.",
   },
 
   historique: {
@@ -997,8 +997,35 @@ export const fr = {
     metaSignupTitle: "Inscription",
     rememberMe: "Se souvenir de moi",
     forgotPassword: "Mot de passe oublié ?",
-    forgotPasswordComingSoon:
-      "La réinitialisation du mot de passe arrive bientôt. Contacte le support si tu es bloqué·e.",
+    forgotPasswordUnavailable: (email: string) =>
+      `La réinitialisation par e-mail n'est pas encore disponible. Écris-nous à ${email} si tu es bloqué·e.`,
+    metaForgotTitle: "Mot de passe oublié",
+    metaResetTitle: "Nouveau mot de passe",
+    forgotTitle: "Mot de passe oublié",
+    forgotSubtitle:
+      "Indique l'adresse e-mail de ton compte : nous t'enverrons un lien pour choisir un nouveau mot de passe.",
+    forgotSubmit: "Envoyer le lien",
+    forgotPending: "Envoi…",
+    forgotSentTitle: "Vérifie ta boîte e-mail",
+    forgotSentBody: (email: string) =>
+      `Si un compte existe pour ${email}, un lien de réinitialisation vient d'y être envoyé. Il est valable 1 heure. Pense à regarder dans les courriers indésirables.`,
+    forgotFailed: "La demande n'a pas pu être envoyée. Réessaie dans quelques minutes.",
+    backToLogin: "Retour à la connexion",
+    resetTitle: "Nouveau mot de passe",
+    resetSubtitle: "Choisis un nouveau mot de passe pour ton compte (8 caractères minimum).",
+    newPassword: "Nouveau mot de passe",
+    confirmPassword: "Confirme le mot de passe",
+    resetSubmit: "Enregistrer le mot de passe",
+    resetPending: "Enregistrement…",
+    errPasswordMismatch: "Les deux mots de passe ne correspondent pas.",
+    resetInvalidTitle: "Lien expiré",
+    resetInvalidBody:
+      "Ce lien de réinitialisation n'est plus valable (expiré ou déjà utilisé). Demande-en un nouveau.",
+    requestNewLink: "Demander un nouveau lien",
+    resetFailed: "Le mot de passe n'a pas pu être modifié. Réessaie.",
+    resetDoneTitle: "Mot de passe modifié",
+    resetDoneBody:
+      "Ton mot de passe a été changé et tes autres sessions ont été fermées. Connecte-toi avec ton nouveau mot de passe.",
     showcaseEyebrow: "Plateforme d'apprentissage IA",
     showcaseSlogan: "Apprends mieux, avance plus loin.",
     showcaseDescription:
@@ -1402,6 +1429,8 @@ export const fr = {
       "Format non pris en charge. Importe un PDF, un fichier Word (.docx), un fichier texte ou une photo de ton cours.",
     tooManyFiles: (max: number) =>
       `Trop de fichiers envoyés (maximum ${max}).`,
+    uploadFailed:
+      "Le fichier n'a pas pu être envoyé. Vérifie ta connexion internet et réessaie.",
     keyInvalid:
       "Clé OpenAI invalide ou manquante côté serveur. Vérifie OPENAI_API_KEY dans .env.local.",
     serviceUnavailable:
@@ -1490,10 +1519,11 @@ export const fr = {
     dashboardCta: "Aller au tableau de bord",
     premiumCta: "Voir mon abonnement",
     failedTitle: "Paiement non abouti",
-    failedBody: "Le paiement n'a pas été finalisé. Si tu as été débité, ton accès s'activera automatiquement dans quelques minutes.",
+    failedBody: "Le paiement n'a pas été finalisé. Si tu as été débité, ton accès s'activera automatiquement dès que Maketou l'aura confirmé — au plus tard à ta prochaine visite sur EduIA.",
     retryCta: "Réessayer",
     pendingTitle: "Paiement en cours de confirmation",
-    pendingBody: "Tu peux fermer cette page : ton accès s'activera automatiquement dès que Maketou aura confirmé le paiement, en général en quelques minutes.",
+    pendingBody: "Tu peux fermer cette page : ton accès s'activera automatiquement dès que Maketou aura confirmé le paiement — en général en quelques minutes, au plus tard à ta prochaine visite sur EduIA.",
+    confirmedOnVisit: "Paiement Maketou confirmé : ton achat a été ajouté à ton compte.",
     loginTitle: "Connecte-toi pour finaliser",
     loginBody: "Connecte-toi au compte avec lequel tu as payé : ton paiement sera confirmé automatiquement.",
     loginCta: "Se connecter",

@@ -629,9 +629,7 @@ export const en: Dictionary = {
       "Find every course and file you've imported into EduIA: summarise them, generate tests or download them.",
     intro:
       "Find every course and file imported into EduIA. Summarise them, generate tests or download them any time.",
-    importButton: "Import a document",
-    importSelected: (names: string) =>
-      `“${names}” selected. Upload to storage (Supabase Storage) will be wired in here.`,
+    importButton: "Import a course",
     statDocuments: "Documents",
     statStorage: "Storage used",
     statStorageAria: "Storage space used",
@@ -664,19 +662,21 @@ export const en: Dictionary = {
     rename: "Rename",
     download: "Download",
     delete: "Delete",
-    previewSoon:
-      "Document preview will be available once storage (Supabase Storage) is connected.",
     openUnavailable:
       "No summary is linked to this document yet. Summarize it to be able to open it.",
-    downloadSoon:
-      "Downloading the original file will be available once storage is connected.",
+    downloadFile: (name: string) => `Download “${name}”`,
+    downloadUnavailable:
+      "The original file of this document isn't available: it was imported before files were kept, or your storage space was full.",
     renameTitle: "Rename the document",
     renameBody: "Choose a new name for this document.",
     renameField: "Document name",
-    renamed: "Document renamed. Persistence will be handled by Supabase.",
+    renamed: "Document renamed.",
+    renameFailed: "The document couldn't be renamed. Try again.",
     deleteTitle: "Delete this document?",
-    deleteBody: (name: string) => `“${name}” will be removed from your library.`,
-    deleted: "Document removed from the list.",
+    deleteBody: (name: string) =>
+      `“${name}” and its original file will be deleted from your library. Summaries already generated stay available.`,
+    deleted: "Document deleted.",
+    deleteFailed: "The document couldn't be deleted. Try again.",
   },
 
   historique: {
@@ -973,8 +973,35 @@ export const en: Dictionary = {
     metaSignupTitle: "Sign up",
     rememberMe: "Remember me",
     forgotPassword: "Forgot password?",
-    forgotPasswordComingSoon:
-      "Password reset is coming soon. Contact support if you're locked out.",
+    forgotPasswordUnavailable: (email: string) =>
+      `Password reset by email isn't available yet. Write to us at ${email} if you're locked out.`,
+    metaForgotTitle: "Forgot password",
+    metaResetTitle: "New password",
+    forgotTitle: "Forgot password",
+    forgotSubtitle:
+      "Enter your account's email address: we'll send you a link to choose a new password.",
+    forgotSubmit: "Send the link",
+    forgotPending: "Sending…",
+    forgotSentTitle: "Check your inbox",
+    forgotSentBody: (email: string) =>
+      `If an account exists for ${email}, a reset link has just been sent to it. It's valid for 1 hour. Remember to check your spam folder.`,
+    forgotFailed: "The request couldn't be sent. Try again in a few minutes.",
+    backToLogin: "Back to sign in",
+    resetTitle: "New password",
+    resetSubtitle: "Choose a new password for your account (at least 8 characters).",
+    newPassword: "New password",
+    confirmPassword: "Confirm the password",
+    resetSubmit: "Save the password",
+    resetPending: "Saving…",
+    errPasswordMismatch: "The two passwords don't match.",
+    resetInvalidTitle: "Link expired",
+    resetInvalidBody:
+      "This reset link is no longer valid (expired or already used). Request a new one.",
+    requestNewLink: "Request a new link",
+    resetFailed: "The password couldn't be changed. Try again.",
+    resetDoneTitle: "Password changed",
+    resetDoneBody:
+      "Your password has been changed and your other sessions were signed out. Sign in with your new password.",
     showcaseEyebrow: "AI learning platform",
     showcaseSlogan: "Learn better, go further.",
     showcaseDescription:
@@ -1377,6 +1404,7 @@ export const en: Dictionary = {
     unsupportedFormat:
       "Unsupported format. Import a PDF, a Word file (.docx), a text file or a photo of your course.",
     tooManyFiles: (max: number) => `Too many files sent (maximum ${max}).`,
+    uploadFailed: "The file could not be sent. Check your internet connection and try again.",
     keyInvalid:
       "Invalid or missing OpenAI key on the server. Check OPENAI_API_KEY in .env.local.",
     serviceUnavailable:
@@ -1464,10 +1492,11 @@ export const en: Dictionary = {
     dashboardCta: "Go to dashboard",
     premiumCta: "View my subscription",
     failedTitle: "Payment not completed",
-    failedBody: "The payment wasn't completed. If you were charged, your access will activate automatically within a few minutes.",
+    failedBody: "The payment wasn't completed. If you were charged, your access will activate automatically as soon as Maketou confirms it — at the latest on your next visit to EduIA.",
     retryCta: "Try again",
     pendingTitle: "Payment being confirmed",
-    pendingBody: "You can close this page: your access will activate automatically as soon as Maketou confirms the payment, usually within a few minutes.",
+    pendingBody: "You can close this page: your access will activate automatically as soon as Maketou confirms the payment — usually within a few minutes, at the latest on your next visit to EduIA.",
+    confirmedOnVisit: "Maketou payment confirmed: your purchase has been added to your account.",
     loginTitle: "Sign in to finish",
     loginBody: "Sign in to the account you paid with: your payment will be confirmed automatically.",
     loginCta: "Sign in",

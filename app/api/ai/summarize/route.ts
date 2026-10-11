@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser, hasUnlimitedAccess } from "@/lib/data/user";
 import {
@@ -11,6 +11,12 @@ import {
   saveCourseSummary,
   type SummarySourceKind,
 } from "@/lib/data/summary";
+import { storeDocumentOriginals, type DocumentOriginal } from "@/lib/data/documents";
+import {
+  collectUploadedFiles,
+  deleteStoredFiles,
+  describeUploadIntakeError,
+} from "@/lib/uploads/server";
 import { summaryRequestSchema } from "@/lib/ai/schemas";
 import { describeAIError } from "@/lib/ai/errors";
 import { OPENAI_MODEL } from "@/lib/ai/openai-client";
@@ -94,10 +100,26 @@ export async function POST(request: Request) {
   const summaryRequest = { ...parsed.data };
 
   // Jusqu'à 5 fichiers/pages en une seule génération, traités comme UN seul
-  // document (voir `MultiFileDropzone` côté client).
-  const uploadedFiles = form
-    .getAll("files")
-    .filter((entry): entry is File => entry instanceof File && entry.size > 0);
+  // document (voir `MultiFileDropzone` côté client). Au-delà de 4 Mo, ils
+  // arrivent par le stockage privé (`lib/uploads`), effacé après la requête.
+  let uploadedFiles: File[];
+  try {
+    const intake = await collectUploadedFiles(form, "files", user.id);
+    uploadedFiles = intake.files;
+    after(() => deleteStoredFiles(intake.tempPathnames));
+  } catch (error) {
+    const { status, error: message } = describeUploadIntakeError(error, dict);
+    return NextResponse.json({ error: message }, { status });
+  }
+
+  // Texte déjà extrait côté client (fichier TXT, photo lue par l'IA), conservé
+  // tel quel comme fichier d'origine `.txt` du document.
+  // (Un document d'une seule page perd son repère « [Page 1 — nom] ».)
+  const rawClientText = summaryRequest.sourceText?.trim() ?? "";
+  const clientText =
+    summaryRequest.sourceKind === "multi"
+      ? rawClientText
+      : rawClientText.replace(/^\[[^\]\n]*\]\n/, "");
 
   if (uploadedFiles.length > MAX_UPLOAD_FILES) {
     return NextResponse.json(
@@ -123,6 +145,7 @@ export async function POST(request: Request) {
     let pdfPageCount = 0;
     let attachedBytes = 0;
     let firstAttachedKind: SummarySourceKind | null = null;
+    const originals: DocumentOriginal[] = [];
     // Un seul fichier envoyé au total (aucune autre page texte côté client) :
     // le texte Word extrait devient directement `sourceText`, sans repère de
     // page — comportement strictement identique à l'import mono-fichier.
@@ -148,6 +171,11 @@ export async function POST(request: Request) {
         pdfPageCount += estimatePdfPageCount(bytes);
         firstAttachedKind ??= "pdf";
         attachedBytes += uploadedFile.size;
+        originals.push({
+          name: uploadedFile.name || "cours.pdf",
+          contentType: "application/pdf",
+          bytes,
+        });
       } else if (kind === "docx") {
         const text = await extractDocxText(
           bytes,
@@ -161,6 +189,13 @@ export async function POST(request: Request) {
             : `[Pièce jointe — ${uploadedFile.name}]\n${text}`;
         firstAttachedKind ??= "docx";
         attachedBytes += uploadedFile.size;
+        originals.push({
+          name: uploadedFile.name || "cours.docx",
+          contentType:
+            uploadedFile.type ||
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          bytes,
+        });
       } else {
         return NextResponse.json(
           { error: t.unsupportedFormat },
@@ -178,7 +213,12 @@ export async function POST(request: Request) {
           summaryRequest.fileName ||
           (isImage ? dict.resumer.sourcePhoto : dict.resumer.sourceText),
         fileKind,
-        sizeLabel: attachedBytes > 0 ? formatBytes(attachedBytes, locale) : "",
+        // Taille de ce qui est conservé et téléchargeable : fichiers joints +
+        // texte lu côté client (TXT, photo transcrite).
+        sizeLabel:
+          attachedBytes + Buffer.byteLength(clientText, "utf8") > 0
+            ? formatBytes(attachedBytes + Buffer.byteLength(clientText, "utf8"), locale)
+            : "",
         pageCount:
           pdfPageCount +
           (summaryRequest.sourceText
@@ -204,12 +244,24 @@ export async function POST(request: Request) {
       sourceFiles,
     );
 
-    await saveCourseSummary({
+    const { documentId } = await saveCourseSummary({
       userId: user.id,
       request: summaryRequest,
       summary,
       source,
     });
+
+    if (documentId && clientText) {
+      const baseName = (source?.fileName ?? dict.resumer.sourceText).replace(/\.[^.]+$/, "");
+      originals.push({
+        name: `${baseName}.txt`,
+        contentType: "text/plain; charset=utf-8",
+        bytes: Buffer.from(clientText, "utf8"),
+      });
+    }
+    // Conservation des fichiers d'origine pour `/documents` : au mieux — un
+    // échec n'annule jamais le résumé déjà généré et enregistré.
+    if (documentId) await storeDocumentOriginals(user.id, documentId, originals);
 
     await logAiUsage({
       userId: user.id,

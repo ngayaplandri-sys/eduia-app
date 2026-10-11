@@ -7,6 +7,7 @@ import { Select } from "@/components/ui/select";
 import { EmptyState } from "@/components/feedback/empty-state";
 import { useI18n } from "@/lib/i18n/client";
 import { localizeSubject } from "@/lib/i18n/labels";
+import { deleteDocument, renameDocument } from "@/lib/actions/documents";
 import type { DocumentFile } from "@/types";
 import { DocumentCard } from "./document-card";
 
@@ -36,15 +37,31 @@ export function DocumentLibrary({
   const [subject, setSubject] = React.useState(ALL_SUBJECTS);
   const [sort, setSort] = React.useState<SortKey>("recent");
 
-  const handleRename = React.useCallback((id: string, name: string) => {
-    setList((current) =>
-      current.map((doc) => (doc.id === id ? { ...doc, name } : doc)),
-    );
-  }, []);
+  // Mise à jour immédiate de la liste, enregistrée en base par une action
+  // serveur ; la liste revient à son état précédent si l'enregistrement échoue.
+  const handleRename = React.useCallback(
+    async (id: string, name: string) => {
+      const previous = list;
+      setList((current) =>
+        current.map((doc) => (doc.id === id ? { ...doc, name } : doc)),
+      );
+      const { ok } = await renameDocument(id, name).catch(() => ({ ok: false }));
+      if (!ok) setList(previous);
+      return ok;
+    },
+    [list],
+  );
 
-  const handleDelete = React.useCallback((id: string) => {
-    setList((current) => current.filter((doc) => doc.id !== id));
-  }, []);
+  const handleDelete = React.useCallback(
+    async (id: string) => {
+      const previous = list;
+      setList((current) => current.filter((doc) => doc.id !== id));
+      const { ok } = await deleteDocument(id).catch(() => ({ ok: false }));
+      if (!ok) setList(previous);
+      return ok;
+    },
+    [list],
+  );
 
   const subjects = React.useMemo(
     () => [

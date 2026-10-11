@@ -5,6 +5,20 @@
  */
 export type DocumentFileKind = "pdf" | "docx" | "txt" | "image";
 
+/**
+ * Fichier d'origine conservé dans le stockage privé (Vercel Blob). `pathname`
+ * n'est jamais envoyé au navigateur : le téléchargement passe par
+ * `/api/documents/[id]/files/[index]`, qui vérifie le propriétaire.
+ */
+export interface StoredDocumentFile {
+  pathname: string;
+  /** Nom affiché (celui du fichier importé par l'élève). */
+  name: string;
+  contentType: string;
+  /** Taille en octets. */
+  size: number;
+}
+
 export interface DocumentFile {
   id: string;
   name: string;
@@ -19,6 +33,12 @@ export interface DocumentFile {
   hasSummary: boolean;
   /** Résumé associé à ouvrir (`/resumer?id=…`), ou `null` si aucun n'existe encore. */
   summaryId: string | null;
+  /**
+   * Fichiers d'origine téléchargeables, dans l'ordre d'import (l'index sert
+   * d'identifiant dans l'URL de téléchargement). Vide pour un document importé
+   * avant la mise en place du stockage, ou quand l'espace était plein.
+   */
+  files: { name: string; size: number }[];
 }
 
 /** Compteurs affichés au-dessus de la bibliothèque. */

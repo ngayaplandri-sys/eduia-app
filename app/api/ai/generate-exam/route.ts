@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser, hasUnlimitedAccess } from "@/lib/data/user";
 import {
@@ -10,6 +10,11 @@ import { generateExam, type SummarizeSourceFile } from "@/lib/ai/generate";
 import { saveGeneratedExam } from "@/lib/data/exam";
 import { examRequestSchema } from "@/lib/ai/schemas";
 import { describeAIError } from "@/lib/ai/errors";
+import {
+  collectUploadedFiles,
+  deleteStoredFiles,
+  describeUploadIntakeError,
+} from "@/lib/uploads/server";
 import { OPENAI_MODEL } from "@/lib/ai/openai-client";
 import { logAiUsage } from "@/lib/ai/usage";
 import {
@@ -80,10 +85,17 @@ export async function POST(request: Request) {
   const examRequest = { ...parsed.data };
 
   // Jusqu'à 5 fichiers/pages en une seule génération, traités comme UN seul
-  // document (voir `MultiFileDropzone` côté client).
-  const uploadedFiles = form
-    .getAll("files")
-    .filter((entry): entry is File => entry instanceof File && entry.size > 0);
+  // document (voir `MultiFileDropzone` côté client). Au-delà de 4 Mo, ils
+  // arrivent par le stockage privé (`lib/uploads`), effacé après la requête.
+  let uploadedFiles: File[];
+  try {
+    const intake = await collectUploadedFiles(form, "files", user.id);
+    uploadedFiles = intake.files;
+    after(() => deleteStoredFiles(intake.tempPathnames));
+  } catch (error) {
+    const { status, error: message } = describeUploadIntakeError(error, dict);
+    return NextResponse.json({ error: message }, { status });
+  }
 
   if (uploadedFiles.length > MAX_UPLOAD_FILES) {
     return NextResponse.json(

@@ -10,6 +10,7 @@ import { SummaryResultPanel } from "./summary-result-panel";
 import { SummaryResultLoading } from "./summary-result-loading";
 import { ToolWorkspaceLayout } from "@/components/common/tool-workspace-layout";
 import { useI18n } from "@/lib/i18n/client";
+import { UploadFailedError, buildUploadForm } from "@/lib/uploads/client";
 import type { CourseDocument, CourseSummary } from "@/types";
 
 /** Abandon si la route ne répond pas (protège contre une requête qui pend). */
@@ -46,10 +47,6 @@ export function ResumerWorkspace({
     setError(null);
     setErrorCode(null);
 
-    const body = new FormData();
-    body.append("payload", JSON.stringify(request));
-    for (const file of files) body.append("files", file, file.name);
-
     const controller = new AbortController();
     const timer = window.setTimeout(
       () => controller.abort(),
@@ -57,6 +54,7 @@ export function ResumerWorkspace({
     );
 
     try {
+      const body = await buildUploadForm(request, { files }, controller.signal);
       const response = await fetch("/api/ai/summarize", {
         method: "POST",
         body,
@@ -77,9 +75,11 @@ export function ResumerWorkspace({
       router.refresh();
     } catch (caught) {
       setError(
-        caught instanceof DOMException && caught.name === "AbortError"
-          ? t.timeout
-          : t.connectionLost,
+        caught instanceof UploadFailedError
+          ? dict.ai.uploadFailed
+          : caught instanceof DOMException && caught.name === "AbortError"
+            ? t.timeout
+            : t.connectionLost,
       );
     } finally {
       window.clearTimeout(timer);

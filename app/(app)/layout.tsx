@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { requireUser } from "@/lib/data/user";
 import { hasCompletedOnboarding } from "@/lib/data/onboarding";
+import { pendingCartIdsToConfirm } from "@/lib/data/maketou";
+import { PendingPaymentSync } from "@/components/billing/pending-payment-sync";
 
 export default async function AppLayout({
   children,
@@ -15,5 +17,13 @@ export default async function AppLayout({
     redirect("/onboarding");
   }
 
-  return <DashboardShell>{children}</DashboardShell>;
+  // Paiements Maketou restés en attente : confirmés dès le retour de l'élève.
+  const pendingCartIds = await pendingCartIdsToConfirm(user.id).catch(() => []);
+
+  return (
+    <DashboardShell>
+      {children}
+      {pendingCartIds.length > 0 ? <PendingPaymentSync cartIds={pendingCartIds} /> : null}
+    </DashboardShell>
+  );
 }

@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import { AuthForm } from "@/components/auth/auth-form";
 import { getDictionary } from "@/lib/i18n/server";
+import { isEmailConfigured } from "@/lib/email/send";
 
 export async function generateMetadata(): Promise<Metadata> {
   const dict = await getDictionary();
@@ -11,7 +12,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default function LoginPage() {
   return (
     <Suspense>
-      <AuthForm mode="login" />
+      <AuthForm mode="login" passwordResetEnabled={isEmailConfigured()} />
     </Suspense>
   );
 }
