@@ -13,7 +13,8 @@ import {
 } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
 import { getCurrentUser } from "./user";
-import { DEMO_EMAIL, PAYMENT_PROVIDER_CONNECTED } from "@/lib/admin/constants";
+import { DEMO_EMAIL } from "@/lib/admin/constants";
+import { purchasableItemKeys } from "@/lib/maketou/config";
 import { PLAN_CREDITS } from "@/lib/config/credits";
 import { estimateOpenAiCostUsd } from "@/lib/ai/pricing";
 import type {
@@ -405,7 +406,7 @@ export async function getAdminSubscriptions(): Promise<AdminSubscriptionsData> {
       (sum, row) => sum + planPriceFcfa((row.plan as UserPlan) ?? "free"),
       0,
     ),
-    paymentConnected: PAYMENT_PROVIDER_CONNECTED,
+    paymentConnected: purchasableItemKeys({ isAdmin: false }).length > 0,
   };
 }
 
@@ -565,9 +566,9 @@ export async function getAdminReportCounts(): Promise<
 
 /**
  * Historique des commandes (abonnements + recharges) : lignes `credit_orders`
- * — paiement **simulé** (`paymentProvider: "simulated"`, validation
- * immédiate), voir `applyPlanSubscription`/`applyRecharge` dans
- * `lib/data/credits.ts`. Remplace l'ancienne lecture de
+ * — écrites uniquement quand un paiement Maketou est confirmé
+ * (`paymentProvider: "maketou"`, voir `grantPaidPurchase` dans
+ * `lib/data/credits.ts`) ; les lignes `simulated` sont antérieures. Remplace l'ancienne lecture de
  * `subscriptions.paymentProvider`, qui n'a jamais été peuplée (rien ne
  * l'écrivait) — `credit_orders` est désormais la seule source réelle
  * d'événements de paiement.
@@ -616,7 +617,7 @@ export async function getAdminPayments(): Promise<AdminPaymentsData> {
   }));
 
   // Comptes payants sans aucune commande enregistrée (plan changé directement
-  // en base, hors du flux `/api/credits/subscribe`).
+  // en base, hors du paiement Maketou).
   const payingUserIds = new Set(rows.map((r) => r.userId));
   const manualPremiumCount = Math.max(
     0,
@@ -626,9 +627,12 @@ export async function getAdminPayments(): Promise<AdminPaymentsData> {
   return {
     rows,
     transactionCount: rows.length,
-    totalCollectedFcfa: rows.reduce((sum, r) => sum + r.amountFcfa, 0),
+    // Seuls les paiements réels comptent (les commandes « simulated » n'ont rien encaissé).
+    totalCollectedFcfa: rows
+      .filter((r) => r.provider !== "simulated")
+      .reduce((sum, r) => sum + r.amountFcfa, 0),
     manualPremiumCount,
-    paymentConnected: PAYMENT_PROVIDER_CONNECTED,
+    paymentConnected: purchasableItemKeys({ isAdmin: false }).length > 0,
   };
 }
 

@@ -2,11 +2,7 @@ import "server-only";
 import { eq, sql } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
 import { isPaidPlan } from "@/lib/utils/plan";
-import {
-  CREDIT_COSTS,
-  PLAN_CREDITS,
-  getRechargePackage,
-} from "@/lib/config/credits";
+import { CREDIT_COSTS, PLAN_CREDITS } from "@/lib/config/credits";
 import type {
   CreditBucket,
   CreditDebitResult,
@@ -43,7 +39,7 @@ import type { UserPlan } from "@/types";
  */
 
 type DbClient = typeof db;
-type DbTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+export type DbTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 type Executor = DbClient | DbTransaction;
 
 function monthlyAmountFor(plan: UserPlan): number {
@@ -125,44 +121,109 @@ async function setSubscriptionBalance(
 }
 
 /**
- * Réclame atomiquement le droit de renouveler la période d'un compte payant :
- * une seule requête `INSERT ... ON CONFLICT DO UPDATE ... WHERE` — l'update
- * n'a lieu (et n'est renvoyé) que si la période est absente ou expirée, donc
- * si deux requêtes arrivent en même temps après expiration, une seule "gagne"
- * et a le droit de réinitialiser le solde ensuite. La période repart toujours
- * de `now()` (pas de cumul depuis l'ancienne échéance) : un compte resté
- * inactif plusieurs mois reçoit simplement UN mois frais à son retour, jamais
- * plusieurs mois cumulés.
+ * Verrou transactionnel par compte : sérialise tout ce qui modifie le palier
+ * ou le portefeuille d'un même élève en plusieurs étapes (paiement accordé,
+ * expiration), pour qu'aucune lecture-modification-écriture ne se croise.
+ * Libéré automatiquement à la fin de la transaction.
  */
-async function claimRenewalIfDue(
-  userId: string,
-): Promise<{ currentPeriodEnd: Date } | null> {
-  const result = await db.execute<{ current_period_end: Date }>(sql`
-    INSERT INTO subscriptions (user_id, current_period_start, current_period_end)
-    VALUES (${userId}, now(), now() + interval '1 month')
-    ON CONFLICT (user_id) DO UPDATE
-      SET current_period_start = now(),
-          current_period_end = now() + interval '1 month',
-          updated_at = now()
-      WHERE subscriptions.current_period_end IS NULL
-         OR subscriptions.current_period_end <= now()
-    RETURNING current_period_end
-  `);
-  const row = result.rows[0];
-  return row ? { currentPeriodEnd: new Date(row.current_period_end) } : null;
+async function lockAccount(tx: DbTransaction, userId: string): Promise<void> {
+  await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${`account:${userId}`}))`);
 }
 
 /**
- * Portefeuille courant de l'utilisateur, avec renouvellement mensuel
- * auto-guéri si la période du palier payant est expirée (voir
- * `claimRenewalIfDue`). Ne crée JAMAIS les 20 crédits gratuits d'inscription
- * ici, même si aucun portefeuille n'existe encore (ex. compte créé avant
- * cette fonctionnalité) — l'octroi de bienvenue n'est écrit qu'une fois, par
- * le hook Better Auth `databaseHooks.user.create.after` (`grantSignupCredits`).
- * Un portefeuille manquant est simplement initialisé au solde correspondant
- * au plan ACTUEL de l'utilisateur (0 pour "free").
+ * Fin de la période payée : un palier payant n'est plus renouvelé
+ * gratuitement (les paiements Maketou sont ponctuels, sans prélèvement
+ * automatique). Le compte revient au palier gratuit et les crédits du palier
+ * expirent ; les crédits de recharge, eux, sont conservés.
+ *
+ * Atomique et idempotente (verrou du compte + conditions sur l'échéance) :
+ * deux appels simultanés n'écrivent qu'une seule expiration. Un palier posé à
+ * la main en base, sans période (`subscriptions.current_period_end` vide),
+ * n'expire jamais.
+ *
+ * @returns `true` si le compte vient d'être ramené au palier gratuit.
+ */
+export async function expireSubscriptionIfDue(userId: string): Promise<boolean> {
+  return db.transaction(async (tx) => {
+    await lockAccount(tx, userId);
+    const due = await tx.execute<{ plan: string }>(sql`
+      SELECT u.plan
+      FROM "user" u
+      JOIN subscriptions s ON s.user_id = u.id
+      WHERE u.id = ${userId}
+        AND u.plan IN ('premium', 'premium_plus')
+        AND s.current_period_end IS NOT NULL
+        AND s.current_period_end <= now()
+    `);
+    if (due.rows.length === 0) return false;
+
+    await tx.update(schema.user).set({ plan: "free" }).where(eq(schema.user.id, userId));
+    const expired = await tx.execute<{
+      expired: number;
+      subscription_balance: number;
+      recharge_balance: number;
+    }>(sql`
+      WITH old AS (
+        SELECT subscription_balance FROM credit_wallets WHERE user_id = ${userId} FOR UPDATE
+      )
+      UPDATE credit_wallets w
+      SET subscription_balance = 0, updated_at = now()
+      FROM old
+      WHERE w.user_id = ${userId}
+      RETURNING old.subscription_balance AS expired, w.subscription_balance, w.recharge_balance
+    `);
+    const row = expired.rows[0];
+    if (row && row.expired > 0) {
+      await writeLedgerEntry(tx, {
+        userId,
+        kind: "subscription_expired",
+        amount: -row.expired,
+        bucket: "subscription",
+        balanceAfter: row.subscription_balance + row.recharge_balance,
+        metadata: { plan: due.rows[0].plan },
+      });
+    }
+    return true;
+  });
+}
+
+/**
+ * Expire tous les paliers arrivés à échéance (rapprochement planifié) : sans
+ * cela, un élève qui ne revient pas garderait son badge Premium en base.
+ */
+export async function expireDueSubscriptions(limit = 200): Promise<number> {
+  const due = await db.execute<{ user_id: string }>(sql`
+    SELECT s.user_id
+    FROM subscriptions s
+    JOIN "user" u ON u.id = s.user_id
+    WHERE u.plan IN ('premium', 'premium_plus')
+      AND s.current_period_end IS NOT NULL
+      AND s.current_period_end <= now()
+    LIMIT ${limit}
+  `);
+  let expired = 0;
+  for (const { user_id } of due.rows) {
+    if (await expireSubscriptionIfDue(user_id)) expired += 1;
+  }
+  return expired;
+}
+
+/**
+ * Portefeuille courant de l'utilisateur. Expire d'abord le palier payant si
+ * sa période payée est terminée (`expireSubscriptionIfDue`) — il n'y a plus
+ * de renouvellement automatique gratuit. Ne crée JAMAIS les 20 crédits
+ * gratuits d'inscription ici, même si aucun portefeuille n'existe encore (ex.
+ * compte créé avant cette fonctionnalité) — l'octroi de bienvenue n'est écrit
+ * qu'une fois, par le hook Better Auth `databaseHooks.user.create.after`
+ * (`grantSignupCredits`). Un portefeuille manquant est simplement initialisé
+ * au solde correspondant au plan ACTUEL de l'utilisateur (0 pour "free").
+ *
+ * `periodEnd` : fin de la période payée du palier en cours (accès actif
+ * jusqu'à cette date), `null` sans palier payant.
  */
 export async function getCreditWallet(userId: string): Promise<CreditWallet> {
+  await expireSubscriptionIfDue(userId);
+
   const [userRow] = await db
     .select({ plan: schema.user.plan })
     .from(schema.user)
@@ -188,25 +249,12 @@ export async function getCreditWallet(userId: string): Promise<CreditWallet> {
 
   let periodEnd: Date | null = null;
   if (isPaidPlan(plan)) {
-    const claimed = await claimRenewalIfDue(userId);
-    if (claimed) {
-      wallet = await setSubscriptionBalance(db, userId, monthlyAmountFor(plan));
-      await writeLedgerEntry(db, {
-        userId,
-        kind: "subscription_renewal",
-        amount: monthlyAmountFor(plan),
-        bucket: "subscription",
-        balanceAfter: wallet.subscriptionBalance + wallet.rechargeBalance,
-      });
-      periodEnd = claimed.currentPeriodEnd;
-    } else {
-      const [sub] = await db
-        .select({ currentPeriodEnd: schema.subscriptions.currentPeriodEnd })
-        .from(schema.subscriptions)
-        .where(eq(schema.subscriptions.userId, userId))
-        .limit(1);
-      periodEnd = sub?.currentPeriodEnd ?? null;
-    }
+    const [sub] = await db
+      .select({ currentPeriodEnd: schema.subscriptions.currentPeriodEnd })
+      .from(schema.subscriptions)
+      .where(eq(schema.subscriptions.userId, userId))
+      .limit(1);
+    periodEnd = sub?.currentPeriodEnd ?? null;
   }
 
   return {
@@ -347,113 +395,170 @@ export async function refundCredits(
  */
 export { grantSignupCredits } from "@/lib/db/credit-grants";
 
-/**
- * Abonnement (ou changement de palier) — toujours un solde `subscription`
- * plein neuf au nouveau palier, période repartant de `now()`, sans
- * proratisation (simplification assumée pour ce système de paiement simulé).
- * `rechargeBalance` n'est jamais touché ici.
- */
-export async function applyPlanSubscription(
-  userId: string,
-  plan: SubscriptionPlanId,
-): Promise<CreditWallet> {
-  const monthly = PLAN_CREDITS[plan].monthly;
-  const priceFcfa = PLAN_CREDITS[plan].priceFcfa;
-  const now = new Date();
-  const periodEnd = new Date(now.getTime());
-  periodEnd.setMonth(periodEnd.getMonth() + 1);
+const PLAN_RANK: Record<UserPlan, number> = { free: 0, premium: 1, premium_plus: 2 };
 
-  await db
-    .update(schema.user)
-    .set({ plan })
-    .where(eq(schema.user.id, userId));
+/** Ce qu'un paiement confirmé accorde (voir `lib/maketou/catalog.ts`). */
+export type PaidGrant =
+  | { kind: "plan"; plan: SubscriptionPlanId; credits: number }
+  | { kind: "recharge"; packageId: string; credits: number }
+  | { kind: "test"; credits: number };
 
-  await db
-    .insert(schema.subscriptions)
-    .values({
-      userId,
-      premiumActivatedAt: now,
-      currentPeriodStart: now,
-      currentPeriodEnd: periodEnd,
-    })
-    .onConflictDoUpdate({
-      target: schema.subscriptions.userId,
-      set: {
-        premiumActivatedAt: now,
-        currentPeriodStart: now,
-        currentPeriodEnd: periodEnd,
-        updatedAt: now,
-      },
-    });
-
-  const wallet = await setSubscriptionBalance(db, userId, monthly);
-
-  await writeLedgerEntry(db, {
-    userId,
-    kind: "subscription_upgrade",
-    amount: monthly,
-    bucket: "subscription",
-    balanceAfter: wallet.subscriptionBalance + wallet.rechargeBalance,
-    metadata: { plan },
-  });
-
-  await db.insert(schema.creditOrders).values({
-    userId,
-    kind: `subscription_${plan}`,
-    amountFcfa: priceFcfa,
-    creditsGranted: monthly,
-    paymentReference: `SIM-SUB-${Date.now()}-${userId.slice(0, 8)}`,
-  });
-
-  return {
-    subscriptionBalance: wallet.subscriptionBalance,
-    rechargeBalance: wallet.rechargeBalance,
-    total: wallet.subscriptionBalance + wallet.rechargeBalance,
-    planMonthlyTotal: monthly,
-    periodEnd: periodEnd.toISOString(),
-  };
+export interface PaidPurchaseRef {
+  /** Fournisseur de paiement (`credit_orders.payment_provider`). */
+  provider: string;
+  /** Référence unique du paiement (identifiant du panier Maketou). */
+  reference: string;
+  /** Montant réellement facturé (instantané pris à la création du panier). */
+  amountFcfa: number;
 }
 
-/** Achat de crédits de recharge — ajoutés à `rechargeBalance`, jamais au compartiment `subscription`. */
-export async function applyRecharge(
+/**
+ * Accorde un achat PAYÉ, dans la transaction de l'appelant (qui a déjà
+ * réclamé le paiement une seule fois, voir `fulfillMaketouCheckout`).
+ * Verrouille le compte, puis :
+ *  - recharge (ou offre de test) : crédits ajoutés au compartiment
+ *    `recharge`, qui n'expire jamais ;
+ *  - palier, sans palier actif : le palier démarre maintenant pour un mois,
+ *    avec ses crédits ;
+ *  - même palier déjà actif (renouvellement, même anticipé) : un mois de plus
+ *    à la suite de l'échéance, crédits du mois ajoutés — rien n'est perdu ;
+ *  - palier supérieur (passage à Premium+) : bascule immédiate pour un mois,
+ *    crédits ajoutés à ceux qui restent ;
+ *  - palier inférieur payé pendant un palier supérieur actif (cas de course,
+ *    la page Premium l'empêche) : crédits ajoutés et un mois de plus au palier
+ *    actuel, avec une remarque pour l'admin.
+ * Écrit toujours une ligne `credit_ledger` et une ligne `credit_orders`.
+ *
+ * @returns une remarque d'exploitation éventuelle (à garder sur le paiement).
+ */
+export async function grantPaidPurchase(
+  tx: DbTransaction,
   userId: string,
-  packageId: string,
-): Promise<CreditWallet> {
-  const pkg = getRechargePackage(packageId);
-  if (!pkg) throw new Error(`Pack de recharge inconnu : ${packageId}`);
+  grant: PaidGrant,
+  ref: PaidPurchaseRef,
+): Promise<{ note: string | null }> {
+  await lockAccount(tx, userId);
 
-  const wallet = await addToRecharge(db, userId, pkg.credits);
+  if (grant.kind !== "plan") {
+    const wallet = await addToRecharge(tx, userId, grant.credits);
+    await writeLedgerEntry(tx, {
+      userId,
+      kind: "recharge_purchase",
+      amount: grant.credits,
+      bucket: "recharge",
+      balanceAfter: wallet.subscriptionBalance + wallet.rechargeBalance,
+      metadata: {
+        packageId: grant.kind === "recharge" ? grant.packageId : "test",
+        provider: ref.provider,
+        reference: ref.reference,
+      },
+    });
+    await tx.insert(schema.creditOrders).values({
+      userId,
+      kind: grant.kind === "recharge" ? grant.packageId : "test_offer",
+      amountFcfa: ref.amountFcfa,
+      creditsGranted: grant.credits,
+      paymentProvider: ref.provider,
+      paymentReference: ref.reference,
+    });
+    return { note: null };
+  }
 
-  await writeLedgerEntry(db, {
+  const state = await tx.execute<{ plan: string; current_period_end: Date | null }>(sql`
+    SELECT u.plan, s.current_period_end
+    FROM "user" u
+    LEFT JOIN subscriptions s ON s.user_id = u.id
+    WHERE u.id = ${userId}
+  `);
+  const current = state.rows[0];
+  if (!current) throw new Error("grantPaidPurchase: compte introuvable");
+  const currentPlan = (current.plan as UserPlan) ?? "free";
+  const active =
+    isPaidPlan(currentPlan) &&
+    current.current_period_end !== null &&
+    new Date(current.current_period_end).getTime() > Date.now();
+
+  let note: string | null = null;
+  let ledgerKind: CreditLedgerKind = "subscription_upgrade";
+  let newPlan: SubscriptionPlanId = grant.plan;
+  let extendFromCurrentEnd = false;
+  let resetBalance = !active;
+
+  if (active && currentPlan === grant.plan) {
+    ledgerKind = "subscription_renewal";
+    extendFromCurrentEnd = true;
+  } else if (active && PLAN_RANK[grant.plan] < PLAN_RANK[currentPlan]) {
+    newPlan = currentPlan as SubscriptionPlanId;
+    ledgerKind = "subscription_renewal";
+    extendFromCurrentEnd = true;
+    note = `palier ${grant.plan} payé pendant un palier ${currentPlan} actif : crédits ajoutés, un mois de plus au palier actuel`;
+  } else if (active) {
+    // Passage au palier supérieur : nouveau mois immédiat, crédits cumulés.
+    resetBalance = false;
+  }
+
+  await tx.update(schema.user).set({ plan: newPlan }).where(eq(schema.user.id, userId));
+
+  const periodEnd = extendFromCurrentEnd
+    ? sql`GREATEST(now(), subscriptions.current_period_end) + interval '1 month'`
+    : sql`now() + interval '1 month'`;
+  await tx.execute(sql`
+    INSERT INTO subscriptions (user_id, premium_activated_at, current_period_start, current_period_end, payment_provider, payment_reference)
+    VALUES (${userId}, now(), now(), now() + interval '1 month', ${ref.provider}, ${ref.reference})
+    ON CONFLICT (user_id) DO UPDATE SET
+      premium_activated_at = COALESCE(subscriptions.premium_activated_at, now()),
+      current_period_start = ${extendFromCurrentEnd ? sql`COALESCE(subscriptions.current_period_start, now())` : sql`now()`},
+      current_period_end = ${periodEnd},
+      payment_provider = ${ref.provider},
+      payment_reference = ${ref.reference},
+      updated_at = now()
+  `);
+
+  const wallet = resetBalance
+    ? await setSubscriptionBalance(tx, userId, grant.credits)
+    : await addToSubscription(tx, userId, grant.credits);
+
+  await writeLedgerEntry(tx, {
     userId,
-    kind: "recharge_purchase",
-    amount: pkg.credits,
-    bucket: "recharge",
+    kind: ledgerKind,
+    amount: grant.credits,
+    bucket: "subscription",
     balanceAfter: wallet.subscriptionBalance + wallet.rechargeBalance,
-    metadata: { packageId },
+    metadata: { plan: grant.plan, provider: ref.provider, reference: ref.reference },
   });
-
-  await db.insert(schema.creditOrders).values({
+  await tx.insert(schema.creditOrders).values({
     userId,
-    kind: pkg.id,
-    amountFcfa: pkg.priceFcfa,
-    creditsGranted: pkg.credits,
-    paymentReference: `SIM-RCH-${Date.now()}-${userId.slice(0, 8)}`,
+    kind: `subscription_${grant.plan}`,
+    amountFcfa: ref.amountFcfa,
+    creditsGranted: grant.credits,
+    paymentProvider: ref.provider,
+    paymentReference: ref.reference,
   });
 
-  const [userRow] = await db
-    .select({ plan: schema.user.plan })
-    .from(schema.user)
-    .where(eq(schema.user.id, userId))
-    .limit(1);
+  return { note };
+}
 
-  return {
-    subscriptionBalance: wallet.subscriptionBalance,
-    rechargeBalance: wallet.rechargeBalance,
-    total: wallet.subscriptionBalance + wallet.rechargeBalance,
-    planMonthlyTotal: monthlyAmountFor((userRow?.plan as UserPlan | undefined) ?? "free"),
-    periodEnd: null,
-  };
+/** Ajoute `amount` au compartiment `subscription` (renouvellement, passage supérieur). */
+async function addToSubscription(
+  executor: Executor,
+  userId: string,
+  amount: number,
+): Promise<{ subscriptionBalance: number; rechargeBalance: number }> {
+  const [row] = await executor
+    .insert(schema.creditWallets)
+    .values({ userId, subscriptionBalance: amount, rechargeBalance: 0 })
+    .onConflictDoUpdate({
+      target: schema.creditWallets.userId,
+      set: {
+        subscriptionBalance: sql`${schema.creditWallets.subscriptionBalance} + ${amount}`,
+        updatedAt: new Date(),
+      },
+    })
+    .returning({
+      subscriptionBalance: schema.creditWallets.subscriptionBalance,
+      rechargeBalance: schema.creditWallets.rechargeBalance,
+    });
+  return row;
 }
 
 /**

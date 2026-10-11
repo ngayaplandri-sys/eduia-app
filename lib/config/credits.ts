@@ -1,7 +1,6 @@
 import type {
   CreditFeature,
   RechargePackageId,
-  SubscriptionPlanId,
 } from "@/types";
 
 /**
@@ -41,11 +40,3 @@ export const RECHARGE_PACKAGES: RechargePackage[] = [
   { id: "recharge_500", credits: 500, priceFcfa: 1800 },
   { id: "recharge_1000", credits: 1000, priceFcfa: 3000 },
 ];
-
-export function getRechargePackage(id: string): RechargePackage | null {
-  return RECHARGE_PACKAGES.find((pkg) => pkg.id === id) ?? null;
-}
-
-export function isSubscriptionPlanId(value: string): value is SubscriptionPlanId {
-  return value === "premium" || value === "premium_plus";
-}

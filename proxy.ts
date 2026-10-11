@@ -17,6 +17,9 @@ import { getSessionCookie } from "better-auth/cookies";
  */
 const AUTH_PAGES = ["/login", "/signup"];
 
+/** Page de retour de paiement Maketou (voir `app/billing/maketou/return`). */
+const MAKETOU_RETURN_PATH = "/billing/maketou/return";
+
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const hasSession = Boolean(getSessionCookie(request));
@@ -24,12 +27,16 @@ export function proxy(request: NextRequest) {
     (page) => pathname === page || pathname.startsWith(`${page}/`),
   );
   // La page d'accueil (`/`) est publique : landing marketing, accessible sans
-  // session. Toutes les autres pages hors auth restent protégées.
-  const isPublicPage = pathname === "/" || onAuthPage;
+  // session. Le retour de paiement Maketou l'est aussi : il doit toujours
+  // aboutir (la confirmation, elle, exige la session). Toutes les autres pages
+  // hors auth restent protégées.
+  const isPublicPage =
+    pathname === "/" || onAuthPage || pathname === MAKETOU_RETURN_PATH;
 
   if (!hasSession && !isPublicPage) {
     const url = new URL("/login", request.url);
-    if (pathname !== "/") url.searchParams.set("next", pathname);
+    // Garde aussi les paramètres de la page demandée (retour après connexion).
+    if (pathname !== "/") url.searchParams.set("next", pathname + request.nextUrl.search);
     return NextResponse.redirect(url);
   }
 

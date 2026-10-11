@@ -3,6 +3,7 @@ import { cache } from "react";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
+import { expireSubscriptionIfDue } from "@/lib/data/credits";
 import type { User, UserPlan, UserRole } from "@/types";
 
 /**
@@ -12,6 +13,12 @@ import type { User, UserPlan, UserRole } from "@/types";
 export const getSession = cache(async () => {
   return auth.api.getSession({ headers: await headers() });
 });
+
+/**
+ * Expiration du palier payant à la fin de la période payée (une fois par
+ * requête de rendu) : un palier Premium n'est plus renouvelé gratuitement.
+ */
+const expirePaidPlanOnce = cache(expireSubscriptionIfDue);
 
 /** Utilisateur connecté, ou `null`. */
 export async function getCurrentUser(): Promise<User | null> {
@@ -28,10 +35,16 @@ export async function getCurrentUser(): Promise<User | null> {
     email: account.email,
     avatarUrl: account.image ?? null,
     role: (account.role as UserRole | null) === "admin" ? "admin" : "student",
-    plan: (account.plan as UserPlan | null) ?? "free",
+    plan: await currentPlan(account.id, (account.plan as UserPlan | null) ?? "free"),
     locale: account.locale ?? "fr",
     theme: account.theme ?? "system",
   };
+}
+
+/** Palier réel : un palier payant arrivé à échéance redevient gratuit. */
+async function currentPlan(userId: string, plan: UserPlan): Promise<UserPlan> {
+  if (plan === "free") return plan;
+  return (await expirePaidPlanOnce(userId)) ? "free" : plan;
 }
 
 /**

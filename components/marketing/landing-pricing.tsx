@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import {
   ArrowRight,
   Bot,
@@ -17,9 +16,9 @@ import { Reveal } from "@/components/motion/reveal";
 import { TiltSurface } from "@/components/motion/tilt-surface";
 import { cn } from "@/lib/utils/cn";
 import { CREDIT_COSTS, PLAN_CREDITS, RECHARGE_PACKAGES } from "@/lib/config/credits";
-import { paymentMethods } from "@/lib/config/payment-methods";
 import { formatFcfa } from "@/lib/admin/constants";
 import { getDictionary } from "@/lib/i18n/server";
+import { PaymentMethodChips } from "@/components/billing/payment-method-chips";
 import { SectionHeading, ctaArrowClass, ctaOutlineClass, ctaPrimaryClass } from "./marketing-ui";
 
 interface Plan {
@@ -115,8 +114,8 @@ function PlanCard({ plan, recommendedLabel }: { plan: Plan; recommendedLabel: st
  * (abonnement et recharges) pour un membre connecté.
  *
  * Moyens de paiement : uniquement ceux déclarés dans
- * `lib/config/payment-methods.ts`. Aucun fournisseur n'étant encore branché
- * (paiement simulé), la liste est vide et aucun logo n'est affiché.
+ * `lib/config/payment-methods.ts` — ceux que propose réellement la page de
+ * paiement Maketou de la boutique.
  */
 export async function LandingPricing({ isAuthenticated }: { isAuthenticated: boolean }) {
   const dict = await getDictionary();
@@ -245,19 +244,12 @@ export async function LandingPricing({ isAuthenticated }: { isAuthenticated: boo
                 })}
               </ul>
 
-              {/* Logos : uniquement les moyens de paiement réellement branchés. */}
-              {paymentMethods.length > 0 ? (
-                <div className="mt-7 border-t border-white/10 pt-5">
-                  <p className="text-fine font-semibold text-white/70">{p.methodsHeading}</p>
-                  <ul className="mt-3 flex flex-wrap items-center gap-3">
-                    {paymentMethods.map((method) => (
-                      <li key={method.id} className="flex h-11 items-center rounded-lg bg-white px-3">
-                        <Image src={method.logo} alt={method.label} width={88} height={28} className="h-7 w-auto object-contain" />
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ) : null}
+              {/* Moyens de paiement réellement proposés par la page Maketou. */}
+              <div className="mt-7 border-t border-white/10 pt-5">
+                <p className="text-fine font-semibold text-white/70">{p.methodsHeading}</p>
+                <PaymentMethodChips cardLabel={dict.billing.cardLabel} tone="dark" className="mt-3" />
+                <p className="mt-3 text-meta text-white/60">{dict.billing.secureLine}</p>
+              </div>
             </div>
           </Reveal>
 

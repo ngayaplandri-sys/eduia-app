@@ -6,6 +6,7 @@ export type CreditLedgerKind =
   | "signup_grant"
   | "subscription_renewal"
   | "subscription_upgrade"
+  | "subscription_expired"
   | "recharge_purchase"
   | "consume_summary"
   | "consume_exam"

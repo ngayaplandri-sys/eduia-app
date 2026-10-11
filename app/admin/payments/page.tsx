@@ -19,6 +19,7 @@ const KIND_LABEL: Record<string, string> = {
   recharge_250: "Recharge 250 crédits",
   recharge_500: "Recharge 500 crédits",
   recharge_1000: "Recharge 1000 crédits",
+  test_offer: "Offre de test",
 };
 
 const columns: AdminColumn<AdminPaymentRow>[] = [
@@ -64,17 +65,17 @@ export default async function AdminPaymentsPage() {
   return (
     <div className="space-y-6">
       <p className="text-sm text-ink-500">
-        Commandes (abonnements + recharges) enregistrées via le paiement
-        simulé. Aucun montant n&apos;est réellement encaissé tant qu&apos;un
-        vrai fournisseur de paiement n&apos;est pas branché.
+        Commandes (abonnements + recharges) payées via Maketou, enregistrées
+        une fois le paiement confirmé. Les anciennes commandes « simulated »
+        n&apos;ont rien encaissé.
       </p>
 
       <div className="grid gap-4 sm:grid-cols-3">
         <AdminStatCard
           icon={Banknote}
-          label="Total simulé"
+          label="Total encaissé"
           value={formatFcfa(data.totalCollectedFcfa)}
-          hint="Paiement simulé — non encaissé"
+          hint="Paiements Maketou confirmés (avant frais de 8 %)"
           tone={data.totalCollectedFcfa > 0 ? "success" : "neutral"}
         />
         <AdminStatCard
@@ -97,7 +98,7 @@ export default async function AdminPaymentsPage() {
 
       <AdminSection
         title="Historique des commandes"
-        description="Une ligne par abonnement ou recharge, simulé instantanément."
+        description="Une ligne par abonnement ou recharge payé et confirmé."
       >
         <AdminTable
           columns={columns}

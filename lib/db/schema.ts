@@ -316,6 +316,83 @@ export const reports = pgTable("reports", {
   updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
 });
 
+/**
+ * Paiements Maketou — une ligne par panier créé (voir `lib/data/maketou.ts`).
+ * Maketou n'envoie aucun webhook et le panier ne contient jamais le montant :
+ * cette ligne est le seul enregistrement de CE qui a été acheté et À QUEL
+ * PRIX (instantané pris à la création du panier). Le droit (crédits, palier)
+ * n'est accordé qu'une fois, quand Maketou répond `completed` à une lecture
+ * serveur du panier — jamais sur le simple retour du navigateur.
+ *
+ * `status` (le nôtre) : PENDING | COMPLETED | FAILED | EXPIRED.
+ * `providerStatus` (Maketou) : waiting_payment | completed | payment_failed | abandoned.
+ * Jamais lisible ni modifiable par le client : uniquement via les routes serveur.
+ */
+export const maketouCheckouts = pgTable(
+  "maketou_checkouts",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    /** Compte qui reçoit le droit (ici, l'acheteur lui-même). */
+    ownerId: text()
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    /** Compte qui a cliqué « Payer ». */
+    buyerUserId: text()
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    /** Identifiant du panier Maketou, tel que renvoyé. */
+    cartId: text().notNull().unique(),
+    status: text().notNull().default("PENDING"),
+    providerStatus: text().notNull().default("waiting_payment"),
+    /** Clé du catalogue (`lib/maketou/catalog.ts`) : ce qui a été acheté. */
+    itemKey: text().notNull(),
+    /** Montant facturé (instantané), plus petite unité de la devise. */
+    amount: integer().notNull(),
+    currency: text().notNull(),
+    paymentId: text(),
+    checkAttempts: integer().notNull().default(0),
+    lastCheckedAt: timestamp({ withTimezone: true }),
+    /** Posé une seule fois, jamais réinitialisé (un seul événement d'échec). */
+    failureNotifiedAt: timestamp({ withTimezone: true }),
+    completedAt: timestamp({ withTimezone: true }),
+    /** Remarque d'exploitation (ex. paiement en double à rembourser à la main). */
+    note: text(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("maketou_checkouts_status_created_idx").on(t.status, t.createdAt),
+    index("maketou_checkouts_buyer_created_idx").on(t.buyerUserId, t.createdAt),
+  ],
+);
+
+/**
+ * Limites par acheteur, mises à jour par une seule requête conditionnelle
+ * (jamais « compter puis insérer », qui laisserait passer des requêtes
+ * simultanées) : nombre de paniers créés dans l'heure, et dernier appel à
+ * Maketou déclenché par la page de retour (la clé API est partagée par tous).
+ */
+export const maketouBuyerLimits = pgTable("maketou_buyer_limits", {
+  userId: text()
+    .primaryKey()
+    .references(() => user.id, { onDelete: "cascade" }),
+  checkoutWindowStart: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  checkoutCount: integer().notNull().default(0),
+  lastConfirmCallAt: timestamp({ withTimezone: true }),
+});
+
+/**
+ * Bail d'exécution des tâches planifiées (une ligne par tâche) : empêche deux
+ * exécutions simultanées du rapprochement Maketou, même lancées par plusieurs
+ * planificateurs. Garde aussi la trace de la dernière exécution (contrôle).
+ */
+export const jobLeases = pgTable("job_leases", {
+  name: text().primaryKey(),
+  holder: text(),
+  heldUntil: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  lastRunAt: timestamp({ withTimezone: true }),
+  lastStopReason: text(),
+});
+
 export type DocumentRow = typeof documents.$inferSelect;
 export type ActivityRow = typeof activities.$inferSelect;
 export type SummaryRow = typeof summaries.$inferSelect;
@@ -329,3 +406,4 @@ export type CreditWalletRow = typeof creditWallets.$inferSelect;
 export type CreditLedgerRow = typeof creditLedger.$inferSelect;
 export type CreditOrderRow = typeof creditOrders.$inferSelect;
 export type AssistantConversationRow = typeof assistantConversations.$inferSelect;
+export type MaketouCheckoutRow = typeof maketouCheckouts.$inferSelect;

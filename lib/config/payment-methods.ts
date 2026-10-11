@@ -1,20 +1,20 @@
 /**
- * Moyens de paiement réellement acceptés, affichés sur la landing (bloc
- * « Paiement »).
+ * Moyens de paiement réellement proposés par la page de paiement Maketou de
+ * la boutique EduIA (confirmés par le propriétaire) — affichés sur la landing
+ * (bloc « Paiement ») et la page Premium. Ne pas ajouter un moyen que la page
+ * Maketou ne propose pas réellement.
  *
- * VIDE VOLONTAIREMENT : aucun fournisseur de paiement n'est encore branché
- * (les abonnements et recharges passent par un paiement simulé, voir
- * `lib/data/credits.ts`). La landing n'affiche donc aucun logo de paiement.
- * Quand un vrai fournisseur sera connecté (Mobile Money, carte…), ajoute ici
- * chaque moyen réellement accepté avec son logo officiel (fichier sous
- * `public/payments/`) : la rangée de logos apparaît automatiquement.
+ * Affichés en pastilles texte + icône génériques (pas de logos de marque).
  */
 export interface PaymentMethod {
   id: string;
-  /** Nom affiché et texte alternatif du logo (« Orange Money »…). */
-  label: string;
-  /** Logo officiel, chemin sous `public/` (SVG ou PNG transparent). */
-  logo: string;
+  kind: "mobile" | "card";
+  /** Nom de marque, identique dans toutes les langues ; `null` = libellé traduit (carte). */
+  name: string | null;
 }
 
-export const paymentMethods: PaymentMethod[] = [];
+export const paymentMethods: PaymentMethod[] = [
+  { id: "orange_money", kind: "mobile", name: "Orange Money" },
+  { id: "mtn_momo", kind: "mobile", name: "MTN Mobile Money" },
+  { id: "card", kind: "card", name: null },
+];

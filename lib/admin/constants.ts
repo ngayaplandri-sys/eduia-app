@@ -5,11 +5,6 @@
  */
 export const DEMO_EMAIL = process.env.DEMO_USER_EMAIL ?? "demo@eduia.app";
 
-/**
- * Aucun fournisseur de paiement n'est branché aujourd'hui. Passe à `true`
- * uniquement quand un vrai webhook de paiement écrit dans `subscriptions`.
- */
-export const PAYMENT_PROVIDER_CONNECTED = false;
 
 export function formatFcfa(amount: number): string {
   return `${new Intl.NumberFormat("fr-FR").format(Math.round(amount))} FCFA`;

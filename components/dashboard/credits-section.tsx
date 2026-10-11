@@ -76,7 +76,7 @@ export async function CreditsSection({
       </div>
 
       <p className="mt-2 text-meta text-ink-400">
-        {wallet.periodEnd ? t.renewsOn(formatShortDate(wallet.periodEnd, locale)) : t.noSubscriptionHint}
+        {wallet.periodEnd ? t.activeUntil(formatShortDate(wallet.periodEnd, locale)) : t.noSubscriptionHint}
       </p>
 
       <div className="mt-5 border-t border-line-soft pt-4">
