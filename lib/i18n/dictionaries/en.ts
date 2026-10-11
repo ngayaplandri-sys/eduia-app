@@ -722,15 +722,6 @@ export const en: Dictionary = {
     updatePassword: "Update password",
     updatingPassword: "Updating…",
     passwordUpdated: "Password updated.",
-    notificationsTitle: "Notifications",
-    notificationsDescription:
-      "Get notified when a summary, test or grading is ready.",
-    emailNotifications: "Email notifications",
-    enabled: "On",
-    disabled: "Off",
-    notificationsToggleAria: "Enable email notifications",
-    notificationsOn: "Notifications enabled.",
-    notificationsOff: "Notifications disabled.",
     subscriptionTitle: "Subscription",
     subscriptionDescription: "Your EduIA account status.",
     planPremium: "EduIA Premium",
@@ -807,7 +798,7 @@ export const en: Dictionary = {
   aide: {
     metaTitle: "Help & support",
     metaDescription:
-      "Get help with EduIA: FAQ, contact by email or WhatsApp, and problem reporting.",
+      "Get help with EduIA: FAQ, contacting the team, and problem reporting.",
     title: "Help & support",
     pageIntro:
       "We're here to help. Find an answer quickly or get in touch.",
@@ -817,8 +808,6 @@ export const en: Dictionary = {
     topicFaqDesc: "Find answers to the most common questions.",
     topicContactTitle: "Contact us",
     topicContactDesc: "Send us a message and we'll get back to you quickly.",
-    topicWhatsappTitle: "WhatsApp",
-    topicWhatsappDesc: "Chat directly with our team on WhatsApp.",
     reportTitle: "Report a problem",
     reportTileDesc: "Hit a bug or an issue? Report it here.",
     reportDialogBody: "Describe what's wrong and the EduIA team will handle it.",

@@ -65,8 +65,6 @@ export const adminNavLink: NavLink = {
   tone: "neutral",
 };
 
-export const allNavLinks: NavLink[] = [...primaryNav, ...secondaryNav];
-
 /** Route → clé de titre (`dict.nav[key]`), pour le header. */
 const PAGE_TITLE_KEYS: Record<string, NavKey> = {
   "/dashboard": "dashboard",

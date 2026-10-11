@@ -37,12 +37,28 @@ export const metadata: Metadata = {
   applicationName: siteConfig.name,
   authors: [{ name: siteConfig.name }],
   icons: { icon: "/favicon.ico" },
+  // Aperçu des liens partagés (WhatsApp, Facebook, LinkedIn…) ; les URL
+  // relatives sont résolues sur `metadataBase` (domaine de production).
+  openGraph: {
+    type: "website",
+    siteName: siteConfig.name,
+    locale: "fr_FR",
+    url: "/",
+    title: `${siteConfig.name} · ${siteConfig.tagline}`,
+    description: siteConfig.description,
+  },
+  twitter: {
+    card: "summary",
+    title: `${siteConfig.name} · ${siteConfig.tagline}`,
+    description: siteConfig.description,
+  },
 };
 
 export const viewport: Viewport = {
   colorScheme: "light dark",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#6d28d9" },
+    // = --color-primary-600 (violet de marque, app/globals.css)
+    { media: "(prefers-color-scheme: light)", color: "#693fa8" },
     { media: "(prefers-color-scheme: dark)", color: "#0f1117" },
   ],
   width: "device-width",

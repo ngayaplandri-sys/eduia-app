@@ -1,4 +1,4 @@
-import "./_env";
+import { requireDbWipeConfirmation } from "./_env";
 import { eq } from "drizzle-orm";
 import { auth } from "../lib/auth";
 import { db } from "../lib/db/client";
@@ -18,6 +18,7 @@ const DEMO_EMAIL = process.env.DEMO_USER_EMAIL ?? "demo@eduia.app";
 const DEMO_PASSWORD = process.env.DEMO_USER_PASSWORD;
 
 async function main() {
+  requireDbWipeConfirmation("db:seed");
   if (!DEMO_PASSWORD) {
     throw new Error("DEMO_USER_PASSWORD manquant dans .env.local");
   }

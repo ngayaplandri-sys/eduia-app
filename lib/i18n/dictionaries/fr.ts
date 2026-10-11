@@ -742,15 +742,6 @@ export const fr = {
     updatePassword: "Mettre à jour le mot de passe",
     updatingPassword: "Mise à jour…",
     passwordUpdated: "Mot de passe mis à jour.",
-    notificationsTitle: "Notifications",
-    notificationsDescription:
-      "Sois prévenu quand un résumé, une épreuve ou une correction est prêt.",
-    emailNotifications: "Notifications par e-mail",
-    enabled: "Activées",
-    disabled: "Désactivées",
-    notificationsToggleAria: "Activer les notifications par e-mail",
-    notificationsOn: "Notifications activées.",
-    notificationsOff: "Notifications désactivées.",
     subscriptionTitle: "Abonnement",
     subscriptionDescription: "État de ton compte EduIA.",
     planPremium: "EduIA Premium",
@@ -827,7 +818,7 @@ export const fr = {
   aide: {
     metaTitle: "Aide & support",
     metaDescription:
-      "Trouve de l'aide sur EduIA : FAQ, contact par e-mail ou WhatsApp, et signalement de problème.",
+      "Trouve de l'aide sur EduIA : FAQ, contact de l'équipe et signalement de problème.",
     title: "Aide & support",
     pageIntro:
       "Nous sommes là pour t'aider. Trouve rapidement une réponse ou contacte-nous.",
@@ -838,8 +829,6 @@ export const fr = {
     topicContactTitle: "Nous contacter",
     topicContactDesc:
       "Envoie-nous un message et nous te répondrons rapidement.",
-    topicWhatsappTitle: "WhatsApp",
-    topicWhatsappDesc: "Discute directement avec notre équipe sur WhatsApp.",
     reportTitle: "Signaler un problème",
     reportTileDesc: "Rencontre un bug ou un souci ? Signale-le ici.",
     reportDialogBody: "Décris ce qui ne va pas, l'équipe EduIA s'en occupe.",

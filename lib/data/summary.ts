@@ -4,8 +4,6 @@ import { db, schema } from "@/lib/db";
 import type { CourseDocument, CourseSummary, SummaryRequest } from "@/types";
 import { getCurrentUser } from "./user";
 
-export { summaryToPlainText } from "@/lib/summary/plain-text";
-
 /**
  * Valeurs par défaut du panneau « Importer ton cours » pour un compte vierge.
  * `subject` / `level` / `chapter` / `theme` restent vides : l'élève saisit

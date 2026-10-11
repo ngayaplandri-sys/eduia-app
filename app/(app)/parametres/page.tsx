@@ -5,7 +5,6 @@ import { getDictionary } from "@/lib/i18n/server";
 import { ProfileSettings } from "@/components/parametres/profile-settings";
 import { PreferencesSettings } from "@/components/parametres/preferences-settings";
 import { SecuritySettings } from "@/components/parametres/security-settings";
-import { NotificationsSettings } from "@/components/parametres/notifications-settings";
 import { SubscriptionSettings } from "@/components/parametres/subscription-settings";
 import { SignOutCard } from "@/components/parametres/sign-out-card";
 
@@ -33,7 +32,6 @@ export default async function ParametresPage() {
         <ProfileSettings user={user} />
         <PreferencesSettings />
         <SecuritySettings />
-        <NotificationsSettings />
         <SubscriptionSettings plan={user.plan} />
         <SignOutCard />
       </div>

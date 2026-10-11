@@ -13,7 +13,3 @@ export const ROLE_LABELS: Record<UserRole, string> = {
 export function roleLabel(role: string | null | undefined): string {
   return role === "admin" ? ROLE_LABELS.admin : ROLE_LABELS.student;
 }
-
-export function isAdminRole(role: string | null | undefined): boolean {
-  return role === "admin";
-}

@@ -1,71 +1,93 @@
 # EduIA
 
-Assistant d'apprentissage basé sur l'IA. Ce dépôt contient la **V1** : le
-**tableau de bord** reproduit fidèlement à partir de la maquette, responsive et
-accessible, avec la coquille de navigation complète. Les autres routes existent
-en placeholder (« bientôt disponible »).
+Assistant d'apprentissage basé sur l'IA pour les élèves : on importe son cours,
+EduIA le résume, en tire une épreuve, puis corrige la copie de l'élève.
+
+**En ligne : https://eduai.fyi**
+
+## Fonctionnalités
+
+- **Résumer un cours** : PDF, Word, texte ou photos (y compris scanner avec la caméra),
+  résumé structuré ancré strictement sur le document fourni, export PDF.
+- **Générer une épreuve** à partir d'un cours, avec barème, export PDF.
+- **Corriger une épreuve** : épreuves EduIA (corrigé fidèle au cours d'origine)
+  ou épreuves externes (PDF/photos de plusieurs pages), barème respecté ou proposé,
+  « Points à retenir », export PDF.
+- **Assistant IA**, **Documents**, **Historique**, **recherche** globale.
+- **Crédits et abonnements** : Gratuit, Premium et Premium+, plus des recharges de crédits.
+  Le paiement passe par **Maketou** (Orange Money, MTN Mobile Money, carte) et les crédits
+  sont décomptés côté serveur.
+- Interface **français / anglais**, thème **clair / sombre / système**, responsive.
+- **Espace admin** (`/admin`) : utilisateurs, abonnements, paiements, usage IA,
+  signalements, statistiques.
 
 ## Stack
 
-- **Next.js 16** (App Router, React 19, Turbopack)
-- **TypeScript** strict
-- **Tailwind CSS v4** — design system centralisé dans [`app/globals.css`](app/globals.css) (`@theme`)
-- **Radix UI** (menus, dialogue, tiroir mobile) · **lucide-react** (icônes)
-- **class-variance-authority** + **tailwind-merge** pour les variantes de composants
-- Données : mock typé dans [`lib/data/`](lib/data) (bascule 1-pour-1 vers une vraie API plus tard)
+- **Next.js 16** (App Router, React 19, Turbopack), **TypeScript** strict
+- **Tailwind CSS v4**, design system centralisé dans [`app/globals.css`](app/globals.css) (`@theme`)
+- **Neon** (PostgreSQL) + **Drizzle ORM**, migrations dans [`drizzle/`](drizzle)
+- **Better Auth** (e-mail/mot de passe, Google en option)
+- **OpenAI** (Responses API + Structured Outputs) pour les outils IA et la lecture des photos
+- **pdfmake** pour les exports PDF, **Radix UI** + **lucide-react** pour l'interface
+- Hébergement **Vercel** : chaque push sur `main` déploie la production
 
-## Démarrer
+## Démarrer en local
 
 ```bash
 npm install
-npm run dev          # http://localhost:3000  → redirige vers /dashboard
+cp .env.example .env.local   # puis renseigner les valeurs (voir le fichier)
+npm run db:migrate           # crée/met à jour les tables
+npm run dev                  # http://localhost:3000
 ```
 
-Autres scripts :
+Node.js 20.9 ou plus récent est requis (la production tourne sous Node 24).
 
-```bash
-npm run build        # build de production
-npm run start        # serveur de production
-npm run lint         # ESLint
-npm run typecheck    # tsc --noEmit
-```
+> ⚠️ Si `.env.local` pointe sur la base de **production**, tout ce que vous
+> faites en local s'y retrouve. `npm run db:reset` et `npm run db:seed` **effacent
+> toute la base** : ils sont bloqués sauf confirmation explicite
+> (`EDUIA_CONFIRM_DB_WIPE=oui`), à réserver à une base de développement séparée.
 
-Node.js ≥ 20.9 requis.
+## Scripts
+
+| Commande | Rôle |
+|---|---|
+| `npm run dev` / `build` / `start` | développement, build et serveur de production |
+| `npm run lint` / `typecheck` | ESLint, `tsc --noEmit` |
+| `npm run db:generate` / `db:migrate` | générer puis appliquer les migrations Drizzle |
+| `npm run db:verify` | vérifier l'état de la base |
+| `npm run db:studio` | explorer la base (Drizzle Studio) |
+| `npm run set-admin -- email@exemple.com [--revoke]` | donner/retirer le rôle admin |
+| `npm run db:reset` / `db:seed` | **destructifs**, verrouillés (voir ci-dessus) |
 
 ## Structure
 
 ```
 app/
-  layout.tsx                 Root layout (police Plus Jakarta Sans, métadonnées)
-  page.tsx                   redirige vers /dashboard
-  globals.css                Design system (tokens @theme)
-  (app)/
-    layout.tsx               Coquille : sidebar + header + main
-    dashboard/               Tableau de bord (page complète + loading + error)
-    resumer|generer|corriger|documents|historique|parametres|aide|premium/
-                             Pages secondaires (placeholder ComingSoon)
-  not-found.tsx
-components/
-  ui/          Primitives (button, badge, card, avatar, dialog, sheet, dropdown-menu, skeleton)
-  layout/      Sidebar, header, navigation, tiroir mobile, carte Premium
-  dashboard/   Hero, cartes d'action, tableau/liste d'activité
-  search/ notifications/ user/ feedback/ common/
+  (app)/        Espace élève : dashboard, resumer, generer, corriger, documents,
+                historique, assistant, premium, parametres, aide
+  (auth)/       Connexion, inscription
+  admin/        Espace administrateur (rôle admin vérifié côté serveur)
+  api/          Routes IA, crédits, recherche, paiement Maketou, Better Auth
+  billing/      Page de retour après paiement
+components/     Composants par fonctionnalité + primitives `ui/`
 lib/
-  navigation.ts   Source de vérité de la navigation + titres de page
-  config/site.ts  Constantes du site
-  utils/          cn(), formatage des dates
-  data/           Accès aux données (mock en V1)
-types/            Modèles de domaine (User, ActivityItem…)
-public/           Illustration hero (SVG inline dans le composant), avatar
+  ai/           Prompts, schémas et appels OpenAI (serveur uniquement)
+  data/         Accès aux données (toutes les requêtes filtrées par utilisateur)
+  maketou/      Client et catalogue de paiement
+  db/           Schéma Drizzle et client Neon
+  i18n/         Dictionnaires FR/EN typés
+  config/       Constantes (site, crédits, support, niveaux…)
+drizzle/        Migrations SQL
+docs/           Guides d'exploitation
+scripts/        Outils base de données (migration, admin…)
 ```
 
-## Design system
+## Configuration et sécurité
 
-Toutes les valeurs visuelles (couleurs, typographie, rayons, ombres, dimensions
-de la coquille) sont définies **une seule fois** dans `app/globals.css` sous
-`@theme` et consommées via les utilitaires Tailwind (`bg-primary-600`,
-`text-ink-500`, `rounded-2xl`, `shadow-card`, `w-sidebar`…). Aucune couleur en dur
-dans les composants.
-
-Voir le plan d'implémentation complet pour les phases suivantes (Supabase,
-fonctionnalités IA, Premium, tests).
+- Toutes les variables sont listées (sans valeur) dans [`.env.example`](.env.example).
+  Les vraies valeurs vont dans `.env.local` (local) et dans Vercel (production),
+  **jamais dans git**.
+- Les clés OpenAI, Maketou, base de données et Better Auth ne sont lues que côté
+  serveur (`server-only`). Aucun secret n'est exposé au navigateur.
+- Paiement : voir [docs/PAIEMENT-MAKETOU.md](docs/PAIEMENT-MAKETOU.md) (mise en service,
+  tâche planifiée, contrôle de configuration, premier paiement réel).

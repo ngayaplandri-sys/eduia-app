@@ -483,7 +483,10 @@ function buildContent(
             margin: [0, 0, 0, 3],
           },
           {
-            ul: exam.generalInstructions,
+            // Copie : pdfmake réécrit les éléments de liste EN PLACE (chaînes →
+            // objets `{ text, _margin, … }`). Passer le tableau de l'épreuve
+            // affichée le corromprait, et React planterait au rendu suivant.
+            ul: [...exam.generalInstructions],
             fontSize: 9.5,
             lineHeight: 1.25,
             color: BODY_TEXT,

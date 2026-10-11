@@ -14,6 +14,3 @@ export const SCHOOL_LEVELS = [
 ] as const;
 
 export type SchoolLevel = (typeof SCHOOL_LEVELS)[number];
-
-/** Niveau retenu par défaut dans les sélecteurs et les données de démonstration. */
-export const DEFAULT_SCHOOL_LEVEL: SchoolLevel = "Terminale";

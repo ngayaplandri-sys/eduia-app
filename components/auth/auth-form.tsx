@@ -19,6 +19,25 @@ interface AuthError {
   message?: string;
 }
 
+/**
+ * Destination après connexion (`?next=`), limitée aux chemins internes :
+ * sans ce filtre, un lien `…/login?next=https://site-pirate` renverrait
+ * l'élève connecté vers un site externe (redirection ouverte → hameçonnage).
+ * `//hôte`, `/\hôte` et les caractères de contrôle (tabulation, retour à la
+ * ligne, que le navigateur supprime : `/\t/hôte` → `//hôte`) sont refusés.
+ */
+function safeNextPath(next: string | null): string {
+  if (
+    !next ||
+    !next.startsWith("/") ||
+    next.startsWith("//") ||
+    /[\\\u0000-\u001f\u007f]/.test(next)
+  ) {
+    return "/dashboard";
+  }
+  return next;
+}
+
 function translateError(
   error: AuthError,
   isSignup: boolean,
@@ -51,7 +70,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const { toast } = useToast();
   const t = dict.auth;
   const isSignup = mode === "signup";
-  const nextUrl = searchParams.get("next") || "/dashboard";
+  const nextUrl = safeNextPath(searchParams.get("next"));
 
   const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");

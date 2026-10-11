@@ -295,32 +295,6 @@
   }
 }
 
-/* Dégradé de la bannière hero — composition radiale mono-teinte violette
-   (jamais de bascule vers le bleu : c'est la signature "dégradé IA" que ce
-   design system évite délibérément) + grain léger pour casser le plat/stérile
-   d'un aplat vectoriel uniforme. Turbulence SVG encodée en data-URI, aucune
-   dépendance/asset supplémentaire. */
-@utility bg-hero-gradient {
-  background-image:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
-    radial-gradient(120% 140% at 100% 0%, color-mix(in oklab, var(--color-primary-200) 60%, transparent) 0%, transparent 60%),
-    radial-gradient(110% 130% at 0% 100%, color-mix(in oklab, var(--color-primary-100) 75%, transparent) 0%, transparent 55%),
-    linear-gradient(180deg, #f8f6fc 0%, #f1ecf9 100%);
-  background-blend-mode: overlay, normal, normal, normal;
-  background-repeat: repeat, no-repeat, no-repeat, no-repeat;
-}
-
-/* Variante sombre du dégradé hero (le seul aplat non tokenisé de l'app). */
-:root[data-theme="dark"] .bg-hero-gradient {
-  background-image:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
-    radial-gradient(120% 140% at 100% 0%, color-mix(in oklab, var(--color-primary-300) 35%, transparent) 0%, transparent 60%),
-    radial-gradient(110% 130% at 0% 100%, color-mix(in oklab, var(--color-primary-200) 45%, transparent) 0%, transparent 55%),
-    linear-gradient(180deg, #191521 0%, #15131c 100%);
-  background-blend-mode: overlay, normal, normal, normal;
-  background-repeat: repeat, no-repeat, no-repeat, no-repeat;
-}
-
 /* Variante "resserrée" du dégradé de scène — bannière dashboard : même ADN
    (grain + radial mono-violet, jamais de bleu) mais plus contenue/personnelle
    que le hero landing (rayons plus courts, foyer resserré en haut). */

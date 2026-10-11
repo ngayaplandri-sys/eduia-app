@@ -5,10 +5,13 @@ EduIA encaisse les abonnements Premium / Premium+ et les recharges de crédits v
 étapes ci-dessous, qui se font dans les tableaux de bord (Maketou, Vercel,
 cron-job.org). Aucune modification de code n'est nécessaire.
 
-> **État :** intégration testée de bout en bout contre une imitation locale de
+> **État (11/10/2026) :** site en production sur **https://eduai.fyi**.
+> Étapes 1, 2, 3 et 5 faites (produits, clé API, variables Vercel, contrôle
+> `check` tout vert). **Restent : l'étape 4 (cron-job.org) et l'étape 6
+> (premier vrai paiement)**, à faire avant d'ouvrir le paiement aux élèves.
+> L'intégration a été testée de bout en bout contre une imitation locale de
 > l'API Maketou (achat, double clic, onglet fermé, échec, paiement tardif,
-> quotas, pannes, sécurité). **Le premier vrai paiement n'a pas encore été
-> fait** : faites l'étape 6 avant d'ouvrir le paiement aux élèves.
+> quotas, pannes, sécurité).
 
 ## Comment ça marche
 
@@ -70,7 +73,7 @@ commentaire** :
 |---|---|
 | `MAKETOU_API_KEY` | la clé API (étape 2) |
 | `MAKETOU_PRODUCT_PREMIUM` … `MAKETOU_PRODUCT_RECHARGE_1000` | les 6 identifiants (étape 1) |
-| `APP_URL` | l'adresse publique exacte, ex. `https://eduia.app` (https, sans `/` final, le même domaine que celui où les élèves se connectent) |
+| `APP_URL` | l'adresse publique exacte, `https://eduai.fyi` (https, sans `/` final, le même domaine que celui où les élèves se connectent — aussi dans `BETTER_AUTH_URL` et `NEXT_PUBLIC_SITE_URL`) |
 | `CRON_SECRET` | une longue chaîne aléatoire (ex. générée par un gestionnaire de mots de passe, 32+ caractères) — la valeur seule, **sans** le mot `Bearer` |
 | `MAKETOU_PRODUCT_TEST`, `MAKETOU_TEST_PRICE` | facultatif (offre de test) |
 
@@ -88,7 +91,9 @@ Le plan Vercel Hobby n'autorise qu'une tâche par jour (déjà configurée dans
 **cron-job.org** (gratuit) :
 
 1. Créer un compte sur https://cron-job.org → **Create cronjob**.
-2. URL : `https://VOTRE-DOMAINE/api/billing/maketou/reconcile`
+2. URL : `https://eduai.fyi/api/billing/maketou/reconcile` — exactement ce domaine :
+   `eduia-app.vercel.app` et `www.eduai.fyi` redirigent vers lui, et une
+   redirection ferait perdre l'en-tête `Authorization` (réponse 401).
 3. Planification : **toutes les 5 minutes**.
 4. Onglet **Advanced** → **Headers** → ajouter :
    `Authorization` = `Bearer VOTRE_CRON_SECRET` (le mot `Bearer`, une espace, puis
@@ -98,10 +103,10 @@ Le plan Vercel Hobby n'autorise qu'une tâche par jour (déjà configurée dans
 
 ## 5. Contrôle de la configuration
 
-Ouvrir dans un terminal (remplacer le domaine et le secret) :
+Ouvrir dans un terminal (remplacer le secret) :
 
 ```bash
-curl -H "Authorization: Bearer VOTRE_CRON_SECRET" https://VOTRE-DOMAINE/api/billing/maketou/check
+curl -H "Authorization: Bearer VOTRE_CRON_SECRET" https://eduai.fyi/api/billing/maketou/check
 ```
 
 La réponse liste chaque contrôle avec `"ok": true` ou `false` : variables, clé

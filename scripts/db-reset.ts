@@ -1,6 +1,6 @@
 import "./_env";
 import { neon } from "@neondatabase/serverless";
-import { requireDbUrl } from "./_env";
+import { requireDbUrl, requireDbWipeConfirmation } from "./_env";
 
 /**
  * Vide entièrement la base Neon (schéma `public` + journal des migrations).
@@ -10,6 +10,7 @@ import { requireDbUrl } from "./_env";
 const sql = neon(requireDbUrl());
 
 async function main() {
+  requireDbWipeConfirmation("db:reset");
   await sql`drop schema if exists drizzle cascade`;
   await sql`drop schema if exists public cascade`;
   await sql`create schema public`;

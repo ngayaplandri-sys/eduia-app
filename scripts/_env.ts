@@ -19,3 +19,23 @@ export function requireDbUrl(preferUnpooled = false): string {
   }
   return url;
 }
+
+/**
+ * Verrou des scripts qui EFFACENT la base (`db:reset`, `db:seed`).
+ * `.env.local` pointe sur la même base Neon que le site en production :
+ * lancés par erreur, ces scripts supprimeraient tous les comptes et données
+ * des élèves. Ils ne s'exécutent donc qu'avec une confirmation explicite :
+ *   EDUIA_CONFIRM_DB_WIPE=oui npm run db:seed
+ * (à réserver à une base de développement séparée).
+ */
+export function requireDbWipeConfirmation(script: string): void {
+  if (process.env.EDUIA_CONFIRM_DB_WIPE !== "oui") {
+    console.error(
+      `⛔ ${script} efface TOUTES les données de la base configurée dans .env.local\n` +
+        "   (actuellement partagée avec le site en production). Opération bloquée.\n" +
+        "   Si la base visée est bien une base de développement jetable, relancer avec :\n" +
+        `   EDUIA_CONFIRM_DB_WIPE=oui npm run ${script}`,
+    );
+    process.exit(1);
+  }
+}
