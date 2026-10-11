@@ -28,7 +28,7 @@ Règles :
   Renouveler avant la fin ajoute un mois à la suite, sans rien perdre.
 - Passer de Premium à Premium+ est possible à tout moment (nouveau mois, crédits
   ajoutés). Revenir à Premium n'est possible qu'à la fin du Premium+.
-- Maketou prélève **8 % de frais** sur les paniers créés via l'API.
+- Maketou prélève **5 % de frais** sur chaque paiement (taux de votre compte).
 - Pas de remboursement par l'API : un remboursement se fait dans le tableau de
   bord Maketou (puis retirer l'accès à la main si besoin).
 
@@ -71,7 +71,7 @@ commentaire** :
 | `MAKETOU_API_KEY` | la clé API (étape 2) |
 | `MAKETOU_PRODUCT_PREMIUM` … `MAKETOU_PRODUCT_RECHARGE_1000` | les 6 identifiants (étape 1) |
 | `APP_URL` | l'adresse publique exacte, ex. `https://eduia.app` (https, sans `/` final, le même domaine que celui où les élèves se connectent) |
-| `CRON_SECRET` | une longue chaîne aléatoire (ex. générée par un gestionnaire de mots de passe, 32+ caractères) |
+| `CRON_SECRET` | une longue chaîne aléatoire (ex. générée par un gestionnaire de mots de passe, 32+ caractères) — la valeur seule, **sans** le mot `Bearer` |
 | `MAKETOU_PRODUCT_TEST`, `MAKETOU_TEST_PRICE` | facultatif (offre de test) |
 
 Puis **redéployer** (Deployments → ⋯ → Redeploy) pour que les variables soient

@@ -27,7 +27,7 @@
     "drizzle-orm": "^0.45.2",
     "lucide-react": "^1.38.0",
     "mammoth": "^1.12.2",
-    "next": "16.3.4",
+    "next": "16.3.8",
     "openai": "^7.10.0",
     "pdfmake": "^0.2.23",
     "react": "19.2.8",
@@ -46,7 +46,7 @@
     "dotenv": "^17.4.2",
     "drizzle-kit": "^0.31.10",
     "eslint": "^9",
-    "eslint-config-next": "16.3.4",
+    "eslint-config-next": "16.3.8",
     "tailwindcss": "^4",
     "tsx": "^4.23.13",
     "typescript": "^5"

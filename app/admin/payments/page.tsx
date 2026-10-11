@@ -75,7 +75,7 @@ export default async function AdminPaymentsPage() {
           icon={Banknote}
           label="Total encaissé"
           value={formatFcfa(data.totalCollectedFcfa)}
-          hint="Paiements Maketou confirmés (avant frais de 8 %)"
+          hint="Paiements Maketou confirmés (avant frais Maketou de 5 %)"
           tone={data.totalCollectedFcfa > 0 ? "success" : "neutral"}
         />
         <AdminStatCard

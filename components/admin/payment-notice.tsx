@@ -37,7 +37,7 @@ export function PaymentNotice({ className }: { className?: string }) {
         <span className="font-semibold">Paiements Maketou actifs.</span>{" "}
         Chaque commande <code>maketou</code> a été confirmée par Maketou
         (panier payé) avant d&apos;accorder les crédits ; sa référence est
-        l&apos;identifiant du panier. Maketou prélève 8 % de frais sur les
+        l&apos;identifiant du panier. Maketou prélève 5 % de frais sur les
         paniers créés via l&apos;API. Les commandes <code>simulated</code> sont
         antérieures et n&apos;ont rien encaissé.
       </p>

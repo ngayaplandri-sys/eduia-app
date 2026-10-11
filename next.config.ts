@@ -48,6 +48,8 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   devIndicators: false,
+  // Ne pas annoncer le framework/version aux scanners (`X-Powered-By: Next.js`).
+  poweredByHeader: false,
   // `mammoth` (extraction du texte des .docx) fait des `require` Node.js : on le
   // laisse hors du bundle serveur pour éviter les avertissements de résolution.
   serverExternalPackages: ["mammoth"],
