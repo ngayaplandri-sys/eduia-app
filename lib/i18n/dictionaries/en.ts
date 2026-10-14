@@ -840,9 +840,9 @@ export const en: Dictionary = {
     contactEmailCopied: (email: string) =>
       `Address copied: ${email}. Paste it into your mail app if it did not open automatically.`,
     contactHoursTitle: "Support hours",
-    responseTime: "We usually reply within 24 h (business days).",
-    supportDays: "Monday - Friday",
-    supportHours: "8:00 am - 6:00 pm",
+    responseTime: "We usually reply within 24 h, 7 days a week.",
+    supportDays: "Monday - Sunday",
+    supportHours: "8:00 am - 7:00 pm",
     timezoneLabel: "Yaoundé time (GMT+1)",
     prefilledMessage: "Hello, I need help with EduIA.",
     contactSubject: "EduIA Help Request",
