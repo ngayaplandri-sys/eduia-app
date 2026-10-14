@@ -990,6 +990,9 @@ export const fr = {
     errSignupFailed: "La création du compte a échoué. Réessaie.",
     errLoginFailed: "La connexion a échoué. Réessaie.",
     errGoogleFailed: "La connexion avec Google a échoué. Réessaie.",
+    errGoogleCancelled: "Connexion avec Google annulée. Tu peux réessayer ou utiliser ton e-mail.",
+    errGoogleAccountNotLinked:
+      "Un compte EduIA existe déjà avec cette adresse e-mail. Connecte-toi avec ton e-mail et ton mot de passe.",
     continueWithGoogle: "Continuer avec Google",
     googlePending: "Redirection vers Google…",
     orDivider: "ou",

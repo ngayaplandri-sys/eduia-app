@@ -7,6 +7,18 @@ import { isEmailConfigured, sendEmail } from "./email/send";
 import { resetPasswordEmail } from "./email/reset-password-email";
 
 /**
+ * `true` si la connexion Google est configurée (`GOOGLE_CLIENT_ID` +
+ * `GOOGLE_CLIENT_SECRET`). Sans eux, Better Auth n'a pas de fournisseur
+ * `google` (réponse 404 `PROVIDER_NOT_FOUND`) : les pages de connexion et
+ * d'inscription masquent alors le bouton « Continuer avec Google ».
+ */
+export function isGoogleAuthConfigured(): boolean {
+  return Boolean(
+    process.env.GOOGLE_CLIENT_ID?.trim() && process.env.GOOGLE_CLIENT_SECRET?.trim(),
+  );
+}
+
+/**
  * Instance Better Auth (auto-hébergée) — e-mail / mot de passe.
  *
  * Les tables `user` / `session` / `account` / `verification` vivent dans notre
@@ -64,15 +76,30 @@ export const auth = betterAuth({
   },
   // Connexion Google : activée seulement si les identifiants OAuth sont fournis
   // (voir .env.example) — évite de casser le démarrage tant qu'ils ne sont pas
-  // configurés. Un compte Google inconnu est créé automatiquement à la première
-  // connexion (comportement standard Better Auth), puis passe par le même
-  // contrôle d'onboarding que les comptes e-mail/mot de passe.
-  ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+  // configurés. Adresse de retour à autoriser chez Google :
+  // `${BETTER_AUTH_URL}/api/auth/callback/google`.
+  // Un compte Google inconnu est créé automatiquement à la première connexion
+  // (comportement standard Better Auth), puis passe par le même contrôle
+  // d'onboarding que les comptes e-mail/mot de passe. Un compte e-mail/mot de
+  // passe existant n'est JAMAIS rattaché d'office à Google tant que son adresse
+  // n'a pas été vérifiée (`requireLocalEmailVerified`, défaut Better Auth rendu
+  // explicite) : sinon quelqu'un pourrait créer un compte avec l'adresse d'un
+  // autre, attendre que le vrai propriétaire se connecte avec Google, et garder
+  // l'accès par mot de passe. Ce cas renvoie `?error=account_not_linked`.
+  ...(isGoogleAuthConfigured()
     ? {
         socialProviders: {
           google: {
-            clientId: process.env.GOOGLE_CLIENT_ID,
-            clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+            clientId: process.env.GOOGLE_CLIENT_ID!.trim(),
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET!.trim(),
+            // Toujours proposer le choix du compte Google (appareils partagés).
+            prompt: "select_account" as const,
+          },
+        },
+        account: {
+          accountLinking: {
+            enabled: true,
+            requireLocalEmailVerified: true,
           },
         },
       }

@@ -64,13 +64,30 @@ function translateError(
   }
 }
 
+/**
+ * Message affiché au retour d'un échec Google. Better Auth ajoute son propre
+ * code à `errorCallbackURL` (`/login?error=google&error=<code>`) :
+ *  - `access_denied`      : l'élève a annulé sur l'écran de Google ;
+ *  - `account_not_linked` : un compte e-mail/mot de passe (adresse non
+ *    vérifiée) existe déjà — jamais rattaché d'office, voir `lib/auth.ts`.
+ */
+function googleErrorMessage(codes: string[], t: Dictionary["auth"]): string | null {
+  if (!codes.includes("google")) return null;
+  if (codes.includes("access_denied")) return t.errGoogleCancelled;
+  if (codes.includes("account_not_linked")) return t.errGoogleAccountNotLinked;
+  return t.errGoogleFailed;
+}
+
 export function AuthForm({
   mode,
   passwordResetEnabled = false,
+  googleEnabled = false,
 }: {
   mode: "login" | "signup";
   /** `true` si l'envoi d'e-mails est configuré (lien « Mot de passe oublié » actif). */
   passwordResetEnabled?: boolean;
+  /** `true` si la connexion Google est configurée côté serveur (bouton affiché). */
+  googleEnabled?: boolean;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -93,7 +110,7 @@ export function AuthForm({
   // `errorCallbackURL` ci-dessous), qui reperd l'état du composant : l'erreur
   // se lit donc depuis l'URL dès le premier rendu plutôt que via un effet.
   const [error, setError] = React.useState<string | null>(() =>
-    searchParams.get("error") === "google" ? t.errGoogleFailed : null,
+    googleErrorMessage(searchParams.getAll("error"), t),
   );
   const [pending, setPending] = React.useState(false);
   const [pendingGoogle, setPendingGoogle] = React.useState(false);
@@ -292,29 +309,33 @@ export function AuthForm({
         </Button>
       </form>
 
-      <div className="my-4 flex items-center gap-3" aria-hidden>
-        <span className="h-px flex-1 bg-line-soft" />
-        <span className="text-meta font-medium uppercase tracking-wide text-ink-400">
-          {t.orDivider}
-        </span>
-        <span className="h-px flex-1 bg-line-soft" />
-      </div>
+      {googleEnabled ? (
+        <>
+          <div className="my-4 flex items-center gap-3" aria-hidden>
+            <span className="h-px flex-1 bg-line-soft" />
+            <span className="text-meta font-medium uppercase tracking-wide text-ink-400">
+              {t.orDivider}
+            </span>
+            <span className="h-px flex-1 bg-line-soft" />
+          </div>
 
-      <Button
-        type="button"
-        variant="outline"
-        size="md"
-        block
-        onClick={() => void signInWithGoogle()}
-        disabled={pendingGoogle || pending}
-      >
-        {pendingGoogle ? (
-          <LoaderCircle className="size-4 animate-spin" aria-hidden />
-        ) : (
-          <GoogleIcon className="size-[1.05rem]" aria-hidden />
-        )}
-        {pendingGoogle ? t.googlePending : t.continueWithGoogle}
-      </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="md"
+            block
+            onClick={() => void signInWithGoogle()}
+            disabled={pendingGoogle || pending}
+          >
+            {pendingGoogle ? (
+              <LoaderCircle className="size-4 animate-spin" aria-hidden />
+            ) : (
+              <GoogleIcon className="size-[1.05rem]" aria-hidden />
+            )}
+            {pendingGoogle ? t.googlePending : t.continueWithGoogle}
+          </Button>
+        </>
+      ) : null}
 
       <p className="mt-5 text-center text-sm text-ink-500">
         {isSignup ? t.haveAccount : t.noAccount}

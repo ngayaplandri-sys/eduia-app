@@ -966,6 +966,9 @@ export const en: Dictionary = {
     errSignupFailed: "Account creation failed. Please try again.",
     errLoginFailed: "Sign-in failed. Please try again.",
     errGoogleFailed: "Sign-in with Google failed. Please try again.",
+    errGoogleCancelled: "Google sign-in was cancelled. You can try again or use your email.",
+    errGoogleAccountNotLinked:
+      "An EduIA account already exists with this email address. Sign in with your email and password.",
     continueWithGoogle: "Continue with Google",
     googlePending: "Redirecting to Google…",
     orDivider: "or",
