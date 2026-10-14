@@ -5,6 +5,7 @@ import {
   MAKETOU_TEST_CREDITS,
   MAKETOU_TEST_ITEM_KEY,
   findMaketouItem,
+  retiredGrantForKey,
   type MaketouItem,
 } from "./catalog";
 import { isWellFormedApiKey } from "./client";
@@ -105,10 +106,13 @@ export function resolvePurchasableItem(
   return productDocumentId ? { ...item, productDocumentId } : null;
 }
 
-/** Ce qu'accorde une offre déjà payée (y compris l'offre de test, même désactivée depuis). */
+/**
+ * Ce qu'accorde une offre déjà payée : offre en vente, ancienne offre retirée
+ * (panier ouvert avant le retrait) ou offre de test, même désactivée depuis.
+ */
 export function grantForItemKey(key: string): MaketouItem["grant"] | null {
   if (key === MAKETOU_TEST_ITEM_KEY) return { kind: "test", credits: MAKETOU_TEST_CREDITS };
-  return findMaketouItem(key)?.grant ?? null;
+  return findMaketouItem(key)?.grant ?? retiredGrantForKey(key);
 }
 
 /**

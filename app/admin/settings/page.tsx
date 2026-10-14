@@ -64,19 +64,19 @@ export default async function AdminSettingsPage() {
           Aucune clé n&apos;est exposée dans cette interface.
         </SettingRow>
 
-        <SettingRow icon={CreditCard} title="Forfaits & crédits">
-          Premium :{" "}
+        <SettingRow icon={CreditCard} title="Offres & crédits">
+          Gratuit :{" "}
+          <span className="font-semibold text-ink-700">
+            {formatFcfa(PLAN_CREDITS.free.priceFcfa)} — {PLAN_CREDITS.free.signupGrant} crédits à l&apos;inscription
+          </span>
+          . Premium :{" "}
           <span className="font-semibold text-ink-700">
             {formatFcfa(PLAN_CREDITS.premium.priceFcfa)} / mois — {PLAN_CREDITS.premium.monthly} crédits
           </span>
-          . Premium+ :{" "}
-          <span className="font-semibold text-ink-700">
-            {formatFcfa(PLAN_CREDITS.premium_plus.priceFcfa)} / mois — {PLAN_CREDITS.premium_plus.monthly} crédits
-          </span>
-          . Le paiement est actuellement <strong>simulé</strong> (validation
-          immédiate, aucun encaissement réel) — les commandes sont
-          enregistrées dans <code>credit_orders</code>, prête à recevoir un
-          vrai fournisseur de paiement sans changement de schéma.
+          . Paiement réel via Maketou (<code>maketou_checkouts</code>, commandes
+          dans <code>credit_orders</code>). Premium+ et les recharges de
+          crédits ne sont plus vendus depuis le 15/10/2026 ; leur historique
+          est conservé.
         </SettingRow>
 
         <SettingRow icon={InfinityIcon} title="Crédits illimités pour les admins">

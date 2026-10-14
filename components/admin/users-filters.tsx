@@ -58,7 +58,7 @@ export function UsersFilters() {
         <option value="">Tous les plans</option>
         <option value="free">Gratuit</option>
         <option value="premium">Premium</option>
-        <option value="premium_plus">Premium+</option>
+        <option value="premium_plus">Premium+ (ancienne offre)</option>
       </Select>
 
       <Select

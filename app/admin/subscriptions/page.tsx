@@ -83,9 +83,9 @@ export default async function AdminSubscriptionsPage() {
         />
         <AdminStatCard
           icon={Crown}
-          label="Comptes Premium / Premium+"
+          label="Comptes Premium"
           value={formatCompactNumber(data.premiumCount)}
-          hint={`${formatFcfa(PLAN_CREDITS.premium.priceFcfa)} — ${formatFcfa(PLAN_CREDITS.premium_plus.priceFcfa)} / mois`}
+          hint={`${formatFcfa(PLAN_CREDITS.premium.priceFcfa)} / mois`}
           tone="warning"
         />
         <AdminStatCard

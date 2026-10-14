@@ -1,7 +1,8 @@
 # Paiement Maketou — mise en service
 
-EduIA encaisse les abonnements Premium / Premium+ et les recharges de crédits via
-**Maketou** (Mobile Money et carte). Tout le code est en place ; les étapes
+EduIA ne propose que **deux offres** : **Gratuit** (0 FCFA, 20 crédits à
+l'inscription) et **Premium** (**2 500 FCFA par mois**, 500 crédits). Premium
+est encaissé via **Maketou** (Mobile Money et carte). Tout le code est en place ; les étapes
 ci-dessous se font dans les tableaux de bord (Maketou, Vercel). Aucune
 modification de code n'est nécessaire.
 
@@ -30,30 +31,26 @@ Règles :
   crédits). À la fin du mois payé, le compte repasse au palier gratuit (les
   crédits d'abonnement expirent, les crédits de recharge sont conservés).
   Renouveler avant la fin ajoute un mois à la suite, sans rien perdre.
-- Passer de Premium à Premium+ est possible à tout moment (nouveau mois, crédits
-  ajoutés). Revenir à Premium n'est possible qu'à la fin du Premium+.
+- Premium+ (4 000 FCFA) et les recharges de crédits ont été **retirés de la vente
+  le 15/10/2026** (voir « Anciennes offres retirées » plus bas).
 - Maketou prélève **5 % de frais** sur chaque paiement (taux de votre compte).
 - Pas de remboursement par l'API : un remboursement se fait dans le tableau de
   bord Maketou (puis retirer l'accès à la main si besoin).
 
 ## 1. Créer les produits sur Maketou
 
-Sur **app.maketou.com**, dans la boutique qui encaissera les paiements, créer
-**6 produits à prix fixe**, en **XAF**, puis **publier** chacun :
+Sur **app.maketou.com**, dans la boutique qui encaissera les paiements, **un
+seul produit** à prix fixe, en **XAF**, **publié** :
 
 | Produit | Prix (XAF) | Variable d'environnement |
 |---|---|---|
 | EduIA Premium — 1 mois | 2 500 | `MAKETOU_PRODUCT_PREMIUM` |
-| EduIA Premium+ — 1 mois | 4 000 | `MAKETOU_PRODUCT_PREMIUM_PLUS` |
-| Recharge 100 crédits | 500 | `MAKETOU_PRODUCT_RECHARGE_100` |
-| Recharge 250 crédits | 1 000 | `MAKETOU_PRODUCT_RECHARGE_250` |
-| Recharge 500 crédits | 1 800 | `MAKETOU_PRODUCT_RECHARGE_500` |
-| Recharge 1 000 crédits | 3 000 | `MAKETOU_PRODUCT_RECHARGE_1000` |
 
-Les prix doivent être **exactement** ceux-ci (ce sont ceux affichés dans EduIA).
-Si vous changez un prix dans `lib/config/credits.ts`, changez-le aussi chez Maketou.
+Le prix doit être **exactement** 2 500 (celui affiché dans EduIA et enregistré
+à chaque achat). Si vous changez le prix dans `lib/config/credits.ts`,
+changez-le aussi chez Maketou.
 
-Pour chaque produit : **Partager** → copier l'**Identifiant public du produit**.
+**Partager** → copier l'**Identifiant public du produit**.
 
 Facultatif — **offre de test** (admins uniquement) : un 7ᵉ produit à petit prix
 (ex. 100 XAF) → `MAKETOU_PRODUCT_TEST` et `MAKETOU_TEST_PRICE=100`. Il apparaît
@@ -73,7 +70,7 @@ commentaire** :
 | Variable | Valeur |
 |---|---|
 | `MAKETOU_API_KEY` | la clé API (étape 2) |
-| `MAKETOU_PRODUCT_PREMIUM` … `MAKETOU_PRODUCT_RECHARGE_1000` | les 6 identifiants (étape 1) |
+| `MAKETOU_PRODUCT_PREMIUM` | l'identifiant du produit Premium (étape 1) |
 | `APP_URL` | l'adresse publique exacte, `https://eduai.fyi` (https, sans `/` final, le même domaine que celui où les élèves se connectent — aussi dans `BETTER_AUTH_URL` et `NEXT_PUBLIC_SITE_URL`) |
 | `CRON_SECRET` | une longue chaîne aléatoire (ex. générée par un gestionnaire de mots de passe, 32+ caractères) — la valeur seule, **sans** le mot `Bearer` |
 | `MAKETOU_PRODUCT_TEST`, `MAKETOU_TEST_PRICE` | facultatif (offre de test) |
@@ -82,8 +79,8 @@ Puis **redéployer** (Deployments → ⋯ → Redeploy) pour que les variables s
 prises en compte. La migration de base de données `0008_maketou_payments` est déjà
 appliquée à la base Neon actuelle ; sur une nouvelle base : `npm run db:migrate`.
 
-Une offre dont le produit n'est pas renseigné reste affichée avec un bouton
-désactivé « Paiement bientôt disponible ».
+Si le produit n'est pas renseigné, l'offre Premium reste affichée avec un
+bouton désactivé « Paiement bientôt disponible ».
 
 ## 4. Vérification automatique des paiements (déjà en place)
 
@@ -128,8 +125,8 @@ dans les 26 dernières heures).
 
 Il n'existe pas de bac à sable Maketou : chaque paiement est réel.
 
-1. Avec un compte admin, sur la page Premium, utiliser l'**offre de test** (ou
-   la plus petite recharge, 500 XAF).
+1. Avec un compte admin, sur la page Premium, utiliser l'**offre de test** si
+   elle est configurée, sinon l'offre Premium (2 500 XAF).
 2. Sur la page Maketou, vérifier que **le montant affiché est exactement le bon**
    et qu'il n'est pas modifiable.
 3. Payer, revenir sur EduIA : la page doit afficher « Paiement confirmé — accès
@@ -140,6 +137,23 @@ Il n'existe pas de bac à sable Maketou : chaque paiement est réel.
    apparaissent (vérification au retour dans l'app).
 6. Dans l'espace admin → **Paiements**, les commandes apparaissent avec le
    fournisseur `maketou` et l'identifiant du panier en référence.
+
+## Anciennes offres retirées (15/10/2026)
+
+Premium+ (4 000 XAF) et les 4 recharges (500, 1 000, 1 800 et 3 000 XAF) ne
+sont plus proposées ni achetables : le serveur refuse leur achat (`400
+UNKNOWN_ITEM`), même par une requête directe à l'API.
+
+- **Chez Maketou** : dépublier (sans supprimer) les 5 anciens produits
+  « EduIA Premium+ — 1 mois » et « Recharge … crédits », pour qu'ils ne
+  puissent plus être payés depuis la boutique.
+- **Sur Vercel** : les variables `MAKETOU_PRODUCT_PREMIUM_PLUS` et
+  `MAKETOU_PRODUCT_RECHARGE_*` ne sont plus lues ; elles peuvent être
+  supprimées.
+- Un panier **ouvert avant le retrait** et payé ensuite est quand même honoré
+  (EduIA accorde exactement ce qui a été acheté, au prix payé). Un compte encore
+  en Premium+ le garde jusqu'à son échéance, puis peut passer à Premium.
+- Les anciennes commandes et l'historique de paiement sont conservés tels quels.
 
 ## En cas de problème
 

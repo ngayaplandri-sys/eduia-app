@@ -1,19 +1,17 @@
 import type { Metadata } from "next";
-import { Crown, FlaskConical, Gift, Rocket, ShieldCheck } from "lucide-react";
+import { Crown, FlaskConical, Gift, ShieldCheck } from "lucide-react";
 import { Breadcrumb } from "@/components/common/breadcrumb";
 import { PremiumHero } from "@/components/premium/premium-hero";
 import { PlanCard, type PlanFeature } from "@/components/premium/plan-card";
 import { MaketouPayButton } from "@/components/billing/maketou-pay-button";
 import { PaymentMethodChips } from "@/components/billing/payment-method-chips";
-import { RechargeSection } from "@/components/premium/recharge-section";
 import { ComparisonTable } from "@/components/premium/comparison-table";
 import { requireUser } from "@/lib/data/user";
 import { getCreditWallet } from "@/lib/data/credits";
 import { purchasableItemKeys } from "@/lib/maketou/config";
-import { MAKETOU_TEST_ITEM_KEY, MAKETOU_TEST_CREDITS, planItemKey } from "@/lib/maketou/catalog";
+import { MAKETOU_TEST_ITEM_KEY, MAKETOU_TEST_CREDITS, PREMIUM_ITEM_KEY } from "@/lib/maketou/catalog";
 import { formatShortDate } from "@/lib/utils/format";
 import { getLocale } from "@/lib/i18n/server";
-import type { SubscriptionPlanId } from "@/types";
 import { PREMIUM_COMPARISON_ROWS } from "@/lib/config/premium";
 import { PLAN_CREDITS } from "@/lib/config/credits";
 import { formatFcfa } from "@/lib/admin/constants";
@@ -43,14 +41,14 @@ export default async function PremiumPage() {
   );
 
   /**
-   * Pied d'une carte de palier payant : palier actuel → échéance + « Renouveler
-   * (+1 mois) » ; palier inférieur pendant un Premium+ actif → indisponible
-   * jusqu'à l'échéance ; sinon → « Payer avec Maketou ».
+   * Pied de la carte Premium : Premium actif → échéance + « Renouveler
+   * (+1 mois) » ; ancien Premium+ encore actif (offre retirée) → Premium
+   * disponible à son échéance, sans rien résilier ; sinon → « Payer avec Maketou ».
    */
-  const paidPlanFooter = (plan: SubscriptionPlanId) => {
-    const itemKey = planItemKey(plan);
+  const premiumFooter = () => {
+    const itemKey = PREMIUM_ITEM_KEY;
     const available = purchasable.includes(itemKey);
-    if (user.plan === plan) {
+    if (user.plan === "premium") {
       return (
         <div className="space-y-2.5">
           {currentPlanBadge}
@@ -63,7 +61,7 @@ export default async function PremiumPage() {
         </div>
       );
     }
-    if (plan === "premium" && user.plan === "premium_plus") {
+    if (user.plan === "premium_plus") {
       return (
         <div className="rounded-lg bg-canvas px-3 py-2.5 text-center text-fine font-medium text-ink-500">
           {b.downgradeLocked}
@@ -90,15 +88,6 @@ export default async function PremiumPage() {
     { label: row("Historique complet"), included: true },
   ];
 
-  const premiumPlusFeatures: PlanFeature[] = [
-    { label: t.creditsPerMonth(PLAN_CREDITS.premium_plus.monthly), included: true },
-    { label: row("Résumer mes cours"), included: true },
-    { label: row("Générer une épreuve"), included: true },
-    { label: row("Corriger une épreuve"), included: true },
-    { label: row("Assistance IA"), included: true },
-    { label: row("Historique complet"), included: true },
-  ];
-
   return (
     <div className="space-y-6">
       <Breadcrumb
@@ -110,7 +99,7 @@ export default async function PremiumPage() {
 
       <PremiumHero plan={user.plan} />
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3 lg:gap-6">
+      <div className="mx-auto grid w-full max-w-4xl grid-cols-1 gap-5 md:grid-cols-2 lg:gap-6">
         <PlanCard
           icon={Gift}
           title={t.planFreeTitle}
@@ -137,17 +126,7 @@ export default async function PremiumPage() {
           badge={t.planPremiumBadge}
           highlighted
           features={premiumFeatures}
-          footer={paidPlanFooter("premium")}
-        />
-
-        <PlanCard
-          icon={Rocket}
-          title={t.planPremiumPlusTitle}
-          description={t.planPremiumPlusDesc}
-          price={formatFcfa(PLAN_CREDITS.premium_plus.priceFcfa)}
-          period={t.pricePeriod}
-          features={premiumPlusFeatures}
-          footer={paidPlanFooter("premium_plus")}
+          footer={premiumFooter()}
         />
       </div>
 
@@ -160,8 +139,6 @@ export default async function PremiumPage() {
         <PaymentMethodChips cardLabel={b.cardLabel} />
       </div>
       <p className="-mt-3 text-meta text-ink-400">{b.noAutoRenew}</p>
-
-      <RechargeSection purchasable={purchasable} />
 
       {purchasable.includes(MAKETOU_TEST_ITEM_KEY) && Number.isInteger(testPrice) ? (
         <div className="flex flex-col gap-3 rounded-xl border border-dashed border-warning-200 bg-warning-50/50 p-4 sm:flex-row sm:items-center sm:justify-between">

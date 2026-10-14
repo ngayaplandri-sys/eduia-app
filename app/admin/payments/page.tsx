@@ -12,6 +12,8 @@ import type { AdminPaymentRow } from "@/types";
 
 export const metadata: Metadata = { title: "Paiements" };
 
+// Premium+ et recharges : anciennes offres retirées de la vente (15/10/2026),
+// libellés conservés pour lire l'historique des commandes.
 const KIND_LABEL: Record<string, string> = {
   subscription_premium: "Abonnement Premium",
   subscription_premium_plus: "Abonnement Premium+",

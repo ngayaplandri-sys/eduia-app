@@ -16,15 +16,14 @@ export function ComparisonTable({ rows }: { rows: ComparisonRow[] }) {
         <CardTitle>{t.comparisonTitle}</CardTitle>
       </CardHeader>
 
-      {/* Desktop / tablette : tableau 4 colonnes. */}
+      {/* Desktop / tablette : tableau 3 colonnes. */}
       <div className="hidden overflow-x-auto sm:block">
-        <table className="w-full min-w-[36rem] border-collapse text-sm">
+        <table className="w-full min-w-[30rem] border-collapse text-sm">
           <thead>
             <tr className="border-b border-line-soft text-left text-badge font-semibold tracking-wide text-ink-400 uppercase">
               <th className="py-3 pr-4">{t.colFeature}</th>
               <th className="px-4 py-3">{t.colFree}</th>
-              <th className="px-4 py-3 text-primary-700">{t.colPremium}</th>
-              <th className="py-3 pl-4 text-primary-700">{t.colPremiumPlus}</th>
+              <th className="py-3 pl-4 text-primary-700">{t.colPremium}</th>
             </tr>
           </thead>
           <tbody>
@@ -43,16 +42,10 @@ export function ComparisonTable({ rows }: { rows: ComparisonRow[] }) {
                     {tr(row.free)}
                   </span>
                 </td>
-                <td className="px-4 py-3.5">
-                  <span className="inline-flex items-center gap-1.5 font-semibold text-ink-900">
-                    <Check className="size-4 shrink-0 text-primary-600" aria-hidden />
-                    {tr(row.premium)}
-                  </span>
-                </td>
                 <td className="py-3.5 pl-4">
                   <span className="inline-flex items-center gap-1.5 font-semibold text-ink-900">
                     <Check className="size-4 shrink-0 text-primary-600" aria-hidden />
-                    {tr(row.premiumPlus)}
+                    {tr(row.premium)}
                   </span>
                 </td>
               </tr>
@@ -85,15 +78,6 @@ export function ComparisonTable({ rows }: { rows: ComparisonRow[] }) {
               <span className="inline-flex items-center gap-1.5 font-semibold text-ink-900">
                 <Check className="size-3.5 shrink-0 text-primary-600" aria-hidden />
                 {tr(row.premium)}
-              </span>
-            </div>
-            <div className="mt-1.5 flex items-center justify-between gap-3 text-fine">
-              <span className="font-semibold text-primary-700">
-                {t.colPremiumPlus}
-              </span>
-              <span className="inline-flex items-center gap-1.5 font-semibold text-ink-900">
-                <Check className="size-3.5 shrink-0 text-primary-600" aria-hidden />
-                {tr(row.premiumPlus)}
               </span>
             </div>
           </div>

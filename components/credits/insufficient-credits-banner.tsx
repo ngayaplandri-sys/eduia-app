@@ -9,8 +9,8 @@ import { useI18n } from "@/lib/i18n/client";
 /**
  * Bandeau « crédits insuffisants » — distinct de `InlineErrorBanner` (qui n'a
  * pas d'emplacement pour des boutons d'action) : affiché quand une route IA
- * renvoie `code: "INSUFFICIENT_CREDITS"`, avec des raccourcis directs vers
- * l'abonnement et la recharge de crédits sur `/premium`.
+ * renvoie `code: "INSUFFICIENT_CREDITS"`, avec un raccourci direct vers
+ * l'offre Premium sur `/premium` (seule offre payante).
  */
 export function InsufficientCreditsBanner({
   message,
@@ -43,12 +43,6 @@ export function InsufficientCreditsBanner({
           className={cn(buttonVariants({ variant: "primary", size: "sm" }))}
         >
           {t.upgradeCta}
-        </Link>
-        <Link
-          href="/premium#recharge"
-          className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-        >
-          {t.rechargeCta}
         </Link>
       </div>
     </div>

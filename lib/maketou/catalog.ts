@@ -1,9 +1,14 @@
-import { PLAN_CREDITS, RECHARGE_PACKAGES } from "@/lib/config/credits";
+import {
+  PLAN_CREDITS,
+  RETIRED_PLAN_CREDITS,
+  RETIRED_RECHARGE_PACKAGES,
+} from "@/lib/config/credits";
 import type { RechargePackageId, SubscriptionPlanId } from "@/types";
 
 /**
  * Catalogue des offres vendues via Maketou — dérivé des prix réels de l'app
- * (`PLAN_CREDITS`, `RECHARGE_PACKAGES`), jamais de la requête du client.
+ * (`PLAN_CREDITS`), jamais de la requête du client. Une seule offre payante :
+ * Premium, 2 500 FCFA pour un mois.
  *
  * Un produit Maketou à PRIX FIXE par offre (choix validé avec le
  * propriétaire) : Maketou facture le prix du tableau de bord, on n'envoie
@@ -37,37 +42,46 @@ export const MAKETOU_TEST_ITEM_KEY = "test_offer";
 /** Crédits de recharge accordés par l'offre de test. */
 export const MAKETOU_TEST_CREDITS = 10;
 
+export const PREMIUM_ITEM_KEY = "plan_premium";
+
+/** Offres EN VENTE — la seule liste que le serveur accepte à l'achat. */
 export const MAKETOU_ITEMS: readonly MaketouItem[] = [
   {
-    key: "plan_premium",
+    key: PREMIUM_ITEM_KEY,
     envVar: "MAKETOU_PRODUCT_PREMIUM",
     price: PLAN_CREDITS.premium.priceFcfa,
     grant: { kind: "plan", plan: "premium", credits: PLAN_CREDITS.premium.monthly },
   },
-  {
-    key: "plan_premium_plus",
-    envVar: "MAKETOU_PRODUCT_PREMIUM_PLUS",
-    price: PLAN_CREDITS.premium_plus.priceFcfa,
-    grant: {
-      kind: "plan",
-      plan: "premium_plus",
-      credits: PLAN_CREDITS.premium_plus.monthly,
-    },
-  },
-  ...RECHARGE_PACKAGES.map((pkg) => ({
-    key: pkg.id,
-    envVar: `MAKETOU_PRODUCT_${pkg.id.toUpperCase()}`,
-    price: pkg.priceFcfa,
-    grant: { kind: "recharge" as const, packageId: pkg.id, credits: pkg.credits },
-  })),
 ];
 
-export function planItemKey(plan: SubscriptionPlanId): string {
-  return plan === "premium_plus" ? "plan_premium_plus" : "plan_premium";
-}
+/**
+ * Anciennes offres RETIRÉES de la vente (Premium+, recharges de crédits) :
+ * jamais achetables (absentes de `MAKETOU_ITEMS`, refusées en 400
+ * `UNKNOWN_ITEM`). Servent seulement à accorder ce qu'un panier ouvert avant
+ * le retrait a réellement acheté, s'il est payé plus tard.
+ */
+const RETIRED_GRANTS: Readonly<Record<string, MaketouGrant>> = {
+  plan_premium_plus: {
+    kind: "plan",
+    plan: "premium_plus" satisfies SubscriptionPlanId,
+    credits: RETIRED_PLAN_CREDITS.premium_plus.monthly,
+  },
+  ...Object.fromEntries(
+    RETIRED_RECHARGE_PACKAGES.map((pkg) => [
+      pkg.id,
+      { kind: "recharge" as const, packageId: pkg.id, credits: pkg.credits },
+    ]),
+  ),
+};
 
+/** Offre en vente (et seulement en vente) correspondant à une clé. */
 export function findMaketouItem(key: string): MaketouItem | null {
   return MAKETOU_ITEMS.find((item) => item.key === key) ?? null;
+}
+
+/** Ce qu'accorde une ancienne offre retirée, pour un panier déjà ouvert. */
+export function retiredGrantForKey(key: string): MaketouGrant | null {
+  return Object.hasOwn(RETIRED_GRANTS, key) ? RETIRED_GRANTS[key] : null;
 }
 
 /** Codes d'erreur stables renvoyés par les routes Maketou, traduits par l'UI. */

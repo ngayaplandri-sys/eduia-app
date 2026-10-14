@@ -2,7 +2,7 @@ import "server-only";
 import { eq, sql } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
 import { isPaidPlan } from "@/lib/utils/plan";
-import { CREDIT_COSTS, PLAN_CREDITS } from "@/lib/config/credits";
+import { CREDIT_COSTS, planMonthlyCredits } from "@/lib/config/credits";
 import type {
   CreditBucket,
   CreditDebitResult,
@@ -43,9 +43,7 @@ export type DbTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 type Executor = DbClient | DbTransaction;
 
 function monthlyAmountFor(plan: UserPlan): number {
-  return plan === "premium" || plan === "premium_plus"
-    ? PLAN_CREDITS[plan].monthly
-    : 0;
+  return planMonthlyCredits(plan);
 }
 
 async function writeLedgerEntry(

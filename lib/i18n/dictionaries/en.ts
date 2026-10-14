@@ -742,7 +742,7 @@ export const en: Dictionary = {
   premium: {
     metaTitle: "Premium",
     metaDescription:
-      "Choose your EduIA plan: free signup credits, or one month of subscription paid by Mobile Money or card, with no automatic charge.",
+      "Two EduIA plans: Free (credits offered at signup) or Premium at 2,500 FCFA per month, paid by Mobile Money or card, with no automatic charge.",
     heroBadgeFree: "Free tier",
     heroBadgePremium: "Premium account",
     heroBadgePremiumPlus: "Premium+ account",
@@ -755,22 +755,20 @@ export const en: Dictionary = {
     heroTitlePremiumPlusAccent: "1,000 credits",
     heroTitlePremiumPlusAfter: " every month",
     heroBodyFree:
-      "Your free account gives you 20 credits at signup to try every tool. Upgrade to a paid plan for 500 or 1,000 credits a month.",
+      "Your free account gives you 20 credits at signup to try every tool. Upgrade to Premium for 500 credits every month, at 2,500 FCFA per month.",
     heroBodyPremium:
       "500 credits for each month of subscription: summarise, generate, grade and chat with the AI Assistant without counting.",
     heroBodyPremiumPlus:
       "1,000 credits for each month of subscription — the most generous plan, for heavy use.",
-    comparisonTitle: "Free vs Premium vs Premium+",
+    comparisonTitle: "Free vs Premium",
     colFeature: "Feature",
     colFree: "Free",
     colPremium: "Premium",
-    colPremiumPlus: "Premium+",
     planFreeTitle: "Free",
     planFreeDesc: "20 credits offered to discover EduIA.",
     planPremiumTitle: "Premium",
     planPremiumDesc: "500 credits every month.",
     planPremiumPlusTitle: "Premium+",
-    planPremiumPlusDesc: "1,000 credits every month.",
     planPremiumBadge: "Recommended",
     priceFree: "0 FCFA",
     currentPlan: "Your current plan",
@@ -788,7 +786,6 @@ export const en: Dictionary = {
       "10 crédits/copie": "10 credits/paper",
       "1 crédit/question": "1 credit/question",
       "500 crédits chaque mois": "500 credits every month",
-      "1 000 crédits chaque mois": "1,000 credits every month",
       "Non disponible": "Not available",
       "Incluse": "Included",
     } as Record<string, string>,
@@ -1333,16 +1330,6 @@ export const en: Dictionary = {
           "Full history",
         ],
       },
-      premiumPlus: {
-        name: "Premium+",
-        cta: "Upgrade to Premium+",
-        points: (credits: number) => [
-          `${credits} credits every month`,
-          "The most generous quota, for heavy use",
-          "AI assistant and document analysis",
-          "Full history",
-        ],
-      },
       costsHeading: "What each tool costs",
       costs: {
         resumer: "Course summary",
@@ -1358,11 +1345,9 @@ export const en: Dictionary = {
       points: {
         fcfa: "All prices are shown in FCFA.",
         noCard: "The free account needs no bank card.",
-        recharge: (price: string) => `Top up credits whenever you need, from ${price}.`,
+        premium: (price: string, credits: number) => `Premium: ${price} per month, ${credits} credits included.`,
         monthly: "One-month subscription, no automatic charge: renew whenever you want.",
       },
-      rechargesHeading: "Credit top-ups",
-      rechargeCta: "See top-ups",
       methodsHeading: "Accepted payment methods",
     },
     cta: {
@@ -1437,7 +1422,7 @@ export const en: Dictionary = {
   credits: {
     // AI route guard (insufficient credits).
     insufficientMessage:
-      "Insufficient credits. Recharge your credits or upgrade your plan to continue.",
+      "Insufficient credits. Upgrade to Premium (500 credits a month) or renew your subscription to continue.",
 
     signupCreditsLabel: (count: number) => `${count} credits offered at signup`,
 
@@ -1457,16 +1442,7 @@ export const en: Dictionary = {
 
     // "Insufficient credits" banner (action buttons).
     insufficientTitle: "Insufficient credits",
-    upgradeCta: "View plans",
-    rechargeCta: "Recharge credits",
-
-    // Recharge section (Premium page).
-    rechargeTitle: "Recharge credits",
-    rechargeSubtitle:
-      "Need more credits without changing plan? Buy a one-time pack.",
-    rechargeCreditsLabel: (count: number) => `${count} credits`,
-    rechargeBuy: "Buy",
-    alreadyOnPlan: "Your current plan",
+    upgradeCta: "See Premium",
   },
 
   billing: {
@@ -1481,7 +1457,7 @@ export const en: Dictionary = {
     noAutoRenew: "No automatic charge: each payment covers one month, renew whenever you want.",
     testOfferTitle: "Test offer (admin)",
     testOfferBody: (price: string, credits: number) =>
-      `Real payment of ${price} to check the integration → ${credits} recharge credits.`,
+      `Real payment of ${price} to check the integration → ${credits} credits.`,
     errorNotConfigured: "Payment isn't available yet. Try again later.",
     errorTooMany: "Too many payment attempts in a short time. Try again in an hour.",
     errorDowngrade: "You can choose Premium when your Premium+ subscription ends.",

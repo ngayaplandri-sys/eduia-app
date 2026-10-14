@@ -101,7 +101,7 @@ export default async function AdminStatsPage() {
       <div className="grid gap-5 lg:grid-cols-2">
         <AdminSection
           title="Répartition des plans"
-          description="Part des comptes gratuits, Premium et Premium+."
+          description="Part des comptes gratuits et Premium (Premium+ : ancienne offre, plus vendue)."
         >
           <Distribution
             rows={[
@@ -116,7 +116,7 @@ export default async function AdminStatsPage() {
                 tone: "bg-warning-500",
               },
               {
-                label: "Premium+",
+                label: "Premium+ (ancienne offre)",
                 value: stats.planSplit.premium_plus,
                 tone: "bg-primary-500",
               },

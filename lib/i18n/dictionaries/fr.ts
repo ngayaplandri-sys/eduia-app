@@ -762,7 +762,7 @@ export const fr = {
   premium: {
     metaTitle: "Premium",
     metaDescription:
-      "Choisis ton forfait EduIA : crédits gratuits à l'inscription, ou un mois d'abonnement payé par Mobile Money ou carte, sans prélèvement automatique.",
+      "Deux offres EduIA : Gratuit (crédits offerts à l'inscription) ou Premium à 2 500 FCFA par mois, payé par Mobile Money ou carte, sans prélèvement automatique.",
     heroBadgeFree: "Palier gratuit",
     heroBadgePremium: "Compte Premium",
     heroBadgePremiumPlus: "Compte Premium+",
@@ -775,22 +775,20 @@ export const fr = {
     heroTitlePremiumPlusAccent: "1 000 crédits",
     heroTitlePremiumPlusAfter: " chaque mois",
     heroBodyFree:
-      "Ton compte gratuit te donne 20 crédits à l'inscription pour tester tous les outils. Passe à un forfait payant pour 500 ou 1 000 crédits par mois.",
+      "Ton compte gratuit te donne 20 crédits à l'inscription pour tester tous les outils. Passe à Premium pour 500 crédits chaque mois, à 2 500 FCFA par mois.",
     heroBodyPremium:
       "500 crédits pour chaque mois d'abonnement : résume, génère, corrige et discute avec l'Assistant IA sans compter.",
     heroBodyPremiumPlus:
       "1 000 crédits pour chaque mois d'abonnement — le forfait le plus généreux, pour un usage intensif.",
-    comparisonTitle: "Gratuit vs Premium vs Premium+",
+    comparisonTitle: "Gratuit vs Premium",
     colFeature: "Fonctionnalité",
     colFree: "Gratuit",
     colPremium: "Premium",
-    colPremiumPlus: "Premium+",
     planFreeTitle: "Gratuit",
     planFreeDesc: "20 crédits offerts pour découvrir EduIA.",
     planPremiumTitle: "Premium",
     planPremiumDesc: "500 crédits chaque mois.",
     planPremiumPlusTitle: "Premium+",
-    planPremiumPlusDesc: "1 000 crédits chaque mois.",
     planPremiumBadge: "Recommandé",
     priceFree: "0 FCFA",
     currentPlan: "Ton offre actuelle",
@@ -808,7 +806,6 @@ export const fr = {
       "10 crédits/copie": "10 crédits/copie",
       "1 crédit/question": "1 crédit/question",
       "500 crédits chaque mois": "500 crédits chaque mois",
-      "1 000 crédits chaque mois": "1 000 crédits chaque mois",
       "Non disponible": "Non disponible",
       "Incluse": "Incluse",
     } as Record<string, string>,
@@ -1357,16 +1354,6 @@ export const fr = {
           "Historique complet",
         ],
       },
-      premiumPlus: {
-        name: "Premium+",
-        cta: "Passer au Premium+",
-        points: (credits: number) => [
-          `${credits} crédits chaque mois`,
-          "Le quota le plus généreux, pour un usage intensif",
-          "Assistant IA et analyse de documents",
-          "Historique complet",
-        ],
-      },
       costsHeading: "Ce que coûte chaque outil",
       costs: {
         resumer: "Résumé de cours",
@@ -1382,11 +1369,9 @@ export const fr = {
       points: {
         fcfa: "Tous les prix sont affichés en FCFA.",
         noCard: "Le compte gratuit ne demande aucune carte bancaire.",
-        recharge: (price: string) => `Recharges de crédits à la carte, dès ${price}.`,
+        premium: (price: string, credits: number) => `Premium : ${price} par mois, ${credits} crédits inclus.`,
         monthly: "Abonnement d'un mois, sans prélèvement automatique : tu renouvelles quand tu veux.",
       },
-      rechargesHeading: "Recharges de crédits",
-      rechargeCta: "Voir les recharges",
       methodsHeading: "Moyens de paiement acceptés",
     },
     cta: {
@@ -1463,7 +1448,7 @@ export const fr = {
   credits: {
     // Garde-fou des routes IA (crédits insuffisants).
     insufficientMessage:
-      "Crédits insuffisants. Rechargez vos crédits ou passez à un forfait supérieur pour continuer.",
+      "Crédits insuffisants. Passe à Premium (500 crédits par mois) ou renouvelle ton abonnement pour continuer.",
 
     signupCreditsLabel: (count: number) => `${count} crédits offerts à l'inscription`,
 
@@ -1484,16 +1469,7 @@ export const fr = {
 
     // Bandeau « crédits insuffisants » (boutons d'action).
     insufficientTitle: "Crédits insuffisants",
-    upgradeCta: "Voir les forfaits",
-    rechargeCta: "Recharger des crédits",
-
-    // Section recharge (page Premium).
-    rechargeTitle: "Recharger des crédits",
-    rechargeSubtitle:
-      "Besoin de plus de crédits sans changer de forfait ? Achète un pack ponctuel.",
-    rechargeCreditsLabel: (count: number) => `${count} crédits`,
-    rechargeBuy: "Acheter",
-    alreadyOnPlan: "Ton forfait actuel",
+    upgradeCta: "Voir l'offre Premium",
   },
 
   billing: {
@@ -1508,7 +1484,7 @@ export const fr = {
     noAutoRenew: "Pas de prélèvement automatique : chaque paiement couvre un mois, tu renouvelles quand tu veux.",
     testOfferTitle: "Offre de test (admin)",
     testOfferBody: (price: string, credits: number) =>
-      `Vrai paiement de ${price} pour vérifier l'intégration → ${credits} crédits de recharge.`,
+      `Vrai paiement de ${price} pour vérifier l'intégration → ${credits} crédits.`,
     errorNotConfigured: "Le paiement n'est pas encore disponible. Réessaie plus tard.",
     errorTooMany: "Trop de tentatives de paiement en peu de temps. Réessaie dans une heure.",
     errorDowngrade: "Tu pourras choisir Premium à la fin de ton abonnement Premium+.",

@@ -15,7 +15,7 @@ import {
 import { Reveal } from "@/components/motion/reveal";
 import { TiltSurface } from "@/components/motion/tilt-surface";
 import { cn } from "@/lib/utils/cn";
-import { CREDIT_COSTS, PLAN_CREDITS, RECHARGE_PACKAGES } from "@/lib/config/credits";
+import { CREDIT_COSTS, PLAN_CREDITS } from "@/lib/config/credits";
 import { formatFcfa } from "@/lib/admin/constants";
 import { getDictionary } from "@/lib/i18n/server";
 import { PaymentMethodChips } from "@/components/billing/payment-method-chips";
@@ -108,10 +108,10 @@ function PlanCard({ plan, recommendedLabel }: { plan: Plan; recommendedLabel: st
 }
 
 /**
- * Tarifs — offres et prix RÉELS du système de crédits (`lib/config/credits.ts`),
- * coût de chaque outil, recharges, puis le bloc « Paiement ». Les boutons
+ * Tarifs — les DEUX offres réelles (`lib/config/credits.ts`) : Gratuit et
+ * Premium, puis le coût de chaque outil et le bloc « Paiement ». Les boutons
  * mènent au flux existant : inscription pour un visiteur, page `/premium`
- * (abonnement et recharges) pour un membre connecté.
+ * pour un membre connecté.
  *
  * Moyens de paiement : uniquement ceux déclarés dans
  * `lib/config/payment-methods.ts` — ceux que propose réellement la page de
@@ -144,16 +144,6 @@ export async function LandingPricing({ isAuthenticated }: { isAuthenticated: boo
       href: isAuthenticated ? "/premium" : signup,
       featured: true,
     },
-    {
-      name: t.premiumPlus.name,
-      price: formatFcfa(PLAN_CREDITS.premium_plus.priceFcfa),
-      period: t.period,
-      credits: t.credits(PLAN_CREDITS.premium_plus.monthly),
-      cadence: t.creditsMonthly,
-      points: t.premiumPlus.points(PLAN_CREDITS.premium_plus.monthly),
-      cta: isAuthenticated ? t.choosePlan : t.premiumPlus.cta,
-      href: isAuthenticated ? "/premium" : signup,
-    },
   ];
 
   const costs = [
@@ -163,11 +153,13 @@ export async function LandingPricing({ isAuthenticated }: { isAuthenticated: boo
     { label: t.costs.assistant, cost: CREDIT_COSTS.assistant, icon: Bot, tone: "bg-info-100 text-info-700" },
   ];
 
-  const cheapestRecharge = Math.min(...RECHARGE_PACKAGES.map((pkg) => pkg.priceFcfa));
   const paymentPoints = [
     { icon: Coins, text: p.points.fcfa },
     { icon: Gift, text: p.points.noCard },
-    { icon: Zap, text: p.points.recharge(formatFcfa(cheapestRecharge)) },
+    {
+      icon: Zap,
+      text: p.points.premium(formatFcfa(PLAN_CREDITS.premium.priceFcfa), PLAN_CREDITS.premium.monthly),
+    },
     { icon: Repeat, text: p.points.monthly },
   ];
 
@@ -190,7 +182,7 @@ export async function LandingPricing({ isAuthenticated }: { isAuthenticated: boo
           align="center"
         />
 
-        <div className="mx-auto mt-14 grid max-w-6xl grid-cols-1 gap-6 lg:grid-cols-3 lg:items-stretch">
+        <div className="mx-auto mt-14 grid max-w-4xl grid-cols-1 gap-6 md:grid-cols-2 md:items-stretch">
           {plans.map((plan, i) => (
             <Reveal
               key={plan.name}
@@ -204,10 +196,10 @@ export async function LandingPricing({ isAuthenticated }: { isAuthenticated: boo
         </div>
 
         {/* Coût de chaque outil (valeurs réelles de CREDIT_COSTS). */}
-        <Reveal delayMs={120} className="mx-auto mt-10 max-w-6xl">
+        <Reveal delayMs={120} className="mx-auto mt-10 max-w-4xl">
           <div className="rounded-[1.5rem] bg-canvas p-5 ring-1 ring-line sm:p-6">
             <h3 className="text-fine font-bold text-ink-900">{t.costsHeading}</h3>
-            <ul className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <ul className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
               {costs.map((item) => {
                 const Icon = item.icon;
                 return (
@@ -225,58 +217,32 @@ export async function LandingPricing({ isAuthenticated }: { isAuthenticated: boo
         </Reveal>
 
         {/* ── Paiement ── */}
-        <div className="mx-auto mt-6 grid max-w-6xl grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
-          <Reveal variant="left" className="h-full">
-            <div className="h-full rounded-[1.5rem] bg-scene-auth p-7 text-white shadow-[var(--shadow-elevated)] sm:p-8">
-              <h3 className="font-display text-[1.75rem] font-medium leading-tight tracking-[-0.01em]">{p.heading}</h3>
-              <p className="mt-2 text-[0.95rem] text-white/70">{p.subtitle}</p>
-              <ul className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                {paymentPoints.map((point, i) => {
-                  const Icon = point.icon;
-                  return (
-                    <li key={i} className="flex items-start gap-3">
-                      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-white/12 ring-1 ring-white/15">
-                        <Icon className="size-4" aria-hidden />
-                      </span>
-                      <span className="pt-1.5 text-[0.92rem] leading-snug text-white/85">{point.text}</span>
-                    </li>
-                  );
-                })}
-              </ul>
-
-              {/* Moyens de paiement réellement proposés par la page Maketou. */}
-              <div className="mt-7 border-t border-white/10 pt-5">
-                <p className="text-fine font-semibold text-white/70">{p.methodsHeading}</p>
-                <PaymentMethodChips cardLabel={dict.billing.cardLabel} tone="dark" className="mt-3" />
-                <p className="mt-3 text-meta text-white/60">{dict.billing.secureLine}</p>
-              </div>
-            </div>
-          </Reveal>
-
-          <Reveal variant="right" delayMs={120} className="h-full">
-            <div className="flex h-full flex-col rounded-[1.5rem] bg-canvas p-7 ring-1 ring-line sm:p-8">
-              <h3 className="text-[1.1rem] font-bold text-ink-900">{p.rechargesHeading}</h3>
-              <ul className="mt-5 flex-1 space-y-2.5">
-                {RECHARGE_PACKAGES.map((pkg) => (
-                  <li key={pkg.id} className="flex items-center justify-between rounded-xl bg-surface px-4 py-3 ring-1 ring-line">
-                    <span className="flex items-center gap-2 text-fine font-semibold text-ink-800">
-                      <Coins className="size-4 text-primary-500" aria-hidden />
-                      {t.credits(pkg.credits)}
+        <Reveal className="mx-auto mt-6 max-w-4xl">
+          <div className="rounded-[1.5rem] bg-scene-auth p-7 text-white shadow-[var(--shadow-elevated)] sm:p-8">
+            <h3 className="font-display text-[1.75rem] font-medium leading-tight tracking-[-0.01em]">{p.heading}</h3>
+            <p className="mt-2 text-[0.95rem] text-white/70">{p.subtitle}</p>
+            <ul className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {paymentPoints.map((point, i) => {
+                const Icon = point.icon;
+                return (
+                  <li key={i} className="flex items-start gap-3">
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-white/12 ring-1 ring-white/15">
+                      <Icon className="size-4" aria-hidden />
                     </span>
-                    <span className="text-fine font-bold tabular-nums text-ink-900">{formatFcfa(pkg.priceFcfa)}</span>
+                    <span className="pt-1.5 text-[0.92rem] leading-snug text-white/85">{point.text}</span>
                   </li>
-                ))}
-              </ul>
-              <Link
-                href={isAuthenticated ? "/premium#recharge" : signup}
-                className={cn(ctaOutlineClass, "mt-6 w-full")}
-              >
-                {p.rechargeCta}
-                <ArrowRight className={ctaArrowClass} aria-hidden />
-              </Link>
+                );
+              })}
+            </ul>
+
+            {/* Moyens de paiement réellement proposés par la page Maketou. */}
+            <div className="mt-7 border-t border-white/10 pt-5">
+              <p className="text-fine font-semibold text-white/70">{p.methodsHeading}</p>
+              <PaymentMethodChips cardLabel={dict.billing.cardLabel} tone="dark" className="mt-3" />
+              <p className="mt-3 text-meta text-white/60">{dict.billing.secureLine}</p>
             </div>
-          </Reveal>
-        </div>
+          </div>
+        </Reveal>
       </div>
     </section>
   );

@@ -15,7 +15,7 @@ import { db, schema } from "@/lib/db";
 import { getCurrentUser } from "./user";
 import { DEMO_EMAIL } from "@/lib/admin/constants";
 import { purchasableItemKeys } from "@/lib/maketou/config";
-import { PLAN_CREDITS } from "@/lib/config/credits";
+import { PLAN_CREDITS, RETIRED_PLAN_CREDITS } from "@/lib/config/credits";
 import { estimateOpenAiCostUsd } from "@/lib/ai/pricing";
 import type {
   AdminActivityFeedData,
@@ -36,11 +36,11 @@ import type {
   UserPlan,
 } from "@/types";
 
-/** Prix mensuel FCFA d'un palier — 0 pour "free". */
+/** Prix mensuel FCFA d'un palier — 0 pour "free" ; Premium+ = ancien prix (offre retirée). */
 function planPriceFcfa(plan: UserPlan): number {
-  return plan === "premium" || plan === "premium_plus"
-    ? PLAN_CREDITS[plan].priceFcfa
-    : 0;
+  if (plan === "premium") return PLAN_CREDITS.premium.priceFcfa;
+  if (plan === "premium_plus") return RETIRED_PLAN_CREDITS.premium_plus.priceFcfa;
+  return 0;
 }
 
 /**
@@ -122,8 +122,8 @@ export async function getAdminOverviewStats(): Promise<AdminOverviewStats> {
     premiumUsers: premiumCount + premiumPlusCount,
     newUsers7d: n(recentRows[0]?.v),
     estimatedMonthlyRevenueFcfa:
-      premiumCount * PLAN_CREDITS.premium.priceFcfa +
-      premiumPlusCount * PLAN_CREDITS.premium_plus.priceFcfa,
+      premiumCount * planPriceFcfa("premium") +
+      premiumPlusCount * planPriceFcfa("premium_plus"),
     aiGenerations: n(generationRows[0]?.v),
     openAiTokens: n(tokenRows[0]?.v),
     pendingReports: n(pendingRows[0]?.v),
