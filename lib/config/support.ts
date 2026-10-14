@@ -13,5 +13,5 @@ export const supportConfig: {
   whatsappNumber: string | null;
 } = {
   email: "ngayaplandri@gmail.com",
-  whatsappNumber: null,
+  whatsappNumber: "905510038630",
 };
