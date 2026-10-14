@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import {
   Sheet,
@@ -14,7 +15,16 @@ import { useI18n } from "@/lib/i18n/client";
 import type { User } from "@/types";
 
 export function MobileNav({ user }: { user: User }) {
-  const [open, setOpen] = React.useState(false);
+  const pathname = usePathname();
+  // Le tiroir est « ouvert sur une page » : dès que la page change (lien du
+  // tiroir, bouton retour, redirection…), il se referme de lui-même. Les liens
+  // vers la page courante le ferment via `onNavigate`.
+  const [openOn, setOpenOn] = React.useState<string | null>(null);
+  const open = openOn === pathname;
+  const setOpen = React.useCallback(
+    (next: boolean) => setOpenOn(next ? pathname : null),
+    [pathname],
+  );
   const { dict } = useI18n();
   const t = dict.layout;
 

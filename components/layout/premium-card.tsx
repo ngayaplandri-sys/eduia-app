@@ -6,7 +6,14 @@ import { cn } from "@/lib/utils/cn";
 import { buttonVariants } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n/client";
 
-export function PremiumCard({ className }: { className?: string }) {
+export function PremiumCard({
+  className,
+  onNavigate,
+}: {
+  className?: string;
+  /** Tiroir mobile : le referme au clic (sinon il resterait ouvert sur la page Premium). */
+  onNavigate?: () => void;
+}) {
   const { dict } = useI18n();
   const t = dict.layout;
 
@@ -31,6 +38,7 @@ export function PremiumCard({ className }: { className?: string }) {
         </p>
         <Link
           href="/premium"
+          onClick={onNavigate}
           className={cn(
             buttonVariants({ variant: "primary", size: "sm", block: true }),
             "mt-3",

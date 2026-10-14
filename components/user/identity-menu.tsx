@@ -36,11 +36,14 @@ export function IdentityMenu({
   variant,
   align = "end",
   side = "bottom",
+  onNavigate,
 }: {
   user: User;
   variant: "compact" | "full";
   align?: "start" | "end";
   side?: "top" | "bottom";
+  /** Tiroir mobile : le referme quand un lien du menu est choisi. */
+  onNavigate?: () => void;
 }) {
   const router = useRouter();
   const { dict } = useI18n();
@@ -116,13 +119,13 @@ export function IdentityMenu({
         ) : null}
 
         <DropdownMenuItem asChild>
-          <Link href="/parametres">
+          <Link href="/parametres" onClick={onNavigate}>
             <Settings />
             {t.settings}
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <Link href="/premium">
+          <Link href="/premium" onClick={onNavigate}>
             <Crown />
             {t.goPremium}
           </Link>

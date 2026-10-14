@@ -35,8 +35,14 @@ export function SidebarInner({
       </div>
 
       <div className="shrink-0 space-y-3 px-4 pb-5 pt-2">
-        <PremiumCard />
-        <IdentityMenu user={user} variant="full" side="top" align="start" />
+        <PremiumCard onNavigate={onNavigate} />
+        <IdentityMenu
+          user={user}
+          variant="full"
+          side="top"
+          align="start"
+          onNavigate={onNavigate}
+        />
       </div>
     </div>
   );
