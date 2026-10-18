@@ -36,7 +36,8 @@ export const metadata: Metadata = {
   description: siteConfig.description,
   applicationName: siteConfig.name,
   authors: [{ name: siteConfig.name }],
-  icons: { icon: "/favicon.ico" },
+  // Icônes : fichiers app/favicon.ico, app/icon.png et app/apple-icon.png
+  // (conventions Next.js) ; image d'aperçu : app/opengraph-image.png.
   // Aperçu des liens partagés (WhatsApp, Facebook, LinkedIn…) ; les URL
   // relatives sont résolues sur `metadataBase` (domaine de production).
   openGraph: {
@@ -48,7 +49,7 @@ export const metadata: Metadata = {
     description: siteConfig.description,
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: `${siteConfig.name} · ${siteConfig.tagline}`,
     description: siteConfig.description,
   },

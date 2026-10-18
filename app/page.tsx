@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getCurrentUser } from "@/lib/data/user";
 import { siteConfig } from "@/lib/config/site";
+import { supportConfig } from "@/lib/config/support";
 import { LANDING_BOTTOM_SENTINEL, LANDING_TOP_SENTINEL } from "@/lib/config/marketing";
 import { LandingHeader } from "@/components/marketing/landing-header";
 import { LandingHero } from "@/components/marketing/landing-hero";
@@ -20,6 +21,40 @@ export const metadata: Metadata = {
   description: siteConfig.description,
   alternates: { canonical: "/" },
   robots: { index: true, follow: true },
+};
+
+/**
+ * Données structurées (schema.org) pour Google : nom officiel du site
+ * (« EduIA » plutôt que le domaine), logo et contact du support.
+ * Testable sur https://search.google.com/test/rich-results.
+ */
+const STRUCTURED_DATA = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": `${siteConfig.url}/#website`,
+      name: siteConfig.name,
+      alternateName: ["EduIA", "eduai.fyi"],
+      url: siteConfig.url,
+      inLanguage: ["fr", "en"],
+      publisher: { "@id": `${siteConfig.url}/#organization` },
+    },
+    {
+      "@type": "Organization",
+      "@id": `${siteConfig.url}/#organization`,
+      name: siteConfig.name,
+      url: siteConfig.url,
+      logo: `${siteConfig.url}/brand/eduia-icon-512.png`,
+      description: siteConfig.description,
+      contactPoint: {
+        "@type": "ContactPoint",
+        contactType: "customer support",
+        email: supportConfig.email,
+        availableLanguage: ["French", "English"],
+      },
+    },
+  ],
 };
 
 /** Sans JavaScript, aucun contenu ne doit rester masqué en attente de révélation. */
@@ -47,6 +82,12 @@ export default async function LandingPage() {
       <noscript>
         <style>{NO_JS_REVEAL_FALLBACK}</style>
       </noscript>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(STRUCTURED_DATA).replace(/</g, "\\u003c"),
+        }}
+      />
       <span
         id={LANDING_TOP_SENTINEL}
         aria-hidden
