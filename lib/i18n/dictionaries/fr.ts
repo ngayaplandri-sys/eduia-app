@@ -862,7 +862,7 @@ export const fr = {
     responseTime: "Nous répondons généralement sous 24 h, 7 jours sur 7.",
     supportDays: "Lundi - Dimanche",
     supportHours: "08h00 - 19h00",
-    timezoneLabel: "Heure de Yaoundé (GMT+1)",
+    timezoneLabel: "Heure de l'Afrique (GMT+1)",
     prefilledMessage: "Bonjour, j'ai besoin d'aide avec EduIA.",
     contactSubject: "Demande d'aide EduIA",
     faq: {

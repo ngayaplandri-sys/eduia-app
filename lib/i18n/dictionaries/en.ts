@@ -840,7 +840,7 @@ export const en: Dictionary = {
     responseTime: "We usually reply within 24 h, 7 days a week.",
     supportDays: "Monday - Sunday",
     supportHours: "8:00 am - 7:00 pm",
-    timezoneLabel: "Yaoundé time (GMT+1)",
+    timezoneLabel: "Africa time (GMT+1)",
     prefilledMessage: "Hello, I need help with EduIA.",
     contactSubject: "EduIA Help Request",
     faq: {
