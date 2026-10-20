@@ -22,6 +22,8 @@ import type {
   AdminActivityItem,
   AdminAiUsageByKind,
   AdminAiUsageData,
+  AdminCountriesData,
+  AdminCountryRow,
   AdminContentData,
   AdminContentItem,
   AdminOverviewStats,
@@ -136,8 +138,13 @@ export interface AdminUsersQuery {
   query?: string;
   plan?: UserPlan;
   role?: "student" | "admin";
+  /** Code ISO du pays (déclaré, à défaut détecté), ou `"unknown"`. */
+  country?: string;
   page?: number;
 }
+
+/** Pays retenu pour un élève : déclaré, à défaut détecté à l'onboarding. */
+const USER_COUNTRY = sql<string | null>`coalesce(${schema.onboarding.country}, ${schema.onboarding.detectedCountry})`;
 
 export async function getAdminUsers(params: AdminUsersQuery): Promise<{
   items: AdminUserListItem[];
@@ -162,6 +169,8 @@ export async function getAdminUsers(params: AdminUsersQuery): Promise<{
   }
   if (params.plan) filters.push(eq(schema.user.plan, params.plan));
   if (params.role) filters.push(eq(schema.user.role, params.role));
+  if (params.country === "unknown") filters.push(sql`${USER_COUNTRY} is null`);
+  else if (params.country) filters.push(sql`${USER_COUNTRY} = ${params.country}`);
 
   const where = and(...filters);
 
@@ -176,6 +185,7 @@ export async function getAdminUsers(params: AdminUsersQuery): Promise<{
         emailVerified: schema.user.emailVerified,
         createdAt: schema.user.createdAt,
         schoolLevel: schema.onboarding.schoolLevel,
+        country: USER_COUNTRY,
       })
       .from(schema.user)
       .leftJoin(
@@ -186,7 +196,11 @@ export async function getAdminUsers(params: AdminUsersQuery): Promise<{
       .orderBy(desc(schema.user.createdAt))
       .limit(PAGE_SIZE)
       .offset((page - 1) * PAGE_SIZE),
-    db.select({ v: count() }).from(schema.user).where(where),
+    db
+      .select({ v: count() })
+      .from(schema.user)
+      .leftJoin(schema.onboarding, eq(schema.onboarding.userId, schema.user.id))
+      .where(where),
   ]);
 
   const total = n(totalRows[0]?.v);
@@ -200,6 +214,7 @@ export async function getAdminUsers(params: AdminUsersQuery): Promise<{
       plan: (row.plan as UserPlan) ?? "free",
       emailVerified: row.emailVerified,
       schoolLevel: row.schoolLevel ?? null,
+      country: row.country ?? null,
       createdAt: row.createdAt.toISOString(),
       isDemo: false,
     })),
@@ -291,6 +306,8 @@ export async function getAdminUserDetail(
           goal: onb.goal,
           improveSubjects: onb.improveSubjects,
           learningStyle: onb.learningStyle,
+          country: onb.country ?? null,
+          detectedCountry: onb.detectedCountry ?? null,
           completedAt: onb.completedAt.toISOString(),
         }
       : null,
@@ -593,9 +610,15 @@ export async function getAdminPayments(): Promise<AdminPaymentsData> {
         paidAt: schema.creditOrders.createdAt,
         amountFcfa: schema.creditOrders.amountFcfa,
         creditsGranted: schema.creditOrders.creditsGranted,
+        country: sql<string | null>`coalesce(${schema.maketouCheckouts.country}, ${USER_COUNTRY})`,
       })
       .from(schema.creditOrders)
       .innerJoin(schema.user, eq(schema.creditOrders.userId, schema.user.id))
+      .leftJoin(
+        schema.maketouCheckouts,
+        eq(schema.maketouCheckouts.cartId, schema.creditOrders.paymentReference),
+      )
+      .leftJoin(schema.onboarding, eq(schema.onboarding.userId, schema.user.id))
       .where(NOT_DEMO)
       .orderBy(desc(schema.creditOrders.createdAt)),
     db
@@ -614,6 +637,7 @@ export async function getAdminPayments(): Promise<AdminPaymentsData> {
     paidAt: r.paidAt.toISOString(),
     amountFcfa: r.amountFcfa,
     creditsGranted: r.creditsGranted,
+    country: r.country ?? null,
   }));
 
   // Comptes payants sans aucune commande enregistrée (plan changé directement
@@ -634,6 +658,91 @@ export async function getAdminPayments(): Promise<AdminPaymentsData> {
     manualPremiumCount,
     paymentConnected: purchasableItemKeys({ isAdmin: false }).length > 0,
   };
+}
+
+// ───────────────────────────── Pays ─────────────────────────────
+
+/**
+ * Répartition par pays : élèves inscrits (pays déclaré, à défaut détecté),
+ * abonnés Premium en cours, paiements Maketou confirmés et montant encaissé
+ * (pays détecté au moment du paiement, à défaut celui de l'élève).
+ */
+export async function getAdminCountryStats(): Promise<AdminCountriesData> {
+  await assertAdmin();
+
+  const [userRows, paymentRows] = await Promise.all([
+    db.execute<{ code: string | null; users: number; premium: number }>(sql`
+      SELECT coalesce(o.country, o.detected_country) AS code,
+             count(*)::int AS users,
+             count(*) FILTER (
+               WHERE u.plan IN ('premium', 'premium_plus') AND s.current_period_end > now()
+             )::int AS premium
+      FROM "user" u
+      LEFT JOIN onboarding o ON o.user_id = u.id
+      LEFT JOIN subscriptions s ON s.user_id = u.id
+      WHERE u.email <> ${DEMO_EMAIL}
+      GROUP BY 1
+    `),
+    db.execute<{ code: string | null; payments: number; revenue: number }>(sql`
+      SELECT coalesce(c.country, o.country, o.detected_country) AS code,
+             count(*)::int AS payments,
+             coalesce(sum(c.amount), 0)::int AS revenue
+      FROM maketou_checkouts c
+      LEFT JOIN onboarding o ON o.user_id = c.owner_id
+      WHERE c.status = 'COMPLETED'
+      GROUP BY 1
+    `),
+  ]);
+
+  const byCode = new Map<string, AdminCountryRow>();
+  const row = (code: string | null) => {
+    const key = code ?? "";
+    let target = byCode.get(key);
+    if (!target) {
+      target = { code, users: 0, premiumActive: 0, payments: 0, revenueFcfa: 0 };
+      byCode.set(key, target);
+    }
+    return target;
+  };
+  for (const r of userRows.rows) {
+    const target = row(r.code);
+    target.users += n(r.users);
+    target.premiumActive += n(r.premium);
+  }
+  for (const r of paymentRows.rows) {
+    const target = row(r.code);
+    target.payments += n(r.payments);
+    target.revenueFcfa += n(r.revenue);
+  }
+
+  // Pays connus d'abord (par montant encaissé puis par élèves), « Inconnu » en dernier.
+  const rows = [...byCode.values()].sort(
+    (a, b) =>
+      (a.code === null ? 1 : 0) - (b.code === null ? 1 : 0) ||
+      b.revenueFcfa - a.revenueFcfa ||
+      b.users - a.users,
+  );
+  const totals = rows.reduce(
+    (sum, r) => ({
+      users: sum.users + r.users,
+      premiumActive: sum.premiumActive + r.premiumActive,
+      payments: sum.payments + r.payments,
+      revenueFcfa: sum.revenueFcfa + r.revenueFcfa,
+    }),
+    { users: 0, premiumActive: 0, payments: 0, revenueFcfa: 0 },
+  );
+  return { rows, totals };
+}
+
+/** Pays présents parmi les élèves (filtre de la liste des utilisateurs). */
+export async function getAdminUserCountries(): Promise<string[]> {
+  await assertAdmin();
+  const result = await db.execute<{ code: string }>(sql`
+    SELECT DISTINCT coalesce(o.country, o.detected_country) AS code
+    FROM "user" u JOIN onboarding o ON o.user_id = u.id
+    WHERE u.email <> ${DEMO_EMAIL} AND coalesce(o.country, o.detected_country) IS NOT NULL
+  `);
+  return result.rows.map((r) => r.code);
 }
 
 // ───────────────────────────── Statistiques ─────────────────────────────

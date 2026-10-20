@@ -1,3 +1,5 @@
+import { countryName } from "@/lib/config/countries";
+
 /**
  * E-mail du compte de démonstration utilisé pendant le développement.
  * Il est **exclu de toutes les statistiques et listes** de l'espace admin :
@@ -15,4 +17,9 @@ export function formatCompactNumber(value: number): string {
     notation: value >= 10_000 ? "compact" : "standard",
     maximumFractionDigits: 1,
   }).format(value);
+}
+
+/** Nom (FR) d'un pays dans l'espace admin — « Inconnu » si non renseigné. */
+export function adminCountryName(code: string | null | undefined): string {
+  return countryName(code, "fr", { unknown: "Inconnu", other: "Autre pays" });
 }

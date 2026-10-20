@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/data/user";
 import { hasCompletedOnboarding } from "@/lib/data/onboarding";
 import { getDictionary } from "@/lib/i18n/server";
 import { OnboardingFlow } from "@/components/onboarding/onboarding-flow";
+import { isDeclarableCountry } from "@/lib/config/countries";
+import { detectCountry } from "@/lib/http/geo";
 
 export async function generateMetadata(): Promise<Metadata> {
   const dict = await getDictionary();
@@ -18,5 +21,12 @@ export default async function OnboardingPage() {
     redirect("/dashboard");
   }
 
-  return <OnboardingFlow userName={user.name} />;
+  // Pays de connexion proposé par défaut — l'élève peut le changer.
+  const detected = detectCountry(await headers());
+  return (
+    <OnboardingFlow
+      userName={user.name}
+      suggestedCountry={isDeclarableCountry(detected) ? detected : ""}
+    />
+  );
 }

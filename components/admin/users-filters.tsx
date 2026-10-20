@@ -5,7 +5,12 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Search } from "lucide-react";
 import { Select } from "@/components/ui/select";
 
-export function UsersFilters() {
+export function UsersFilters({
+  countries = [],
+}: {
+  /** Pays présents parmi les élèves (code ISO + nom). */
+  countries?: { code: string; label: string }[];
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -70,6 +75,21 @@ export function UsersFilters() {
         <option value="">Tous les rôles</option>
         <option value="student">Élève</option>
         <option value="admin">Administrateur</option>
+      </Select>
+
+      <Select
+        aria-label="Filtrer par pays"
+        className="sm:w-44"
+        value={searchParams.get("country") ?? ""}
+        onChange={(event) => commit({ country: event.target.value })}
+      >
+        <option value="">Tous les pays</option>
+        {countries.map((c) => (
+          <option key={c.code} value={c.code}>
+            {c.label}
+          </option>
+        ))}
+        <option value="unknown">Pays inconnu</option>
       </Select>
     </div>
   );

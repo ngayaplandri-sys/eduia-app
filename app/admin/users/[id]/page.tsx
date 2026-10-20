@@ -1,3 +1,4 @@
+import { adminCountryName } from "@/lib/admin/constants";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -114,6 +115,11 @@ export default async function AdminUserDetailPage({
             <div className="space-y-0">
               <InfoRow label="Prénom" value={user.onboarding.firstName} />
               <InfoRow label="Niveau" value={user.onboarding.schoolLevel} />
+              <InfoRow label="Pays déclaré" value={adminCountryName(user.onboarding.country)} />
+              <InfoRow
+                label="Pays de connexion"
+                value={adminCountryName(user.onboarding.detectedCountry)}
+              />
               <InfoRow
                 label="Matières"
                 value={user.onboarding.subjects.join(", ") || "—"}

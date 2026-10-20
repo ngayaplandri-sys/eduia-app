@@ -16,3 +16,17 @@ export async function hasCompletedOnboarding(userId: string): Promise<boolean> {
 
   return Boolean(row);
 }
+
+/**
+ * `true` si l'élève a terminé l'onboarding AVANT la question du pays (comptes
+ * plus anciens) : le tableau de bord la lui pose une fois.
+ */
+export async function needsCountryAnswer(userId: string): Promise<boolean> {
+  const [row] = await db
+    .select({ country: schema.onboarding.country })
+    .from(schema.onboarding)
+    .where(eq(schema.onboarding.userId, userId))
+    .limit(1);
+
+  return Boolean(row) && !row.country;
+}

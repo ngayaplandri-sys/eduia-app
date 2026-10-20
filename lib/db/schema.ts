@@ -149,6 +149,14 @@ export const onboarding = pgTable("onboarding", {
   goal: text().notNull(),
   improveSubjects: jsonb().$type<string[]>().notNull(),
   learningStyle: text().notNull(),
+  /**
+   * Pays où l'élève étudie, déclaré par lui (code ISO alpha-2, `ZZ` = autre
+   * pays — voir `lib/config/countries.ts`). `null` pour les comptes créés
+   * avant cette question : le tableau de bord la leur pose.
+   */
+  country: text(),
+  /** Pays de connexion détecté (en-tête Vercel) au moment de l'onboarding. */
+  detectedCountry: text(),
   completedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -360,6 +368,8 @@ export const maketouCheckouts = pgTable(
     completedAt: timestamp({ withTimezone: true }),
     /** Remarque d'exploitation (ex. paiement en double à rembourser à la main). */
     note: text(),
+    /** Pays de connexion détecté (en-tête Vercel) quand l'élève a cliqué « Payer ». */
+    country: text(),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [

@@ -898,8 +898,8 @@ export const fr = {
     next: "Suivant",
     finish: "Terminer",
     saving: "Enregistrement…",
-    step1Title: "Comment tu t'appelles ?",
-    step1Desc: "On l'utilisera pour personnaliser ton expérience.",
+    step1Title: "Faisons connaissance",
+    step1Desc: "Ton prénom et ton pays, pour personnaliser ton expérience.",
     firstName: "Prénom",
     firstNamePlaceholder: "Ton prénom",
     step2Title: "Dans quel niveau es-tu ?",
@@ -1443,6 +1443,23 @@ export const fr = {
     labelSummary: "résumé",
     labelExam: "épreuve",
     labelCorrection: "correction",
+  },
+
+  country: {
+    label: "Dans quel pays étudies-tu ?",
+    placeholder: "Choisis ton pays",
+    groupAfrica: "Afrique",
+    groupOther: "Autres pays",
+    other: "Autre pays",
+    unknown: "Inconnu",
+    privacyNote:
+      "Ton pays sert uniquement aux statistiques d'EduIA et à mieux adapter l'application à ton programme.",
+    promptTitle: "Dans quel pays étudies-tu ?",
+    promptBody: "Aide-nous à adapter EduIA à ton pays et à ton programme scolaire.",
+    promptSave: "Enregistrer",
+    promptSaving: "Enregistrement…",
+    promptSaved: "Pays enregistré, merci !",
+    promptFailed: "Impossible d'enregistrer ton pays. Réessaie.",
   },
 
   credits: {

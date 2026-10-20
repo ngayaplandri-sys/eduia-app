@@ -27,6 +27,8 @@ export interface AdminUserListItem {
   plan: UserPlan;
   emailVerified: boolean;
   schoolLevel: string | null;
+  /** Pays déclaré, à défaut pays de connexion détecté (code ISO), `null` si inconnu. */
+  country: string | null;
   createdAt: string;
   isDemo: boolean;
 }
@@ -47,6 +49,10 @@ export interface AdminUserDetail {
     goal: string;
     improveSubjects: string[];
     learningStyle: string;
+    /** Pays déclaré par l'élève (code ISO, `ZZ` = autre). */
+    country: string | null;
+    /** Pays de connexion détecté à l'onboarding. */
+    detectedCountry: string | null;
     completedAt: string;
   } | null;
   counts: {
@@ -153,6 +159,8 @@ export interface AdminPaymentRow {
   paidAt: string | null;
   amountFcfa: number;
   creditsGranted: number;
+  /** Pays détecté au moment du paiement, à défaut celui de l'élève. */
+  country: string | null;
 }
 
 export interface AdminPaymentsData {
@@ -164,6 +172,24 @@ export interface AdminPaymentsData {
   /** Comptes payants (Premium/Premium+) sans aucune commande `credit_orders` — plan changé directement en base. */
   manualPremiumCount: number;
   paymentConnected: boolean;
+}
+
+// ───────────────────────────── Pays ─────────────────────────────
+
+export interface AdminCountryRow {
+  /** Code ISO alpha-2 (`ZZ` = autre pays), `null` = inconnu. */
+  code: string | null;
+  users: number;
+  /** Comptes Premium dont la période payée est en cours. */
+  premiumActive: number;
+  /** Paiements Maketou confirmés. */
+  payments: number;
+  revenueFcfa: number;
+}
+
+export interface AdminCountriesData {
+  rows: AdminCountryRow[];
+  totals: Omit<AdminCountryRow, "code">;
 }
 
 // ───────────────────────────── Statistiques ─────────────────────────────

@@ -7,7 +7,9 @@ import { EmptyState } from "@/components/feedback/empty-state";
 import { AdminTable, type AdminColumn } from "@/components/admin/admin-table";
 import { UsersFilters } from "@/components/admin/users-filters";
 import { AdminPagination } from "@/components/admin/admin-pagination";
-import { getAdminUsers } from "@/lib/data/admin";
+import { getAdminUserCountries, getAdminUsers } from "@/lib/data/admin";
+import { adminCountryName } from "@/lib/admin/constants";
+import { isCountryCode } from "@/lib/config/countries";
 import { formatShortDate } from "@/lib/utils/format";
 import { roleLabel } from "@/lib/roles";
 import type { AdminUserListItem } from "@/types";
@@ -37,6 +39,12 @@ const columns: AdminColumn<AdminUserListItem>[] = [
     key: "level",
     header: "Niveau",
     cell: (u) => u.schoolLevel ?? <span className="text-ink-300">—</span>,
+  },
+  {
+    key: "country",
+    header: "Pays",
+    cell: (u) =>
+      u.country ? adminCountryName(u.country) : <span className="text-ink-300">—</span>,
   },
   {
     key: "createdAt",
@@ -102,14 +110,18 @@ export default async function AdminUsersPage({
       : undefined;
   const role =
     sp.role === "student" || sp.role === "admin" ? sp.role : undefined;
+  const rawCountry = asString(sp.country);
+  const country =
+    rawCountry === "unknown" || isCountryCode(rawCountry) ? rawCountry : undefined;
   const page = Number(asString(sp.page)) > 0 ? Number(sp.page) : 1;
 
-  const { items, total, page: currentPage, pageCount } = await getAdminUsers({
-    query,
-    plan,
-    role,
-    page,
-  });
+  const [{ items, total, page: currentPage, pageCount }, countryCodes] = await Promise.all([
+    getAdminUsers({ query, plan, role, country, page }),
+    getAdminUserCountries(),
+  ]);
+  const countryOptions = countryCodes
+    .map((code) => ({ code, label: adminCountryName(code) }))
+    .sort((a, b) => a.label.localeCompare(b.label, "fr"));
 
   return (
     <div className="space-y-6">
@@ -118,7 +130,7 @@ export default async function AdminUsersPage({
       </p>
 
       <Card className="p-5 sm:p-6">
-        <UsersFilters />
+        <UsersFilters countries={countryOptions} />
 
         <div className="mt-5">
           <AdminTable
@@ -129,12 +141,12 @@ export default async function AdminUsersPage({
               <EmptyState
                 icon={Users}
                 title={
-                  query || plan || role
+                  query || plan || role || country
                     ? "Aucun utilisateur ne correspond"
                     : "Aucun utilisateur inscrit"
                 }
                 description={
-                  query || plan || role
+                  query || plan || role || country
                     ? "Ajuste ta recherche ou tes filtres."
                     : "Les comptes créés sur EduIA apparaîtront ici."
                 }

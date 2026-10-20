@@ -10,4 +10,6 @@ export interface OnboardingAnswers {
   improveSubjects: string[];
   /** Identifiant de préférence d'apprentissage — voir `LEARNING_STYLE_IDS`. */
   learningStyle: string;
+  /** Pays où l'élève étudie (code ISO alpha-2, `ZZ` = autre) — voir `lib/config/countries.ts`. */
+  country: string;
 }

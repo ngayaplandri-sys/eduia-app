@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/data/user";
 import { startMaketouCheckout } from "@/lib/data/maketou";
 import { isSameOriginRequest } from "@/lib/http/guards";
+import { detectCountry } from "@/lib/http/geo";
 
 /**
  * « Payer avec Maketou » : crée le panier pour une offre du catalogue
@@ -27,7 +28,7 @@ export async function POST(request: Request) {
   if (!itemKey) return NextResponse.json({ code: "UNKNOWN_ITEM" }, { status: 400 });
 
   try {
-    const outcome = await startMaketouCheckout(user, itemKey);
+    const outcome = await startMaketouCheckout(user, itemKey, detectCountry(request.headers));
     if (!outcome.ok) {
       return NextResponse.json({ code: outcome.code }, { status: outcome.status });
     }

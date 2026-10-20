@@ -6,7 +6,7 @@ import { AdminSection } from "@/components/admin/admin-section";
 import { PaymentNotice } from "@/components/admin/payment-notice";
 import { AdminTable, type AdminColumn } from "@/components/admin/admin-table";
 import { getAdminPayments } from "@/lib/data/admin";
-import { formatFcfa, formatCompactNumber } from "@/lib/admin/constants";
+import { formatFcfa, formatCompactNumber, adminCountryName } from "@/lib/admin/constants";
 import { formatShortDate } from "@/lib/utils/format";
 import type { AdminPaymentRow } from "@/types";
 
@@ -41,6 +41,12 @@ const columns: AdminColumn<AdminPaymentRow>[] = [
     header: "Commande",
     cell: (r) => KIND_LABEL[r.kind] ?? r.kind,
   },
+  {
+    key: "country",
+    header: "Pays",
+    cell: (r) =>
+      r.country ? adminCountryName(r.country) : <span className="text-ink-300">—</span>,
+  },
   { key: "provider", header: "Fournisseur", cell: (r) => r.provider },
   {
     key: "reference",
@@ -67,9 +73,8 @@ export default async function AdminPaymentsPage() {
   return (
     <div className="space-y-6">
       <p className="text-sm text-ink-500">
-        Commandes (abonnements + recharges) payées via Maketou, enregistrées
-        une fois le paiement confirmé. Les anciennes commandes « simulated »
-        n&apos;ont rien encaissé.
+        Abonnements Premium payés via Maketou, enregistrés une fois le
+        paiement confirmé, avec le pays de connexion au moment du paiement.
       </p>
 
       <div className="grid gap-4 sm:grid-cols-3">

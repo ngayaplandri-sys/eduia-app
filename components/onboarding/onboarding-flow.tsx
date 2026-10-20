@@ -15,6 +15,7 @@ import {
   LEARNING_STYLES,
 } from "@/lib/config/onboarding";
 import { saveOnboarding } from "@/lib/actions/onboarding";
+import { CountrySelect } from "@/components/common/country-select";
 import { firstName as extractFirstName } from "@/lib/utils/format";
 import { useI18n } from "@/lib/i18n/client";
 import { localizeLevel, localizeSubject } from "@/lib/i18n/labels";
@@ -50,7 +51,14 @@ function StepShell({
   );
 }
 
-export function OnboardingFlow({ userName }: { userName: string }) {
+export function OnboardingFlow({
+  userName,
+  suggestedCountry = "",
+}: {
+  userName: string;
+  /** Pays de connexion détecté côté serveur, présélectionné (modifiable). */
+  suggestedCountry?: string;
+}) {
   const { toast } = useToast();
   const { dict } = useI18n();
   const t = dict.onboarding;
@@ -65,12 +73,13 @@ export function OnboardingFlow({ userName }: { userName: string }) {
     goal: "",
     improveSubjects: [],
     learningStyle: "",
+    country: suggestedCountry,
   });
 
   const canProceed = React.useMemo(() => {
     switch (step) {
       case 1:
-        return answers.firstName.trim().length > 0;
+        return answers.firstName.trim().length > 0 && answers.country !== "";
       case 2:
         return answers.schoolLevel !== "";
       case 3:
@@ -142,6 +151,14 @@ export function OnboardingFlow({ userName }: { userName: string }) {
                   placeholder={t.firstNamePlaceholder}
                 />
               </Field>
+              <Field label={dict.country.label} htmlFor="onboarding-country">
+                <CountrySelect
+                  id="onboarding-country"
+                  value={answers.country}
+                  onChange={(country) => setAnswers((a) => ({ ...a, country }))}
+                />
+              </Field>
+              <p className="text-meta text-ink-400">{dict.country.privacyNote}</p>
             </StepShell>
           ) : null}
 

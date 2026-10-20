@@ -1,5 +1,6 @@
 "use server";
 
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { db, schema } from "@/lib/db";
@@ -8,6 +9,8 @@ import { getDictionary } from "@/lib/i18n/server";
 import { SCHOOL_LEVELS } from "@/lib/config/levels";
 import { SUBJECTS } from "@/lib/config/tool-options";
 import { ONBOARDING_GOAL_IDS, LEARNING_STYLE_IDS } from "@/lib/config/onboarding";
+import { isDeclarableCountry } from "@/lib/config/countries";
+import { detectCountry } from "@/lib/http/geo";
 import type { OnboardingAnswers } from "@/types";
 
 const onboardingSchema = z.object({
@@ -17,6 +20,7 @@ const onboardingSchema = z.object({
   goal: z.enum(ONBOARDING_GOAL_IDS),
   improveSubjects: z.array(z.enum(SUBJECTS)).min(1),
   learningStyle: z.enum(LEARNING_STYLE_IDS),
+  country: z.string().refine(isDeclarableCountry),
 });
 
 export interface OnboardingActionResult {
@@ -40,13 +44,16 @@ export async function saveOnboarding(
     return { error: dict.onboarding.invalidAnswers };
   }
 
+  // Pays de connexion (statistiques par pays), lu côté serveur uniquement.
+  const detectedCountry = detectCountry(await headers());
+
   try {
     await db
       .insert(schema.onboarding)
-      .values({ userId: user.id, ...parsed.data })
+      .values({ userId: user.id, ...parsed.data, detectedCountry })
       .onConflictDoUpdate({
         target: schema.onboarding.userId,
-        set: { ...parsed.data },
+        set: { ...parsed.data, detectedCountry },
       });
   } catch (error) {
     console.error("Échec de l'enregistrement de l'onboarding :", error);

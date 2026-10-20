@@ -171,6 +171,8 @@ async function activePlan(userId: string): Promise<UserPlan> {
 export async function startMaketouCheckout(
   user: User,
   itemKey: string,
+  /** Pays de connexion détecté (statistiques par pays), `null` si inconnu. */
+  country: string | null = null,
 ): Promise<MaketouCheckoutOutcome> {
   const keyIssue = apiKeyIssue();
   const app = resolveAppUrl();
@@ -242,6 +244,7 @@ export async function startMaketouCheckout(
       amount: item.price,
       currency: maketouCurrency,
       providerStatus: cart.status,
+      country,
     });
   } catch (caught) {
     log("error", "enregistrement du panier impossible", {

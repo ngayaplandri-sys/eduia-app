@@ -875,8 +875,8 @@ export const en: Dictionary = {
     next: "Next",
     finish: "Finish",
     saving: "Saving…",
-    step1Title: "What's your name?",
-    step1Desc: "We'll use it to personalise your experience.",
+    step1Title: "Let's get to know you",
+    step1Desc: "Your first name and country, to personalise your experience.",
     firstName: "First name",
     firstNamePlaceholder: "Your first name",
     step2Title: "What year are you in?",
@@ -1417,6 +1417,23 @@ export const en: Dictionary = {
     labelSummary: "summary",
     labelExam: "test",
     labelCorrection: "grading",
+  },
+
+  country: {
+    label: "Which country do you study in?",
+    placeholder: "Choose your country",
+    groupAfrica: "Africa",
+    groupOther: "Other countries",
+    other: "Other country",
+    unknown: "Unknown",
+    privacyNote:
+      "Your country is only used for EduIA statistics and to better adapt the app to your curriculum.",
+    promptTitle: "Which country do you study in?",
+    promptBody: "Help us adapt EduIA to your country and your school curriculum.",
+    promptSave: "Save",
+    promptSaving: "Saving…",
+    promptSaved: "Country saved, thank you!",
+    promptFailed: "We couldn't save your country. Please try again.",
   },
 
   credits: {
