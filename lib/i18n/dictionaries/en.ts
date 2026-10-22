@@ -1448,6 +1448,8 @@ export const en: Dictionary = {
     availableLabel: "Credits available",
     usedLabel: "Credits used",
     availableOf: (available: number, total: number) => `${available} / ${total}`,
+    unlimitedValue: "Unlimited",
+    unlimitedHint: "Admin account: unlimited credits for your tests, no payment needed.",
     noSubscriptionHint:
       "Free tier — signup credits, no monthly renewal.",
     activeUntil: (date: string) => `Active until ${date}`,

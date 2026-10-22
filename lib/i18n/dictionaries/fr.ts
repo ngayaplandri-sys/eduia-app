@@ -1474,6 +1474,8 @@ export const fr = {
     availableLabel: "Crédits disponibles",
     usedLabel: "Crédits utilisés",
     availableOf: (available: number, total: number) => `${available} / ${total}`,
+    unlimitedValue: "Illimités",
+    unlimitedHint: "Compte administrateur : crédits illimités pour tes tests, aucun paiement nécessaire.",
     noSubscriptionHint:
       "Palier gratuit — crédits d'inscription, sans renouvellement mensuel.",
     activeUntil: (date: string) => `Actif jusqu'au ${date}`,

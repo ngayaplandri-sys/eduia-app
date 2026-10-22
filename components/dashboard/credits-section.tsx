@@ -27,9 +27,12 @@ function computeDisplay(wallet: CreditWallet) {
 export async function CreditsSection({
   wallet,
   usage,
+  unlimited = false,
 }: {
   wallet: CreditWallet;
   usage: CreditUsageSummary;
+  /** Compte admin avec `ADMIN_UNLIMITED_CREDITS` : aucun débit, pas de jauge. */
+  unlimited?: boolean;
 }) {
   const [dict, locale] = await Promise.all([getDictionary(), getLocale()]);
   const t = dict.credits;
@@ -48,36 +51,48 @@ export async function CreditsSection({
         <CardTitle>{t.sectionTitle}</CardTitle>
       </CardHeader>
 
-      <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
-        <div>
+      {unlimited ? (
+        <div className="mt-3">
           <p className="text-fine font-medium text-ink-500">{t.availableLabel}</p>
           <p className="text-3xl font-extrabold tracking-[-0.02em] text-ink-900">
-            {t.availableOf(available, total)}
+            {t.unlimitedValue}
           </p>
+          <p className="mt-2 text-meta text-ink-400">{t.unlimitedHint}</p>
         </div>
-        <div className="text-right">
-          <p className="text-fine font-medium text-ink-500">{t.usedLabel}</p>
-          <p className="text-xl font-bold text-ink-700">{used}</p>
-        </div>
-      </div>
+      ) : (
+        <>
+          <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="text-fine font-medium text-ink-500">{t.availableLabel}</p>
+              <p className="text-3xl font-extrabold tracking-[-0.02em] text-ink-900">
+                {t.availableOf(available, total)}
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-fine font-medium text-ink-500">{t.usedLabel}</p>
+              <p className="text-xl font-bold text-ink-700">{used}</p>
+            </div>
+          </div>
 
-      <div
-        className="mt-3 h-2 w-full overflow-hidden rounded-full bg-primary-100"
-        role="progressbar"
-        aria-valuenow={available}
-        aria-valuemin={0}
-        aria-valuemax={total}
-        aria-label={t.availableLabel}
-      >
-        <div
-          className="h-full rounded-full bg-gradient-to-r from-primary-500 to-primary-600 transition-[width] duration-500 ease-out"
-          style={{ width: `${Math.min(100, percent)}%` }}
-        />
-      </div>
+          <div
+            className="mt-3 h-2 w-full overflow-hidden rounded-full bg-primary-100"
+            role="progressbar"
+            aria-valuenow={available}
+            aria-valuemin={0}
+            aria-valuemax={total}
+            aria-label={t.availableLabel}
+          >
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-primary-500 to-primary-600 transition-[width] duration-500 ease-out"
+              style={{ width: `${Math.min(100, percent)}%` }}
+            />
+          </div>
 
-      <p className="mt-2 text-meta text-ink-400">
-        {wallet.periodEnd ? t.activeUntil(formatShortDate(wallet.periodEnd, locale)) : t.noSubscriptionHint}
-      </p>
+          <p className="mt-2 text-meta text-ink-400">
+            {wallet.periodEnd ? t.activeUntil(formatShortDate(wallet.periodEnd, locale)) : t.noSubscriptionHint}
+          </p>
+        </>
+      )}
 
       <div className="mt-5 border-t border-line-soft pt-4">
         <p className="text-fine font-semibold text-ink-700">{t.usageSummaryTitle}</p>

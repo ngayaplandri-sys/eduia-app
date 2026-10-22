@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { requireUser } from "@/lib/data/user";
+import { hasUnlimitedAccess, requireUser } from "@/lib/data/user";
 import { getRecentActivity, getActivityHistory } from "@/lib/data/activity";
 import { getDocuments } from "@/lib/data/documents";
 import { getCreditWallet, getUsageSummary } from "@/lib/data/credits";
@@ -36,7 +36,7 @@ export default async function DashboardPage() {
       <HeroBanner userName={user.name} />
       {askCountry ? <CountryPrompt /> : null}
       <StatsStrip stats={stats} activityCount={fullHistory.length} />
-      <CreditsSection wallet={wallet} usage={usage} />
+      <CreditsSection wallet={wallet} usage={usage} unlimited={hasUnlimitedAccess(user)} />
       <ActionCardsGrid />
       <RecentActivitySection items={activity} />
     </div>
