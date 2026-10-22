@@ -6,7 +6,7 @@ import { isGoogleAuthConfigured } from "@/lib/auth";
 
 export async function generateMetadata(): Promise<Metadata> {
   const dict = await getDictionary();
-  return { title: dict.auth.metaSignupTitle };
+  return { title: dict.auth.metaSignupTitle, alternates: { canonical: "/signup" } };
 }
 
 export default function SignupPage() {

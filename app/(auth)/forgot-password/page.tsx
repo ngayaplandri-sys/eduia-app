@@ -6,7 +6,7 @@ import { getDictionary } from "@/lib/i18n/server";
 
 export async function generateMetadata(): Promise<Metadata> {
   const dict = await getDictionary();
-  return { title: dict.auth.metaForgotTitle };
+  return { title: dict.auth.metaForgotTitle, robots: { index: false } };
 }
 
 export default function ForgotPasswordPage() {

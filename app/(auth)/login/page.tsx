@@ -7,7 +7,7 @@ import { isGoogleAuthConfigured } from "@/lib/auth";
 
 export async function generateMetadata(): Promise<Metadata> {
   const dict = await getDictionary();
-  return { title: dict.auth.metaLoginTitle };
+  return { title: dict.auth.metaLoginTitle, alternates: { canonical: "/login" } };
 }
 
 export default function LoginPage() {
