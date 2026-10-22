@@ -3,7 +3,7 @@ import { db, schema } from "./client";
 import { PLAN_CREDITS } from "@/lib/config/credits";
 
 /**
- * Octroi des 20 crédits gratuits de bienvenue — extrait de `lib/data/credits.ts`
+ * Octroi des 10 crédits gratuits de bienvenue — extrait de `lib/data/credits.ts`
  * (qui a `server-only`) dans ce module SANS `server-only`, comme `./client`,
  * spécifiquement parce que `lib/auth.ts` doit rester chargeable par la CLI
  * Better Auth et par les scripts de vérification `scripts/_*.ts` (contextes

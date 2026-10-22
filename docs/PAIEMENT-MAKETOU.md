@@ -1,6 +1,6 @@
 # Paiement Maketou — mise en service
 
-EduIA ne propose que **deux offres** : **Gratuit** (0 FCFA, 20 crédits à
+EduIA ne propose que **deux offres** : **Gratuit** (0 FCFA, 10 crédits à
 l'inscription) et **Premium** (**2 500 FCFA par mois**, 500 crédits). Premium
 est encaissé via **Maketou** (Mobile Money et carte). Tout le code est en place ; les étapes
 ci-dessous se font dans les tableaux de bord (Maketou, Vercel). Aucune

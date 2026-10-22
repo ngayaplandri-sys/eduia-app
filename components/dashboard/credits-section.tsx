@@ -7,7 +7,7 @@ import type { CreditUsageSummary, CreditWallet } from "@/types";
 
 /**
  * Dénominateur affiché à côté du solde disponible ("X / Y") : le quota plein
- * du palier payant, ou les 20 crédits offerts pour un compte gratuit. Si le
+ * du palier payant, ou les 10 crédits offerts pour un compte gratuit. Si le
  * solde réel dépasse ce quota (recharge achetée en plus), le dénominateur
  * suit — la barre ne dépasse jamais 100 % et n'affiche jamais un total plus
  * petit que ce que l'utilisateur peut réellement dépenser. Simplification

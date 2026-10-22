@@ -27,7 +27,7 @@ export const PLAN_CREDITS: {
   free: { signupGrant: number; priceFcfa: number };
   premium: { monthly: number; priceFcfa: number };
 } = {
-  free: { signupGrant: 20, priceFcfa: 0 },
+  free: { signupGrant: 10, priceFcfa: 0 },
   premium: { monthly: 500, priceFcfa: 2500 },
 };
 

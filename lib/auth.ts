@@ -163,7 +163,7 @@ export const auth = betterAuth({
     // partagé (Redis/Upstash) dans ce cas.
   },
   databaseHooks: {
-    // Octroie les 20 crédits gratuits une seule fois, à la création réelle du
+    // Octroie les 10 crédits gratuits une seule fois, à la création réelle du
     // compte — couvre e-mail/mot de passe ET Google OAuth (même chemin de
     // création `user`). Ne bloque jamais l'inscription si l'octroi échoue.
     user: {

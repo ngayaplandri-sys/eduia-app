@@ -731,7 +731,7 @@ export const en: Dictionary = {
     planFreeLabel: "Free",
     premiumFullAccess: "500 credits for each month of subscription.",
     premiumPlusFullAccess: "1,000 credits for each month of subscription.",
-    freeQuota: "20 credits offered at signup, no monthly renewal.",
+    freeQuota: "10 credits offered at signup, no monthly renewal.",
     manageSubscription: "Manage subscription",
     goPremium: "Upgrade to Premium",
     signOutTitle: "Sign out",
@@ -755,7 +755,7 @@ export const en: Dictionary = {
     heroTitlePremiumPlusAccent: "1,000 credits",
     heroTitlePremiumPlusAfter: " every month",
     heroBodyFree:
-      "Your free account gives you 20 credits at signup to try every tool. Upgrade to Premium for 500 credits every month, at 2,500 FCFA per month.",
+      "Your free account gives you 10 credits at signup to try every tool. Upgrade to Premium for 500 credits every month, at 2,500 FCFA per month.",
     heroBodyPremium:
       "500 credits for each month of subscription: summarise, generate, grade and chat with the AI Assistant without counting.",
     heroBodyPremiumPlus:
@@ -765,7 +765,7 @@ export const en: Dictionary = {
     colFree: "Free",
     colPremium: "Premium",
     planFreeTitle: "Free",
-    planFreeDesc: "20 credits offered to discover EduIA.",
+    planFreeDesc: "10 credits offered to discover EduIA.",
     planPremiumTitle: "Premium",
     planPremiumDesc: "500 credits every month.",
     planPremiumPlusTitle: "Premium+",

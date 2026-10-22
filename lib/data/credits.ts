@@ -20,7 +20,7 @@ import type { UserPlan } from "@/types";
  * Deux compartiments par utilisateur (`credit_wallets`), gérés séparément :
  *  - `subscriptionBalance` : quota du palier payant en cours — réinitialisé
  *    (jamais cumulé) à chaque renouvellement mensuel ou changement de palier ;
- *  - `rechargeBalance` : les 20 crédits gratuits à l'inscription (une fois)
+ *  - `rechargeBalance` : les 10 crédits gratuits à l'inscription (une fois)
  *    + les crédits achetés en recharge — ne se réinitialisent jamais seuls.
  * La consommation pioche d'abord `subscriptionBalance`, puis `rechargeBalance`.
  *
@@ -209,7 +209,7 @@ export async function expireDueSubscriptions(limit = 200): Promise<number> {
 /**
  * Portefeuille courant de l'utilisateur. Expire d'abord le palier payant si
  * sa période payée est terminée (`expireSubscriptionIfDue`) — il n'y a plus
- * de renouvellement automatique gratuit. Ne crée JAMAIS les 20 crédits
+ * de renouvellement automatique gratuit. Ne crée JAMAIS les 10 crédits
  * gratuits d'inscription ici, même si aucun portefeuille n'existe encore (ex.
  * compte créé avant cette fonctionnalité) — l'octroi de bienvenue n'est écrit
  * qu'une fois, par le hook Better Auth `databaseHooks.user.create.after`
@@ -382,7 +382,7 @@ export async function refundCredits(
 }
 
 /**
- * Octroie les 20 crédits gratuits de bienvenue — implémentation dans
+ * Octroie les 10 crédits gratuits de bienvenue — implémentation dans
  * `lib/db/credit-grants.ts` (sans `server-only`, car appelée par le hook
  * Better Auth `databaseHooks.user.create.after` dans `lib/auth.ts`, lui-même
  * chargé par la CLI Better Auth et les scripts de vérification, hors contexte

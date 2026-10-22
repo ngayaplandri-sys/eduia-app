@@ -751,7 +751,7 @@ export const fr = {
     planFreeLabel: "Gratuit",
     premiumFullAccess: "500 crédits pour chaque mois d'abonnement.",
     premiumPlusFullAccess: "1 000 crédits pour chaque mois d'abonnement.",
-    freeQuota: "20 crédits offerts à l'inscription, sans renouvellement.",
+    freeQuota: "10 crédits offerts à l'inscription, sans renouvellement.",
     manageSubscription: "Gérer l'abonnement",
     goPremium: "Passer à Premium",
     signOutTitle: "Se déconnecter",
@@ -775,7 +775,7 @@ export const fr = {
     heroTitlePremiumPlusAccent: "1 000 crédits",
     heroTitlePremiumPlusAfter: " chaque mois",
     heroBodyFree:
-      "Ton compte gratuit te donne 20 crédits à l'inscription pour tester tous les outils. Passe à Premium pour 500 crédits chaque mois, à 2 500 FCFA par mois.",
+      "Ton compte gratuit te donne 10 crédits à l'inscription pour tester tous les outils. Passe à Premium pour 500 crédits chaque mois, à 2 500 FCFA par mois.",
     heroBodyPremium:
       "500 crédits pour chaque mois d'abonnement : résume, génère, corrige et discute avec l'Assistant IA sans compter.",
     heroBodyPremiumPlus:
@@ -785,7 +785,7 @@ export const fr = {
     colFree: "Gratuit",
     colPremium: "Premium",
     planFreeTitle: "Gratuit",
-    planFreeDesc: "20 crédits offerts pour découvrir EduIA.",
+    planFreeDesc: "10 crédits offerts pour découvrir EduIA.",
     planPremiumTitle: "Premium",
     planPremiumDesc: "500 crédits chaque mois.",
     planPremiumPlusTitle: "Premium+",
