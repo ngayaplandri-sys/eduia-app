@@ -19,7 +19,52 @@ export const SUBJECTS = [
   "SVT",
   "SES",
   "Anglais",
+  // Supérieur (licence, BTS, grandes écoles…).
+  "Droit",
+  "Économie",
+  "Gestion",
+  "Comptabilité",
+  "Marketing",
+  "Informatique",
+  "Statistiques",
+  "Médecine",
+  "Psychologie",
+  "Sociologie",
 ] as const;
+
+/**
+ * Matière ajoutée par l'utilisateur à l'onboarding (« + Ajouter une matière »)
+ * quand elle n'est pas dans `SUBJECTS` : enregistrée telle quelle, à côté des
+ * matières proposées. Mêmes règles côté navigateur et côté serveur.
+ */
+export const CUSTOM_SUBJECT_MIN_LENGTH = 2;
+export const CUSTOM_SUBJECT_MAX_LENGTH = 40;
+/** Nombre maximal de matières ajoutées par un même utilisateur. */
+export const CUSTOM_SUBJECT_MAX_COUNT = 10;
+/** Lettres (tous alphabets), chiffres, espaces et ponctuation courante. */
+export const SUBJECT_NAME_PATTERN = /^[\p{L}\p{N}][\p{L}\p{M}\p{N} '’&()+.,/-]*$/u;
+
+/** Espaces superflus retirés : « Droit   des affaires » → « Droit des affaires ». */
+export function normalizeSubjectName(name: string): string {
+  return name.replace(/\s+/g, " ").trim();
+}
+
+/** Clé de comparaison sans casse ni accents (« economie » = « Économie »). */
+export function subjectKey(name: string): string {
+  return normalizeSubjectName(name)
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .toLocaleLowerCase("fr");
+}
+
+export function isValidSubjectName(name: string): boolean {
+  const value = normalizeSubjectName(name);
+  return (
+    value.length >= CUSTOM_SUBJECT_MIN_LENGTH &&
+    value.length <= CUSTOM_SUBJECT_MAX_LENGTH &&
+    SUBJECT_NAME_PATTERN.test(value)
+  );
+}
 
 export const EXAM_DURATIONS = ["45 min", "1h", "1h30", "2h", "3h"] as const;
 

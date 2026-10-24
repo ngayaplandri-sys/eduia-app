@@ -7,21 +7,48 @@ import { db, schema } from "@/lib/db";
 import { requireUser } from "@/lib/data/user";
 import { getDictionary } from "@/lib/i18n/server";
 import { SCHOOL_LEVELS } from "@/lib/config/levels";
-import { SUBJECTS } from "@/lib/config/tool-options";
+import {
+  CUSTOM_SUBJECT_MAX_COUNT,
+  SUBJECTS,
+  isValidSubjectName,
+  normalizeSubjectName,
+  subjectKey,
+} from "@/lib/config/tool-options";
 import { ONBOARDING_GOAL_IDS, LEARNING_STYLE_IDS } from "@/lib/config/onboarding";
 import { isDeclarableCountry } from "@/lib/config/countries";
 import { detectCountry } from "@/lib/http/geo";
 import type { OnboardingAnswers } from "@/types";
 
-const onboardingSchema = z.object({
-  firstName: z.string().trim().min(1).max(60),
-  schoolLevel: z.enum(SCHOOL_LEVELS),
-  subjects: z.array(z.enum(SUBJECTS)).min(1),
-  goal: z.enum(ONBOARDING_GOAL_IDS),
-  improveSubjects: z.array(z.enum(SUBJECTS)).min(1),
-  learningStyle: z.enum(LEARNING_STYLE_IDS),
-  country: z.string().refine(isDeclarableCountry),
-});
+/** Matière proposée, ou ajoutée par l'utilisateur (voir `isValidSubjectName`). */
+const subjectSchema = z
+  .string()
+  .transform(normalizeSubjectName)
+  .refine(isValidSubjectName);
+
+const onboardingSchema = z
+  .object({
+    firstName: z.string().trim().min(1).max(60),
+    schoolLevel: z.enum(SCHOOL_LEVELS),
+    subjects: z
+      .array(subjectSchema)
+      .min(1)
+      .max(SUBJECTS.length + CUSTOM_SUBJECT_MAX_COUNT),
+    goal: z.enum(ONBOARDING_GOAL_IDS),
+    improveSubjects: z.array(subjectSchema).min(1),
+    learningStyle: z.enum(LEARNING_STYLE_IDS),
+    country: z.string().refine(isDeclarableCountry),
+  })
+  .refine(
+    ({ subjects }) => new Set(subjects.map(subjectKey)).size === subjects.length,
+  )
+  .refine(
+    ({ subjects }) =>
+      subjects.filter((s) => !(SUBJECTS as readonly string[]).includes(s)).length <=
+      CUSTOM_SUBJECT_MAX_COUNT,
+  )
+  .refine(({ subjects, improveSubjects }) =>
+    improveSubjects.every((s) => subjects.includes(s)),
+  );
 
 export interface OnboardingActionResult {
   error?: string;

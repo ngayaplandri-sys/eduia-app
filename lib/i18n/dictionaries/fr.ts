@@ -184,6 +184,16 @@ export const fr = {
       "SVT": "SVT",
       "SES": "SES",
       "Anglais": "Anglais",
+      "Droit": "Droit",
+      "Économie": "Économie",
+      "Gestion": "Gestion",
+      "Comptabilité": "Comptabilité",
+      "Marketing": "Marketing",
+      "Informatique": "Informatique",
+      "Statistiques": "Statistiques",
+      "Médecine": "Médecine",
+      "Psychologie": "Psychologie",
+      "Sociologie": "Sociologie",
     } as Record<string, string>,
     levels: {
       "4e": "4e",
@@ -905,7 +915,20 @@ export const fr = {
     step2Title: "Dans quel niveau es-tu ?",
     step2Desc: "Ça nous permet d'adapter le contenu à ton programme.",
     step3Title: "Quelles sont tes matières principales ?",
-    step3Desc: "Sélectionne toutes celles qui te concernent.",
+    step3Desc:
+      "Sélectionne toutes celles qui te concernent. Une matière manque ? Ajoute-la.",
+    addSubject: "Ajouter une matière",
+    customSubjectLabel: "Nouvelle matière",
+    customSubjectPlaceholder: "Ex. : Biochimie, Droit des affaires…",
+    customSubjectAdd: "Ajouter",
+    customSubjectCancel: "Annuler",
+    customSubjectInvalid:
+      "Saisis un nom de matière de 2 à 40 caractères (lettres, chiffres et ponctuation simple).",
+    customSubjectExists: (name: string) =>
+      `« ${name} » est déjà dans la liste : elle est sélectionnée.`,
+    customSubjectLimit: (max: number) =>
+      `Tu peux ajouter jusqu'à ${max} matières.`,
+    customSubjectAdded: (name: string) => `« ${name} » ajoutée et sélectionnée.`,
     step4Title: "Quel est ton objectif principal ?",
     step4Desc: "On mettra en avant les outils les plus utiles pour toi.",
     step5Title: "Dans quelles matières veux-tu progresser ?",

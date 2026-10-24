@@ -22,6 +22,7 @@ import { localizeLevel, localizeSubject } from "@/lib/i18n/labels";
 import type { OnboardingAnswers } from "@/types";
 import { OnboardingProgressBar } from "./progress-bar";
 import { ChoiceButton } from "./choice-button";
+import { AddSubject } from "./add-subject";
 
 const TOTAL_STEPS = 6;
 
@@ -75,6 +76,7 @@ export function OnboardingFlow({
     learningStyle: "",
     country: suggestedCountry,
   });
+  const [customSubjects, setCustomSubjects] = React.useState<string[]>([]);
 
   const canProceed = React.useMemo(() => {
     switch (step) {
@@ -118,8 +120,10 @@ export function OnboardingFlow({
     setStep((current) => Math.max(1, current - 1));
   }
 
+  // Matières proposées + celles ajoutées par l'utilisateur (« + Ajouter une matière »).
+  const subjectOptions = [...SUBJECTS, ...customSubjects];
   const improveSubjectOptions =
-    answers.subjects.length > 0 ? answers.subjects : SUBJECTS;
+    answers.subjects.length > 0 ? answers.subjects : subjectOptions;
 
   return (
     <div className="w-full max-w-2xl">
@@ -183,7 +187,7 @@ export function OnboardingFlow({
           {step === 3 ? (
             <StepShell title={t.step3Title} description={t.step3Desc}>
               <div className="flex flex-wrap gap-2">
-                {SUBJECTS.map((subject) => (
+                {subjectOptions.map((subject) => (
                   <ChoiceButton
                     key={subject}
                     variant="pill"
@@ -204,6 +208,21 @@ export function OnboardingFlow({
                   />
                 ))}
               </div>
+              <AddSubject
+                options={subjectOptions}
+                customCount={customSubjects.length}
+                onAdd={(subject) => {
+                  setCustomSubjects((list) => [...list, subject]);
+                  setAnswers((a) => ({ ...a, subjects: [...a.subjects, subject] }));
+                }}
+                onSelectExisting={(subject) =>
+                  setAnswers((a) =>
+                    a.subjects.includes(subject)
+                      ? a
+                      : { ...a, subjects: [...a.subjects, subject] },
+                  )
+                }
+              />
             </StepShell>
           ) : null}
 
