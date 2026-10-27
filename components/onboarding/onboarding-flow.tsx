@@ -111,7 +111,14 @@ export function OnboardingFlow({
       if (result?.error) {
         setError(result.error);
         toast(result.error);
+        return;
       }
+      // Chargement complet : le `/dashboard` préchargé pendant le questionnaire
+      // (qui renvoyait vers `/onboarding`) ne doit pas être réutilisé.
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- voir ci-dessus
+      window.location.assign("/dashboard");
+      // Le bouton reste « Enregistrement… » jusqu'au changement de page.
+      await new Promise(() => {});
     });
   }
 

@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,14 +7,16 @@ import { authClient } from "@/lib/auth-client";
 import { useI18n } from "@/lib/i18n/client";
 
 export function SignOutCard() {
-  const router = useRouter();
   const { dict } = useI18n();
   const t = dict.parametres;
 
   async function signOut() {
     await authClient.signOut();
-    router.push("/");
-    router.refresh();
+    // Chargement complet (pas `router.push` + `router.refresh`, qui se
+    // concurrencent) : repart sans session et vide le cache du routeur, qui
+    // contient encore les pages du compte qu'on vient de quitter.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- rechargement voulu : la session vient de changer
+    window.location.assign("/");
   }
 
   return (

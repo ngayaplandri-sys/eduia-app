@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { ChevronDown, ArrowLeft, LogOut } from "lucide-react";
 import {
   DropdownMenu,
@@ -16,12 +15,14 @@ import { roleLabel } from "@/lib/roles";
 import type { User } from "@/types";
 
 export function AdminUserMenu({ user }: { user: User }) {
-  const router = useRouter();
 
   async function signOut() {
     await authClient.signOut();
-    router.push("/");
-    router.refresh();
+    // Chargement complet (pas `router.push` + `router.refresh`, qui se
+    // concurrencent) : repart sans session et vide le cache du routeur, qui
+    // contient encore les pages du compte qu'on vient de quitter.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- rechargement voulu : la session vient de changer
+    window.location.assign("/");
   }
 
   return (

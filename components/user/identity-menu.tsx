@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { ChevronDown, Settings, Crown, LogOut } from "lucide-react";
 import {
   DropdownMenu,
@@ -45,14 +44,16 @@ export function IdentityMenu({
   /** Tiroir mobile : le referme quand un lien du menu est choisi. */
   onNavigate?: () => void;
 }) {
-  const router = useRouter();
   const { dict } = useI18n();
   const t = dict.layout;
 
   async function signOut() {
     await authClient.signOut();
-    router.push("/");
-    router.refresh();
+    // Chargement complet (pas `router.push` + `router.refresh`, qui se
+    // concurrencent) : repart sans session et vide le cache du routeur, qui
+    // contient encore les pages du compte qu'on vient de quitter.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- rechargement voulu : la session vient de changer
+    window.location.assign("/");
   }
 
   return (

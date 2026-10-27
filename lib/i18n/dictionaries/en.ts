@@ -983,6 +983,7 @@ export const en: Dictionary = {
     errInvalidEmail: "Invalid email address.",
     errSignupFailed: "Account creation failed. Please try again.",
     errLoginFailed: "Sign-in failed. Please try again.",
+    errTooManyAttempts: "Too many attempts. Wait a minute, then try again.",
     errGoogleFailed: "Sign-in with Google failed. Please try again.",
     errGoogleCancelled: "Google sign-in was cancelled. You can try again or use your email.",
     errGoogleAccountNotLinked:

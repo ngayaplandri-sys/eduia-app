@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { LoaderCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,7 @@ import type { Dictionary } from "@/lib/i18n/dictionaries";
 interface AuthError {
   code?: string;
   message?: string;
+  status?: number;
 }
 
 /**
@@ -44,6 +45,9 @@ function translateError(
   isSignup: boolean,
   t: Dictionary["auth"],
 ): string {
+  // Limite anti-abus de Better Auth (trop d'essais rapprochés) : pas de code,
+  // seulement le statut 429 et un message en anglais.
+  if (error.status === 429) return t.errTooManyAttempts;
   switch (error.code) {
     case "INVALID_EMAIL_OR_PASSWORD":
       return t.errInvalidCredentials;
@@ -89,7 +93,6 @@ export function AuthForm({
   /** `true` si la connexion Google est configurée côté serveur (bouton affiché). */
   googleEnabled?: boolean;
 }) {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const { dict } = useI18n();
   const { toast } = useToast();
@@ -118,12 +121,12 @@ export function AuthForm({
   React.useEffect(() => {
     let active = true;
     authClient.getSession().then((result) => {
-      if (active && result.data?.user) router.replace(nextUrl);
+      if (active && result.data?.user) window.location.replace(nextUrl);
     });
     return () => {
       active = false;
     };
-  }, [router, nextUrl]);
+  }, [nextUrl]);
 
   async function signInWithGoogle() {
     setError(null);
@@ -188,8 +191,12 @@ export function AuthForm({
         return;
       }
 
-      router.push(nextUrl);
-      router.refresh();
+      // Chargement complet de la destination, avec le cookie de session tout
+      // juste posé. `router.push` suivi de `router.refresh` se concurrençaient :
+      // le rafraîchissement de /login annulait parfois la navigation, et
+      // l'élève restait sur la page de connexion jusqu'à actualiser.
+      // Le bouton reste en attente jusqu'au changement de page.
+      window.location.assign(nextUrl);
     } catch {
       // Erreur réseau ou réponse inattendue : ne jamais laisser le formulaire
       // silencieux — on réactive le bouton et on affiche un message.

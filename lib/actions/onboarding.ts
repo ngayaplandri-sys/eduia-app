@@ -1,7 +1,6 @@
 "use server";
 
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
 import { z } from "zod";
 import { db, schema } from "@/lib/db";
 import { requireUser } from "@/lib/data/user";
@@ -52,14 +51,17 @@ const onboardingSchema = z
 
 export interface OnboardingActionResult {
   error?: string;
+  ok?: boolean;
 }
 
 /**
  * Enregistre les réponses de l'onboarding pour l'utilisateur connecté (une
- * ligne par compte, `userId` unique → un nouveau passage remplace l'ancien) puis
- * redirige vers `/dashboard`. La redirection est levée hors du `try/catch` :
- * `redirect()` fonctionne en lançant une exception interne que Next.js
- * intercepte — un `catch` englobant l'avalerait par erreur.
+ * ligne par compte, `userId` unique → un nouveau passage remplace l'ancien).
+ *
+ * Pas de `redirect("/dashboard")` ici : le routeur client garde en cache le
+ * `/dashboard` préchargé pendant le questionnaire, qui renvoie encore vers
+ * `/onboarding` → boucle `/dashboard` ↔ `/onboarding` et page blanche jusqu'à
+ * actualiser. Le client charge donc `/dashboard` lui-même (`{ ok: true }`).
  */
 export async function saveOnboarding(
   input: OnboardingAnswers,
@@ -87,5 +89,5 @@ export async function saveOnboarding(
     return { error: dict.onboarding.saveFailed };
   }
 
-  redirect("/dashboard");
+  return { ok: true };
 }

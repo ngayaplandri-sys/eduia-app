@@ -1009,6 +1009,7 @@ export const fr = {
     errInvalidEmail: "Adresse e-mail invalide.",
     errSignupFailed: "La création du compte a échoué. Réessaie.",
     errLoginFailed: "La connexion a échoué. Réessaie.",
+    errTooManyAttempts: "Trop de tentatives. Patiente une minute, puis réessaie.",
     errGoogleFailed: "La connexion avec Google a échoué. Réessaie.",
     errGoogleCancelled: "Connexion avec Google annulée. Tu peux réessayer ou utiliser ton e-mail.",
     errGoogleAccountNotLinked:
