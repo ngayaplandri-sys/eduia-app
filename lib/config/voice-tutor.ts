@@ -47,13 +47,13 @@ export function parseVoiceTutorLanguages(
  * ces textes sans jeton : ce sont les seuls textes fixes qu'elle prononce.
  */
 export const VOICE_TUTOR_WELCOME: Record<VoiceTutorLanguage, string> = {
-  fr: "Bienvenue ! Je suis ton professeur IA. Pose-moi des questions sur ton cours, et je vais t'aider à le comprendre simplement.",
-  en: "Welcome! I'm your AI teacher. Ask me questions about your course, and I'll help you understand it simply.",
-  tr: "Hoş geldin! Ben senin yapay zekâ öğretmeninim. Dersinle ilgili bana sorular sor, onu kolayca anlamana yardımcı olacağım.",
-  de: "Willkommen! Ich bin dein KI-Lehrer. Stell mir Fragen zu deinem Kurs, und ich helfe dir, ihn ganz einfach zu verstehen.",
-  es: "¡Bienvenido! Soy tu profesor de IA. Hazme preguntas sobre tu curso y te ayudaré a entenderlo de forma sencilla.",
-  ar: "مرحبًا! أنا معلّمك بالذكاء الاصطناعي. اطرح عليّ أسئلة حول درسك، وسأساعدك على فهمه ببساطة.",
-  pt: "Bem-vindo! Sou o teu professor de IA. Faz-me perguntas sobre o teu curso e vou ajudar-te a compreendê-lo de forma simples.",
+  fr: "Bonjour ! Je suis ton professeur IA, et j'ai lu ton cours. Appuie sur le micro et pose-moi ta question : je t'explique tout simplement, à ton rythme.",
+  en: "Hi! I'm your AI teacher, and I've read your course. Tap the mic and ask me your question: I'll explain everything simply, at your own pace.",
+  tr: "Merhaba! Ben senin yapay zekâ öğretmeninim ve dersini okudum. Mikrofona dokun ve sorunu sor: her şeyi kendi hızında, basitçe açıklayacağım.",
+  de: "Hallo! Ich bin dein KI-Lehrer und habe deinen Kurs gelesen. Tippe auf das Mikrofon und stell mir deine Frage: Ich erkläre dir alles ganz einfach, in deinem Tempo.",
+  es: "¡Hola! Soy tu profesor de IA y ya he leído tu curso. Toca el micrófono y hazme tu pregunta: te lo explico todo de forma sencilla, a tu ritmo.",
+  ar: "مرحبًا! أنا معلّمك بالذكاء الاصطناعي، وقد قرأت درسك. اضغط على الميكروفون واطرح سؤالك: سأشرح لك كل شيء ببساطة وعلى مهلك.",
+  pt: "Olá! Sou o teu professor de IA e já li o teu curso. Toca no microfone e faz-me a tua pergunta: explico-te tudo de forma simples, ao teu ritmo.",
 };
 
 /** PDF lu dans le navigateur : jamais envoyé au serveur, seul son texte l'est. */
@@ -72,11 +72,8 @@ export const VOICE_TUTOR_MAX_UPLOAD_CHARS = 150_000;
 /** Pages scannées (sans texte) lues par la reconnaissance d'image, au plus. */
 export const VOICE_TUTOR_MAX_OCR_PAGES = 20;
 
-/** Question écrite ou transcrite. */
-export const VOICE_TUTOR_MAX_QUESTION_CHARS = 2000;
-
 /** Derniers messages renvoyés au professeur pour garder le fil. */
-export const VOICE_TUTOR_MAX_HISTORY = 16;
+export const VOICE_TUTOR_MAX_HISTORY = 20;
 
 /** Enregistrement vocal : durée et taille maximales d'une question. */
 export const VOICE_TUTOR_MAX_RECORDING_MS = 60_000;

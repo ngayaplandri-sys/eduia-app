@@ -7,7 +7,9 @@ import { VOICE_TUTOR_MAX_RECORDING_MS } from "@/lib/config/voice-tutor";
  * Moteur audio du Professeur vocal, sans état React superflu :
  *  - enregistrement de la question au micro (MediaRecorder) avec détection de
  *    la fin de phrase (niveau sonore analysé par Web Audio) ;
- *  - lecture des réponses (un seul élément <audio>, une réponse à la fois).
+ *  - lecture des réponses : une réponse = une suite de passages audio, joués
+ *    l'un après l'autre dès qu'ils arrivent (la voix démarre pendant que le
+ *    professeur écrit encore la suite), puis réécoutables en entier.
  *
  * Le micro est relâché après chaque question : l'indicateur d'enregistrement
  * s'éteint pendant que le professeur parle, et sur iPhone la voix ne bascule
@@ -27,12 +29,23 @@ export class MicError extends Error {
 
 export interface Playback {
   id: string;
+  /** Position dans la réponse entière (tous passages confondus), en secondes. */
   currentTime: number;
+  /** Durée connue de la réponse (s'allonge tant que des passages arrivent). */
   duration: number;
   playing: boolean;
+  /** En attente du prochain passage audio. */
+  waiting: boolean;
 }
 
 export type PlayOutcome = "ended" | "stopped" | "blocked";
+
+/** Réponse en cours de lecture « au fil de l'eau » : on lui ajoute des passages. */
+export interface LiveSpeech {
+  add: (clip: Promise<Blob | null>) => void;
+  close: () => void;
+  done: Promise<PlayOutcome>;
+}
 
 interface ListenHandlers {
   /** Question enregistrée (fin de phrase détectée, ou envoi manuel). */
@@ -76,6 +89,22 @@ function toMicError(error: unknown): MicError {
   return new MicError("unsupported");
 }
 
+/** Durée d'un passage audio (métadonnées), sans le jouer. */
+function probeDuration(blob: Blob): Promise<number> {
+  return new Promise((resolve) => {
+    const probe = new Audio();
+    const url = URL.createObjectURL(blob);
+    const finish = (seconds: number) => {
+      URL.revokeObjectURL(url);
+      resolve(Number.isFinite(seconds) && seconds > 0 ? seconds : 0);
+    };
+    probe.preload = "metadata";
+    probe.addEventListener("loadedmetadata", () => finish(probe.duration), { once: true });
+    probe.addEventListener("error", () => finish(0), { once: true });
+    probe.src = url;
+  });
+}
+
 interface RecordingSession {
   id: number;
   stream: MediaStream;
@@ -88,6 +117,21 @@ interface RecordingSession {
   finishing: boolean;
 }
 
+interface Clip {
+  promise: Promise<Blob | null>;
+  /** `undefined` tant que le passage n'est pas arrivé ; `null` s'il a échoué. */
+  blob?: Blob | null;
+  duration?: number;
+}
+
+interface Sequence {
+  id: string;
+  clips: Clip[];
+  /** Plus aucun passage ne sera ajouté. */
+  closed: boolean;
+  wake: (() => void) | null;
+}
+
 export function useVoiceEngine() {
   const contextRef = React.useRef<AudioContext | null>(null);
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
@@ -96,12 +140,18 @@ export function useVoiceEngine() {
   const sessionCounter = React.useRef(0);
   const levelRef = React.useRef(0);
 
+  const sequencesRef = React.useRef(new Map<string, Sequence>());
+  /** Lecture en cours : séquence, passage et numéro de lecture (annulation). */
+  const currentRef = React.useRef<{ seq: Sequence; index: number; run: number } | null>(null);
+  const runCounter = React.useRef(0);
+  const settleClipRef = React.useRef<((outcome: PlayOutcome) => void) | null>(null);
+  /** Où reprendre une réponse mise en pause (ou repositionnée). */
+  const resumeRef = React.useRef<{ id: string; index: number; offset: number } | null>(null);
   const objectUrlRef = React.useRef<string | null>(null);
-  const playbackIdRef = React.useRef<string | null>(null);
-  const resolvePlayRef = React.useRef<((outcome: PlayOutcome) => void) | null>(null);
   const rateRef = React.useRef(1);
+
   const [playback, setPlayback] = React.useState<Playback | null>(null);
-  /** Durée des réponses déjà chargées, affichée même à l'arrêt. */
+  /** Durée totale des réponses entièrement chargées, affichée même à l'arrêt. */
   const [durations, setDurations] = React.useState<Record<string, number>>({});
   const [rate, setRateState] = React.useState(1);
 
@@ -119,41 +169,63 @@ export function useVoiceEngine() {
     return contextRef.current;
   }
 
-  function settlePlay(outcome: PlayOutcome) {
-    const resolve = resolvePlayRef.current;
-    resolvePlayRef.current = null;
-    resolve?.(outcome);
+  // ───────────────────────────── Lecture ─────────────────────────────
+
+  function knownDuration(seq: Sequence): number {
+    return seq.clips.reduce((sum, clip) => sum + (clip.duration ?? 0), 0);
+  }
+
+  function offsetBefore(seq: Sequence, index: number): number {
+    return seq.clips.slice(0, index).reduce((sum, clip) => sum + (clip.duration ?? 0), 0);
+  }
+
+  function publish(waiting = false) {
+    const current = currentRef.current;
+    const audio = audioRef.current;
+    if (!current || !audio) return;
+    const { seq, index } = current;
+    setPlayback({
+      id: seq.id,
+      currentTime: offsetBefore(seq, index) + (waiting ? 0 : audio.currentTime),
+      duration: knownDuration(seq),
+      playing: waiting || (!audio.paused && !audio.ended),
+      waiting,
+    });
+  }
+
+  function recordDuration(seq: Sequence) {
+    if (!seq.closed || seq.clips.some((clip) => clip.blob === undefined || (clip.blob && !clip.duration))) {
+      return;
+    }
+    const total = knownDuration(seq);
+    if (total > 0) {
+      setDurations((known) => (known[seq.id] === total ? known : { ...known, [seq.id]: total }));
+    }
+  }
+
+  function settleClip(outcome: PlayOutcome) {
+    const settle = settleClipRef.current;
+    settleClipRef.current = null;
+    settle?.(outcome);
   }
 
   function ensurePlayer(): HTMLAudioElement {
     if (audioRef.current) return audioRef.current;
     const audio = new Audio();
     audio.preload = "auto";
-    const sync = () => {
-      const id = playbackIdRef.current;
-      if (!id) return;
-      const duration = Number.isFinite(audio.duration) ? audio.duration : 0;
-      setPlayback({
-        id,
-        currentTime: audio.currentTime,
-        duration,
-        playing: !audio.paused && !audio.ended,
-      });
-      if (duration > 0) {
-        setDurations((known) => (known[id] === duration ? known : { ...known, [id]: duration }));
-      }
-    };
-    for (const event of ["timeupdate", "durationchange", "loadedmetadata", "play", "pause"]) {
-      audio.addEventListener(event, sync);
-    }
-    audio.addEventListener("ended", () => {
-      sync();
-      settlePlay("ended");
+    const sync = () => publish();
+    for (const event of ["timeupdate", "play", "pause"]) audio.addEventListener(event, sync);
+    audio.addEventListener("loadedmetadata", () => {
+      const current = currentRef.current;
+      if (!current) return;
+      const clip = current.seq.clips[current.index];
+      if (clip && Number.isFinite(audio.duration) && audio.duration > 0) clip.duration = audio.duration;
+      publish();
     });
+    audio.addEventListener("ended", () => settleClip("ended"));
+    // Passage illisible : on passe au suivant plutôt que de bloquer la réponse.
     audio.addEventListener("error", () => {
-      if (!playbackIdRef.current) return;
-      sync();
-      settlePlay("blocked");
+      if (currentRef.current) settleClip("ended");
     });
     audioRef.current = audio;
     return audio;
@@ -172,6 +244,228 @@ export function useVoiceEngine() {
       void audio.play().catch(() => {});
     }
   }
+
+  function addClip(seq: Sequence, promise: Promise<Blob | null>) {
+    const clip: Clip = { promise };
+    seq.clips.push(clip);
+    void promise.then(async (blob) => {
+      clip.blob = blob;
+      if (blob) clip.duration = await probeDuration(blob);
+      if (currentRef.current?.seq === seq) publish(settleClipRef.current === null);
+      recordDuration(seq);
+    });
+    wake(seq);
+  }
+
+  function wake(seq: Sequence) {
+    const resume = seq.wake;
+    seq.wake = null;
+    resume?.();
+  }
+
+  function playClip(seq: Sequence, index: number, blob: Blob, offset: number): Promise<PlayOutcome> {
+    const audio = ensurePlayer();
+    if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
+    const url = URL.createObjectURL(blob);
+    objectUrlRef.current = url;
+    return new Promise<PlayOutcome>((resolve) => {
+      settleClipRef.current = resolve;
+      audio.src = url;
+      audio.defaultPlaybackRate = rateRef.current;
+      audio.playbackRate = rateRef.current;
+      if (offset > 0) {
+        audio.addEventListener(
+          "loadedmetadata",
+          () => {
+            audio.currentTime = Math.min(offset, audio.duration || offset);
+          },
+          { once: true },
+        );
+      }
+      audio.play().catch(() => settleClip("blocked"));
+    });
+  }
+
+  /** Joue la séquence à partir d'un passage ; attend les passages pas encore arrivés. */
+  async function run(seq: Sequence, startIndex: number, startOffset: number): Promise<PlayOutcome> {
+    stopCurrent(false);
+    const runId = ++runCounter.current;
+    let index = startIndex;
+    let offset = startOffset;
+    resumeRef.current = null;
+
+    while (runCounter.current === runId) {
+      currentRef.current = { seq, index, run: runId };
+      if (index >= seq.clips.length) {
+        if (seq.closed) {
+          currentRef.current = null;
+          setPlayback((current) =>
+            current?.id === seq.id
+              ? { ...current, currentTime: knownDuration(seq), playing: false, waiting: false }
+              : current,
+          );
+          return "ended";
+        }
+        publish(true);
+        await new Promise<void>((resolve) => {
+          seq.wake = resolve;
+        });
+        continue;
+      }
+      const clip = seq.clips[index];
+      if (clip.blob === undefined) publish(true);
+      const blob = clip.blob !== undefined ? clip.blob : await clip.promise;
+      if (runCounter.current !== runId) return "stopped";
+      if (!blob) {
+        index += 1;
+        offset = 0;
+        continue;
+      }
+      const outcome = await playClip(seq, index, blob, offset);
+      if (runCounter.current !== runId) return "stopped";
+      if (outcome !== "ended") {
+        if (outcome === "blocked") {
+          resumeRef.current = { id: seq.id, index, offset: 0 };
+          publish();
+        }
+        currentRef.current = null;
+        return outcome;
+      }
+      index += 1;
+      offset = 0;
+    }
+    return "stopped";
+  }
+
+  /** Arrête la lecture en cours ; `remember` garde la position pour une reprise. */
+  function stopCurrent(remember: boolean) {
+    const current = currentRef.current;
+    const audio = audioRef.current;
+    runCounter.current += 1;
+    if (current && remember) {
+      resumeRef.current = {
+        id: current.seq.id,
+        index: current.index,
+        offset: audio && !audio.ended ? audio.currentTime : 0,
+      };
+    }
+    if (audio && !audio.paused) audio.pause();
+    settleClip("stopped");
+    if (current) {
+      wake(current.seq);
+      const { seq } = current;
+      setPlayback((state) =>
+        state?.id === seq.id ? { ...state, playing: false, waiting: false } : state,
+      );
+    }
+    currentRef.current = null;
+  }
+
+  /**
+   * Nouvelle réponse lue au fil de l'eau : les passages s'ajoutent avec `add`
+   * et sont joués dans l'ordre ; `close` quand la réponse est complète.
+   */
+  function startLiveSpeech(id: string): LiveSpeech {
+    const seq: Sequence = { id, clips: [], closed: false, wake: null };
+    sequencesRef.current.set(id, seq);
+    const done = run(seq, 0, 0);
+    return {
+      add: (clip) => addClip(seq, clip),
+      close: () => {
+        seq.closed = true;
+        wake(seq);
+        recordDuration(seq);
+      },
+      done,
+    };
+  }
+
+  /** Passages déjà chargés pour cette réponse et complets (`expected` attendus). */
+  function loadedSequence(id: string, expected: number): Sequence | null {
+    const seq = sequencesRef.current.get(id);
+    return seq && seq.closed && seq.clips.length === expected ? seq : null;
+  }
+
+  /**
+   * Lit une réponse depuis le début. Si ses `expected` passages n'ont pas tous
+   * été chargés (réponse non prononcée ou coupée, message d'accueil),
+   * `loadClips` les fournit.
+   */
+  function playMessage(
+    id: string,
+    expected: number,
+    loadClips: () => Promise<Blob | null>[],
+  ): Promise<PlayOutcome> {
+    let seq = loadedSequence(id, expected);
+    if (!seq) {
+      seq = { id, clips: [], closed: false, wake: null };
+      sequencesRef.current.set(id, seq);
+      for (const clip of loadClips()) addClip(seq, clip);
+      seq.closed = true;
+    }
+    return run(seq, 0, 0);
+  }
+
+  /** Reprend une réponse mise en pause là où elle s'était arrêtée. */
+  function resume(id: string, expected: number): Promise<PlayOutcome> | null {
+    const position = resumeRef.current;
+    const seq = loadedSequence(id, expected);
+    if (!position || position.id !== id || !seq) return null;
+    return run(seq, position.index, position.offset);
+  }
+
+  function pause() {
+    stopCurrent(true);
+  }
+
+  function stopPlayback() {
+    stopCurrent(true);
+  }
+
+  /**
+   * Repositionne une réponse (clic sur sa forme d'onde). Renvoie `true` si elle
+   * était en cours de lecture : l'appelant la relance alors avec `resume`.
+   */
+  function seek(id: string, ratio: number): boolean {
+    const seq = sequencesRef.current.get(id);
+    if (!seq) return false;
+    const total = knownDuration(seq);
+    if (total <= 0) return false;
+    const wasPlaying = currentRef.current?.seq === seq;
+    if (wasPlaying) stopCurrent(false);
+    let target = Math.min(total, Math.max(0, ratio * total));
+    let index = 0;
+    while (index < seq.clips.length - 1 && target >= (seq.clips[index].duration ?? 0)) {
+      target -= seq.clips[index].duration ?? 0;
+      index += 1;
+    }
+    resumeRef.current = { id, index, offset: target };
+    setPlayback({
+      id,
+      currentTime: offsetBefore(seq, index) + target,
+      duration: total,
+      playing: false,
+      waiting: false,
+    });
+    return wasPlaying;
+  }
+
+  function setRate(next: number) {
+    rateRef.current = next;
+    setRateState(next);
+    if (audioRef.current) audioRef.current.playbackRate = next;
+  }
+
+  /** Oublie toutes les réponses chargées (nouvelle conversation, autre cours). */
+  function reset() {
+    stopCurrent(false);
+    resumeRef.current = null;
+    sequencesRef.current.clear();
+    setPlayback(null);
+    setDurations({});
+  }
+
+  // ───────────────────────────── Micro ─────────────────────────────
 
   function releaseSession(session: RecordingSession) {
     if (session.timer !== null) window.clearInterval(session.timer);
@@ -340,74 +634,17 @@ export function useVoiceEngine() {
     if (session) finish(session, false);
   }
 
-  function isListening(): boolean {
-    return Boolean(sessionRef.current && !sessionRef.current.finishing);
-  }
-
   /** Niveau du micro, de 0 à 1 (animation du cercle vocal). */
   function getMicLevel(): number {
     return sessionRef.current ? levelRef.current : 0;
   }
 
-  /** Lit une réponse ; se résout à la fin, à l'arrêt, ou si le navigateur bloque la lecture. */
-  function play(id: string, audioBlob: Blob): Promise<PlayOutcome> {
-    const audio = ensurePlayer();
-    settlePlay("stopped");
-    audio.pause();
-    if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
-    const url = URL.createObjectURL(audioBlob);
-    objectUrlRef.current = url;
-    playbackIdRef.current = id;
-    audio.src = url;
-    audio.defaultPlaybackRate = rateRef.current;
-    audio.playbackRate = rateRef.current;
-    setPlayback({ id, currentTime: 0, duration: 0, playing: true });
-
-    return new Promise<PlayOutcome>((resolve) => {
-      resolvePlayRef.current = resolve;
-      audio.play().catch(() => {
-        setPlayback({ id, currentTime: 0, duration: 0, playing: false });
-        settlePlay("blocked");
-      });
-    });
-  }
-
-  function pause() {
-    audioRef.current?.pause();
-    settlePlay("stopped");
-  }
-
-  /** Reprend la réponse déjà chargée (lecture manuelle depuis sa bulle). */
-  function resume(id: string): boolean {
-    const audio = audioRef.current;
-    if (!audio || playbackIdRef.current !== id || !objectUrlRef.current) return false;
-    if (audio.ended) audio.currentTime = 0;
-    void audio.play().catch(() => {});
-    return true;
-  }
-
-  function seek(id: string, ratio: number) {
-    const audio = audioRef.current;
-    if (!audio || playbackIdRef.current !== id || !Number.isFinite(audio.duration)) return;
-    audio.currentTime = Math.min(audio.duration, Math.max(0, ratio * audio.duration));
-  }
-
-  function stopPlayback() {
-    const audio = audioRef.current;
-    if (audio && !audio.paused) audio.pause();
-    settlePlay("stopped");
-  }
-
-  function setRate(next: number) {
-    rateRef.current = next;
-    setRateState(next);
-    if (audioRef.current) audioRef.current.playbackRate = next;
-  }
-
   React.useEffect(() => {
     const counter = sessionCounter;
+    const runs = runCounter;
     return () => {
       counter.current++;
+      runs.current++;
       const session = sessionRef.current;
       if (session) {
         if (session.timer !== null) window.clearInterval(session.timer);
@@ -425,13 +662,14 @@ export function useVoiceEngine() {
     startListening,
     submitListening,
     cancelListening,
-    isListening,
     getMicLevel,
-    play,
-    pause,
+    startLiveSpeech,
+    playMessage,
     resume,
+    pause,
     seek,
     stopPlayback,
+    reset,
     playback,
     durations,
     rate,

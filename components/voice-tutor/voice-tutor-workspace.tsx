@@ -8,10 +8,10 @@ import {
   FileSearch,
   FileText,
   FileUp,
-  Keyboard,
   LoaderCircle,
   MessageCircle,
   Mic,
+  Repeat,
   RotateCcw,
   Send,
   Square,
@@ -33,7 +33,6 @@ import {
   VOICE_TUTOR_MAX_HISTORY,
   VOICE_TUTOR_MAX_OCR_PAGES,
   VOICE_TUTOR_MAX_PDF_BYTES,
-  VOICE_TUTOR_MAX_QUESTION_CHARS,
   VOICE_TUTOR_MAX_UPLOAD_CHARS,
   VOICE_TUTOR_WELCOME,
   VOICE_TUTOR_LANGUAGES_COOKIE,
@@ -48,16 +47,26 @@ import {
 } from "./pdf-document";
 import { PdfViewer } from "./pdf-viewer";
 import { LanguagePicker } from "./language-picker";
-import { MicError, useVoiceEngine, type MicFailure } from "./use-voice-engine";
+import {
+  MicError,
+  useVoiceEngine,
+  type LiveSpeech,
+  type MicFailure,
+  type PlayOutcome,
+} from "./use-voice-engine";
 import { TeacherBadge, VoiceOrb, type VoicePhase } from "./voice-orb";
 import {
   PLAYBACK_RATES,
   TutorMessageBubble,
+  type SpeechSegment,
   type TutorMessage,
 } from "./tutor-message";
 
 /** Réponse du professeur : au-delà, la requête est abandonnée. */
 const REQUEST_TIMEOUT_MS = 75_000;
+
+/** Passages audio demandés en même temps (dans l'ordre de la réponse). */
+const SPEECH_CONCURRENCY = 2;
 
 interface DocumentMeta {
   key: number;
@@ -93,6 +102,14 @@ interface PanelError {
   code?: string;
 }
 
+/** Évènements du flux NDJSON de `POST /api/ai/voice-tutor`. */
+type TutorEvent =
+  | { type: "question"; text: string }
+  | { type: "delta"; text: string }
+  | { type: "speech"; text: string; token: string }
+  | { type: "done"; answer: string; pages: number[] }
+  | { type: "error"; message: string };
+
 let messageCounter = 0;
 function nextMessageId(): string {
   messageCounter += 1;
@@ -107,6 +124,11 @@ function welcomeMessage(language: VoiceTutorLanguage): TutorMessage {
     language,
     welcome: true,
   };
+}
+
+/** Passages à prononcer d'un message (l'accueil : un seul, sans jeton). */
+function segmentsOf(message: TutorMessage): SpeechSegment[] {
+  return message.segments?.length ? message.segments : [{ text: message.content }];
 }
 
 /**
@@ -140,11 +162,41 @@ function audioFileName(type: string): string {
   return `question.${extension}`;
 }
 
+/** Lit un flux NDJSON ligne par ligne. */
+async function* readEvents(body: ReadableStream<Uint8Array>): AsyncGenerator<TutorEvent> {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  const parse = (line: string): TutorEvent | null => {
+    try {
+      return JSON.parse(line) as TutorEvent;
+    } catch {
+      return null;
+    }
+  };
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    let newline = buffer.indexOf("\n");
+    while (newline >= 0) {
+      const event = parse(buffer.slice(0, newline).trim());
+      buffer = buffer.slice(newline + 1);
+      if (event) yield event;
+      newline = buffer.indexOf("\n");
+    }
+  }
+  const last = parse((buffer + decoder.decode()).trim());
+  if (last) yield last;
+}
+
 /**
- * Page « Professeur vocal » : PDF du cours à gauche, conversation à droite,
- * deux langues en haut. Le PDF est lu dans le navigateur ; chaque question
- * (voix ou clavier) part avec le texte du cours vers `POST /api/ai/voice-tutor`,
- * et la réponse est lue à voix haute (`POST /api/ai/voice-tutor/speech`).
+ * Page « Professeur vocal » : PDF du cours à gauche, conversation 100 % orale
+ * à droite, deux langues en haut. Le PDF est lu dans le navigateur ; chaque
+ * question enregistrée au micro part avec le texte du cours vers
+ * `POST /api/ai/voice-tutor`, dont la réponse arrive en flux : le texte
+ * s'affiche au fil de l'écriture et chaque passage est prononcé dès qu'il est
+ * prêt (`POST /api/ai/voice-tutor/speech`).
  *
  * Conversation mains libres : après chaque réponse prononcée, le micro se
  * rouvre de lui-même jusqu'à ce que l'élève arrête (bouton carré) ou se taise.
@@ -174,19 +226,25 @@ export function VoiceTutorWorkspace({
   const [phase, setPhaseState] = React.useState<VoicePhase>("idle");
   const [error, setError] = React.useState<PanelError | null>(null);
   const [notice, setNotice] = React.useState<string | null>(null);
-  const [keyboardOpen, setKeyboardOpen] = React.useState(false);
-  const [draft, setDraft] = React.useState("");
   const [mobileTab, setMobileTab] = React.useState<"document" | "teacher">("document");
-  const [loadingAudioId, setLoadingAudioId] = React.useState<string | null>(null);
 
   const fileInputRef = React.useRef<HTMLInputElement>(null);
-  const draftRef = React.useRef<HTMLInputElement>(null);
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const readAbortRef = React.useRef<AbortController | null>(null);
+  const requestAbortRef = React.useRef<AbortController | null>(null);
   const docKeyRef = React.useRef(0);
-  const audioCacheRef = React.useRef(new Map<string, Blob>());
   // Mains libres : le micro se rouvre après chaque réponse prononcée.
   const conversationRef = React.useRef(false);
+  // Réponse dont les passages sont prononcés au fil de l'eau (coupée si l'élève
+  // interrompt ou arrête : la suite s'affiche sans être lue).
+  const liveAnswerRef = React.useRef<string | null>(null);
+  // « Tour » de parole : chaque nouvelle action de l'élève (écouter, arrêter,
+  // lire une réponse) invalide les changements d'état des actions précédentes.
+  const turnRef = React.useRef(0);
+  const speechQueueRef = React.useRef<{ active: number; waiting: (() => void)[] }>({
+    active: 0,
+    waiting: [],
+  });
 
   // Dernières valeurs, lues par les rappels asynchrones (fin de phrase, audio).
   const phaseRef = React.useRef<VoicePhase>("idle");
@@ -236,6 +294,7 @@ export function VoiceTutorWorkspace({
   React.useEffect(() => {
     return () => {
       readAbortRef.current?.abort();
+      requestAbortRef.current?.abort();
       const current = docRef.current;
       if (current.status === "reading" || current.status === "ready") void current.doc.loadingTask.destroy();
     };
@@ -244,18 +303,21 @@ export function VoiceTutorWorkspace({
   // ───────────────────────────── Document ─────────────────────────────
 
   function stopConversation() {
+    turnRef.current += 1;
     conversationRef.current = false;
+    liveAnswerRef.current = null;
     engine.cancelListening();
     engine.stopPlayback();
-    if (phaseRef.current !== "thinking") setPhase("idle");
+    setPhase("idle");
   }
 
   function clearDocument() {
     stopConversation();
+    requestAbortRef.current?.abort();
     readAbortRef.current?.abort();
     const current = docRef.current;
     if (current.status === "reading" || current.status === "ready") void current.doc.loadingTask.destroy();
-    audioCacheRef.current.clear();
+    engine.reset();
     setDocState({ status: "empty" });
     setMessages([]);
     setError(null);
@@ -384,62 +446,43 @@ export function VoiceTutorWorkspace({
     return t.errorMicUnsupported;
   }
 
-  async function fetchSpeech(message: TutorMessage): Promise<Blob | null> {
-    const cached = audioCacheRef.current.get(message.id);
-    if (cached) return cached;
-    setLoadingAudioId(message.id);
+  /** Voix d'un passage (au plus deux demandes à la fois, dans l'ordre). */
+  async function fetchSpeech(
+    segment: SpeechSegment,
+    language: VoiceTutorLanguage,
+  ): Promise<Blob | null> {
+    const queue = speechQueueRef.current;
+    if (queue.active >= SPEECH_CONCURRENCY) {
+      await new Promise<void>((resolve) => queue.waiting.push(resolve));
+    }
+    queue.active += 1;
     try {
       const response = await fetch("/api/ai/voice-tutor/speech", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          text: message.content,
-          language: message.language,
-          token: message.speechToken,
-        }),
+        body: JSON.stringify({ text: segment.text, language, token: segment.token }),
       });
       if (!response.ok) return null;
       const blob = await response.blob();
-      if (blob.size === 0) return null;
-      audioCacheRef.current.set(message.id, blob);
-      return blob;
+      return blob.size > 0 ? blob : null;
     } catch {
       return null;
     } finally {
-      setLoadingAudioId((current) => (current === message.id ? null : current));
+      queue.active -= 1;
+      queue.waiting.shift()?.();
     }
   }
 
-  /** Prononce une réponse ; en mode mains libres, rouvre ensuite le micro. */
-  async function speak(message: TutorMessage, continueConversation: boolean) {
-    setPhase("speaking");
-    const audio = await fetchSpeech(message);
-    if (phaseRef.current !== "speaking") return;
-    if (!audio) {
-      conversationRef.current = false;
-      setNotice(t.errorSpeech);
-      setPhase("idle");
-      return;
-    }
-    const outcome = await engine.play(message.id, audio);
-    if (outcome === "blocked") {
-      conversationRef.current = false;
-      setNotice(t.autoplayBlocked);
-    }
-    if (phaseRef.current !== "speaking") return;
-    if (outcome === "ended" && continueConversation && conversationRef.current) {
-      void listen();
-      return;
-    }
-    if (outcome === "stopped") conversationRef.current = false;
-    setPhase("idle");
+  function updateMessage(id: string, update: (message: TutorMessage) => TutorMessage) {
+    setMessages((list) => list.map((message) => (message.id === id ? update(message) : message)));
   }
 
-  async function ask(input: { audio?: Blob; text?: string }) {
+  async function ask(audio: Blob) {
     const current = docRef.current;
     if (current.status !== "ready" || !current.hasText) return;
     const document: ReadyDocument = current;
-    const fromVoice = Boolean(input.audio);
+    const turn = turnRef.current;
+    const isCurrentTurn = () => turnRef.current === turn;
     const { documentLanguage: docLanguage, replyLanguage: language } = languagesRef.current;
 
     setError(null);
@@ -447,19 +490,9 @@ export function VoiceTutorWorkspace({
     setPhase("thinking");
 
     const history = messagesRef.current
-      .filter((message) => !message.welcome)
+      .filter((message) => !message.welcome && message.content.trim())
       .slice(-VOICE_TUTOR_MAX_HISTORY)
       .map((message) => ({ role: message.role, content: message.content.slice(0, 4000) }));
-
-    if (input.text) {
-      const question: TutorMessage = {
-        id: nextMessageId(),
-        role: "user",
-        content: input.text,
-        language,
-      };
-      setMessages((list) => [...list, question]);
-    }
 
     const payload = {
       documentName: document.meta.name.slice(0, 200),
@@ -469,14 +502,16 @@ export function VoiceTutorWorkspace({
       replyLanguage: language,
       pages: contextPages(document.pageTexts, pageRef.current),
       history,
-      question: input.text ?? "",
     };
     const form = new FormData();
     form.append("payload", JSON.stringify(payload));
-    if (input.audio) form.append("audio", input.audio, audioFileName(input.audio.type));
+    form.append("audio", audio, audioFileName(audio.type));
 
     const controller = new AbortController();
+    requestAbortRef.current = controller;
     const timer = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    const answerId = nextMessageId();
+    let live: LiveSpeech | null = null;
 
     try {
       const response = await fetch("/api/ai/voice-tutor", {
@@ -484,25 +519,20 @@ export function VoiceTutorWorkspace({
         body: form,
         signal: controller.signal,
       });
-      const data: {
-        question?: string;
-        answer?: string;
-        pages?: number[];
-        speechToken?: string;
-        error?: string;
-        code?: string;
-      } | null = await response.json().catch(() => null);
 
-      // Le cours a changé pendant la réponse : on l'ignore.
-      if (docRef.current !== document) return;
-
-      const spokenQuestion =
-        fromVoice && data?.question
-          ? { id: nextMessageId(), role: "user" as const, content: data.question, language }
-          : null;
-
-      if (!response.ok || !data?.answer) {
-        if (spokenQuestion) setMessages((list) => [...list, spokenQuestion]);
+      if (!response.ok || !response.body) {
+        const data: { question?: string; error?: string; code?: string } | null = await response
+          .json()
+          .catch(() => null);
+        if (docRef.current !== document) return;
+        if (data?.question) {
+          const question = data.question;
+          setMessages((list) => [
+            ...list,
+            { id: nextMessageId(), role: "user", content: question, language },
+          ]);
+        }
+        if (!isCurrentTurn()) return;
         conversationRef.current = false;
         if (data?.code === "NO_SPEECH") setNotice(data.error ?? t.errorNoSpeech);
         else setError({ message: data?.error ?? t.errorGeneric, code: data?.code });
@@ -510,25 +540,112 @@ export function VoiceTutorWorkspace({
         return;
       }
 
-      const answer: TutorMessage = {
-        id: nextMessageId(),
-        role: "assistant",
-        content: data.answer,
-        pages: data.pages ?? [],
-        speechToken: data.speechToken,
-        language,
-      };
-      setMessages((list) => [...list, ...(spokenQuestion ? [spokenQuestion] : []), answer]);
+      // Les passages sont prononcés au fil de l'eau seulement si l'élève est
+      // toujours en conversation (il a pu arrêter pendant la transcription).
+      if (conversationRef.current && isCurrentTurn()) liveAnswerRef.current = answerId;
+      let finished = false;
+      let failure: string | null = null;
+      let voiceStarted = false;
 
-      // Question posée à voix haute : réponse prononcée, puis micro rouvert.
-      if (fromVoice && conversationRef.current) {
-        await speak(answer, true);
-      } else {
-        setPhase("idle");
+      for await (const event of readEvents(response.body)) {
+        if (docRef.current !== document) return;
+        if (event.type === "question") {
+          setMessages((list) => [
+            ...list,
+            { id: nextMessageId(), role: "user", content: event.text, language },
+            { id: answerId, role: "assistant", content: "", language, segments: [], streaming: true },
+          ]);
+        } else if (event.type === "delta") {
+          updateMessage(answerId, (message) => ({ ...message, content: message.content + event.text }));
+        } else if (event.type === "speech") {
+          const segment: SpeechSegment = { text: event.text, token: event.token };
+          updateMessage(answerId, (message) => ({
+            ...message,
+            segments: [...(message.segments ?? []), segment],
+          }));
+          if (liveAnswerRef.current === answerId) {
+            live ??= engine.startLiveSpeech(answerId);
+            const clip = fetchSpeech(segment, language);
+            live.add(clip);
+            void clip.then((blob) => {
+              if (blob && !voiceStarted && isCurrentTurn() && phaseRef.current === "thinking") {
+                voiceStarted = true;
+                setPhase("speaking");
+              }
+            });
+          }
+        } else if (event.type === "done") {
+          finished = true;
+          updateMessage(answerId, (message) => ({
+            ...message,
+            content: event.answer,
+            pages: event.pages,
+            streaming: false,
+          }));
+        } else if (event.type === "error") {
+          failure = event.message;
+        }
       }
+      window.clearTimeout(timer);
+      live?.close();
+
+      if (!finished) {
+        // Réponse interrompue : on garde ce qui a été écrit, sans le prononcer.
+        setMessages((list) =>
+          list.flatMap((message) =>
+            message.id !== answerId
+              ? [message]
+              : message.content.trim()
+                ? [{ ...message, streaming: false }]
+                : [],
+          ),
+        );
+        if (liveAnswerRef.current === answerId) liveAnswerRef.current = null;
+        if (!isCurrentTurn()) return;
+        engine.stopPlayback();
+        conversationRef.current = false;
+        setError({ message: failure ?? t.errorConnection });
+        setPhase("idle");
+        return;
+      }
+
+      if (!live) {
+        // Rien à prononcer (conversation arrêtée entre-temps).
+        if (isCurrentTurn()) setPhase("idle");
+        return;
+      }
+      const outcome: PlayOutcome = await live.done;
+      if (liveAnswerRef.current === answerId) liveAnswerRef.current = null;
+      if (!isCurrentTurn()) return;
+      if (outcome === "blocked") {
+        conversationRef.current = false;
+        setNotice(t.autoplayBlocked);
+      } else if (outcome === "ended" && !voiceStarted) {
+        // Aucun passage n'a pu être prononcé : la réponse reste lisible.
+        conversationRef.current = false;
+        setNotice(t.errorSpeech);
+      }
+      if (outcome === "ended" && conversationRef.current) {
+        void listen();
+        return;
+      }
+      setPhase("idle");
     } catch (caught) {
+      live?.close();
       if (docRef.current !== document) return;
+      setMessages((list) =>
+        list.flatMap((message) =>
+          message.id !== answerId
+            ? [message]
+            : message.content.trim()
+              ? [{ ...message, streaming: false }]
+              : [],
+        ),
+      );
+      if (!isCurrentTurn()) return;
       conversationRef.current = false;
+      liveAnswerRef.current = null;
+      engine.stopPlayback();
       setError({
         message:
           caught instanceof DOMException && caught.name === "AbortError"
@@ -538,23 +655,28 @@ export function VoiceTutorWorkspace({
       setPhase("idle");
     } finally {
       window.clearTimeout(timer);
+      if (requestAbortRef.current === controller) requestAbortRef.current = null;
     }
   }
 
   async function listen() {
+    turnRef.current += 1;
+    const turn = turnRef.current;
     setError(null);
     setNotice(null);
     setPhase("listening");
     try {
       await engine.startListening({
-        onUtterance: (audio) => void ask({ audio }),
+        onUtterance: (audio) => void ask(audio),
         onNoSpeech: () => {
+          if (turnRef.current !== turn) return;
           conversationRef.current = false;
           setNotice(t.noSpeechStopped);
           setPhase("idle");
         },
       });
     } catch (caught) {
+      if (turnRef.current !== turn) return;
       conversationRef.current = false;
       setPhase("idle");
       setError({
@@ -581,6 +703,7 @@ export function VoiceTutorWorkspace({
         break;
       case "speaking":
         // L'élève coupe la parole au professeur pour poser une autre question.
+        liveAnswerRef.current = null;
         engine.stopPlayback();
         conversationRef.current = true;
         void listen();
@@ -590,34 +713,40 @@ export function VoiceTutorWorkspace({
     }
   }
 
-  function submitDraft(event: React.FormEvent) {
-    event.preventDefault();
-    const text = draft.trim();
-    if (!text || !canTalk || phaseRef.current === "thinking") return;
-    if (phaseRef.current !== "idle") stopConversation();
-    setDraft("");
-    void ask({ text: text.slice(0, VOICE_TUTOR_MAX_QUESTION_CHARS) });
-  }
-
-  async function playMessage(message: TutorMessage) {
+  /** Lecture d'une réponse depuis sa bulle (reprise là où elle s'était arrêtée). */
+  async function playMessage(message: TutorMessage, fromStart = false) {
     engine.unlock();
     if (phaseRef.current === "thinking") return;
-    if (phaseRef.current === "listening") {
-      conversationRef.current = false;
-      engine.cancelListening();
-    }
-    if (engine.playback?.id === message.id && engine.resume(message.id)) {
-      setPhase("speaking");
-      return;
-    }
+    turnRef.current += 1;
+    const turn = turnRef.current;
     conversationRef.current = false;
-    await speak(message, false);
+    liveAnswerRef.current = null;
+    engine.cancelListening();
+    setError(null);
+    setNotice(null);
+
+    const segments = segmentsOf(message);
+    const resumed = fromStart ? null : engine.resume(message.id, segments.length);
+    setPhase("speaking");
+    const outcome = await (resumed ??
+      engine.playMessage(message.id, segments.length, () =>
+        segments.map((segment) => fetchSpeech(segment, message.language)),
+      ));
+    if (turnRef.current !== turn) return;
+    if (outcome === "blocked") setNotice(t.autoplayBlocked);
+    setPhase("idle");
   }
 
   function pauseMessage() {
-    engine.pause();
+    turnRef.current += 1;
     conversationRef.current = false;
-    if (phaseRef.current === "speaking") setPhase("idle");
+    liveAnswerRef.current = null;
+    engine.pause();
+    setPhase("idle");
+  }
+
+  function seekMessage(message: TutorMessage, ratio: number) {
+    if (engine.seek(message.id, ratio)) void playMessage(message);
   }
 
   function cycleRate() {
@@ -627,11 +756,16 @@ export function VoiceTutorWorkspace({
 
   function newConversation() {
     stopConversation();
-    audioCacheRef.current.clear();
+    requestAbortRef.current?.abort();
+    engine.reset();
     setError(null);
     setNotice(null);
     setMessages(ready ? [welcomeMessage(replyLanguage)] : []);
   }
+
+  const lastAnswer = [...messages]
+    .reverse()
+    .find((message) => message.role === "assistant" && message.content.trim() && !message.streaming);
 
   // ───────────────────────────── Affichage ─────────────────────────────
 
@@ -659,6 +793,7 @@ export function VoiceTutorWorkspace({
           : t.micStart;
 
   const openDoc = docState.status === "reading" || docState.status === "ready" ? docState : null;
+  const answerWriting = messages.some((message) => message.streaming);
 
   return (
     <div className="flex flex-col gap-4 lg:h-[calc(100dvh-var(--spacing-header)-4rem)] lg:min-h-[36rem]">
@@ -947,17 +1082,18 @@ export function VoiceTutorWorkspace({
                 pageCount={ready?.meta.pageCount ?? 0}
                 playback={playback}
                 knownDuration={engine.durations[message.id]}
-                loadingAudio={loadingAudioId === message.id}
-                audioDisabled={phase === "thinking"}
+                audioDisabled={
+                  phase === "thinking" || (Boolean(message.streaming) && playback?.id !== message.id)
+                }
                 rate={engine.rate}
                 onPlay={() => void playMessage(message)}
                 onPause={pauseMessage}
-                onSeek={(ratio) => engine.seek(message.id, ratio)}
+                onSeek={(ratio) => seekMessage(message, ratio)}
                 onRateChange={cycleRate}
                 onOpenPage={openPage}
               />
             ))}
-            {phase === "thinking" ? (
+            {phase === "thinking" && !answerWriting ? (
               <div className="flex items-center gap-2.5">
                 <TeacherBadge className="size-8" />
                 <span className="flex items-center gap-1 rounded-2xl rounded-tl-sm bg-surface px-4 py-3 shadow-card ring-1 ring-line-soft">
@@ -988,48 +1124,17 @@ export function VoiceTutorWorkspace({
             ) : null}
           </div>
 
-          {keyboardOpen ? (
-            <form onSubmit={submitDraft} className="flex shrink-0 items-center gap-2 px-4 pt-3">
-              <input
-                ref={draftRef}
-                autoFocus
-                value={draft}
-                onChange={(event) => setDraft(event.target.value)}
-                maxLength={VOICE_TUTOR_MAX_QUESTION_CHARS}
-                disabled={!canTalk}
-                placeholder={t.inputPlaceholder}
-                aria-label={t.inputAria}
-                dir="auto"
-                className="h-11 min-w-0 flex-1 rounded-xl border border-line bg-surface px-3.5 text-sm text-ink-900 placeholder:text-ink-400 hover:border-primary-200 focus:border-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-100 disabled:cursor-not-allowed disabled:opacity-60"
-              />
-              <Button
-                type="submit"
-                disabled={!canTalk || !draft.trim() || phase === "thinking"}
-                aria-label={t.send}
-                className="shrink-0"
-              >
-                <Send className="size-4" aria-hidden />
-                <span className="hidden sm:inline">{t.send}</span>
-              </Button>
-            </form>
-          ) : null}
-
           <div className="shrink-0 px-4 pb-4 pt-3">
             <div className="flex items-center justify-center gap-6 sm:gap-8">
               <button
                 type="button"
-                onClick={() => setKeyboardOpen((open) => !open)}
-                aria-pressed={keyboardOpen}
-                aria-label={t.keyboard}
-                title={t.keyboard}
-                className={cn(
-                  "flex size-12 items-center justify-center rounded-full ring-1 transition-colors",
-                  keyboardOpen
-                    ? "bg-primary-100 text-primary-700 ring-primary-200"
-                    : "bg-surface text-ink-500 ring-line-soft hover:bg-primary-50 hover:text-ink-900",
-                )}
+                onClick={() => lastAnswer && void playMessage(lastAnswer, true)}
+                disabled={!lastAnswer || phase === "thinking" || phase === "listening"}
+                aria-label={t.replay}
+                title={t.replay}
+                className="flex size-12 items-center justify-center rounded-full bg-surface text-ink-500 ring-1 ring-line-soft transition-colors hover:bg-primary-50 hover:text-ink-900 disabled:text-ink-400 disabled:opacity-60 disabled:hover:bg-surface"
               >
-                <Keyboard className="size-5" aria-hidden />
+                <Repeat className="size-5" aria-hidden />
               </button>
 
               <button

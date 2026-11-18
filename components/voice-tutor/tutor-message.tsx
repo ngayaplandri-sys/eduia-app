@@ -8,14 +8,22 @@ import type { VoiceTutorLanguage } from "@/lib/config/voice-tutor";
 import type { Playback } from "./use-voice-engine";
 import { TeacherBadge } from "./voice-orb";
 
+/** Passage d'une réponse à prononcer, avec le jeton signé par le serveur. */
+export interface SpeechSegment {
+  text: string;
+  token?: string;
+}
+
 export interface TutorMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
-  /** Pages du cours sur lesquelles s'appuie la réponse. */
+  /** Pages du cours citées dans la réponse. */
   pages?: number[];
-  /** Autorise la lecture à voix haute de cette réponse (signé par le serveur). */
-  speechToken?: string;
+  /** Passages à prononcer (réponse lue phrase par phrase). */
+  segments?: SpeechSegment[];
+  /** Réponse encore en cours d'écriture. */
+  streaming?: boolean;
   /** Langue de la réponse (voix de la synthèse vocale). */
   language: VoiceTutorLanguage;
   /** Message d'accueil : affiché, jamais renvoyé comme historique. */
@@ -94,7 +102,6 @@ function AnswerAudio({
   message,
   playback,
   knownDuration,
-  loading,
   disabled,
   rate,
   onPlay,
@@ -105,7 +112,6 @@ function AnswerAudio({
   message: TutorMessage;
   playback: Playback | null;
   knownDuration: number | undefined;
-  loading: boolean;
   disabled: boolean;
   rate: number;
   onPlay: () => void;
@@ -116,6 +122,7 @@ function AnswerAudio({
   const { dict } = useI18n();
   const t = dict.voiceTutor;
   const active = playback?.id === message.id ? playback : null;
+  const loading = Boolean(active?.waiting);
   const duration = active?.duration || knownDuration || 0;
   const current = active?.currentTime ?? 0;
   const progress = duration > 0 ? Math.min(1, current / duration) : 0;
@@ -142,7 +149,7 @@ function AnswerAudio({
       </button>
       <button
         type="button"
-        disabled={!active || duration === 0}
+        disabled={duration === 0}
         onClick={(event) => {
           const box = event.currentTarget.getBoundingClientRect();
           onSeek((event.clientX - box.left) / box.width);
@@ -183,7 +190,6 @@ export function TutorMessageBubble({
   pageCount,
   playback,
   knownDuration,
-  loadingAudio,
   audioDisabled,
   rate,
   onPlay,
@@ -196,7 +202,6 @@ export function TutorMessageBubble({
   pageCount: number;
   playback: Playback | null;
   knownDuration: number | undefined;
-  loadingAudio: boolean;
   audioDisabled: boolean;
   rate: number;
   onPlay: () => void;
@@ -229,14 +234,24 @@ export function TutorMessageBubble({
     );
   }
 
+  const writing = Boolean(message.streaming) && !message.content;
   const showSourceChips =
-    (message.pages?.length ?? 0) > 0 && !hasInlinePageReference(message.content, pageCount);
+    !message.streaming &&
+    (message.pages?.length ?? 0) > 0 &&
+    !hasInlinePageReference(message.content, pageCount);
 
   return (
     <div className="flex items-start gap-2.5">
       <TeacherBadge className="size-8" />
       <div className="min-w-0 max-w-[92%] flex-1 rounded-2xl rounded-tl-sm bg-surface px-3.5 py-3 shadow-card ring-1 ring-line-soft">
         <span className="sr-only">{t.teacherName} : </span>
+        {writing ? (
+          <span className="flex items-center gap-1 py-1.5" aria-label={t.statusThinking}>
+            <span aria-hidden className="size-1.5 animate-bounce rounded-full bg-primary-400 [animation-delay:-0.3s]" />
+            <span aria-hidden className="size-1.5 animate-bounce rounded-full bg-primary-400 [animation-delay:-0.15s]" />
+            <span aria-hidden className="size-1.5 animate-bounce rounded-full bg-primary-400" />
+          </span>
+        ) : null}
         <p
           dir="auto"
           lang={message.language}
@@ -265,18 +280,19 @@ export function TutorMessageBubble({
             ))}
           </div>
         ) : null}
-        <AnswerAudio
+        {writing ? null : (
+          <AnswerAudio
           message={message}
           playback={playback}
           knownDuration={knownDuration}
-          loading={loadingAudio}
           disabled={audioDisabled}
           rate={rate}
           onPlay={onPlay}
           onPause={onPause}
           onSeek={onSeek}
           onRateChange={onRateChange}
-        />
+          />
+        )}
       </div>
     </div>
   );

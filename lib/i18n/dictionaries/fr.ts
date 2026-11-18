@@ -722,7 +722,7 @@ export const fr = {
     menuLabel: "Options du professeur",
     newConversation: "Nouvelle conversation",
     emptyConversation:
-      "Importe ton cours à gauche : ton professeur IA le lira et répondra à tes questions, à l'oral ou à l'écrit.",
+      "Importe ton cours à gauche : ton professeur IA le lira, puis tu pourras lui poser tes questions à voix haute.",
     statusNoDocument: "Importe ton cours pour commencer",
     statusReading: "Je lis ton cours…",
     statusNoText: "Je n'arrive pas à lire ce document",
@@ -736,10 +736,7 @@ export const fr = {
     micInterrupt: "Appuie pour m'interrompre",
     micWait: "Un instant…",
     stopConversation: "Arrêter la conversation",
-    keyboard: "Écrire au clavier",
-    inputPlaceholder: "Écris ta question sur le cours…",
-    inputAria: "Ta question pour le professeur",
-    send: "Envoyer",
+    replay: "Réécouter la dernière réponse",
     you: "Toi",
     listen: "Écouter la réponse",
     pause: "Mettre en pause",
@@ -754,11 +751,11 @@ export const fr = {
     errorNoSpeech: "Je n'ai pas entendu ta question. Rapproche-toi du micro et réessaie.",
     errorRecordingTooLong: "Ta question est trop longue : une minute maximum.",
     errorMicDenied:
-      "Accès au micro refusé. Autorise le micro pour EduIA dans les réglages de ton navigateur, ou écris ta question au clavier.",
+      "Accès au micro refusé. Autorise le micro pour EduIA dans les réglages de ton navigateur, puis réessaie.",
     errorMicMissing:
-      "Aucun micro disponible sur cet appareil. Tu peux écrire ta question au clavier.",
+      "Aucun micro disponible sur cet appareil. Branche ou active un micro, puis réessaie.",
     errorMicUnsupported:
-      "Ton navigateur ne permet pas l'enregistrement vocal. Écris ta question au clavier, ou essaie avec Chrome.",
+      "Ton navigateur ne permet pas l'enregistrement vocal. Essaie avec Chrome, Edge ou Safari à jour.",
     errorSpeech: "Impossible de lire la réponse à voix haute. Tu peux la lire ci-dessus.",
     autoplayBlocked:
       "Ton navigateur a bloqué la lecture : appuie sur ▶ pour écouter la réponse.",
