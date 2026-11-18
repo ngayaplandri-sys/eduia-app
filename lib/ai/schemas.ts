@@ -4,6 +4,13 @@ import {
   EXAM_DIFFICULTIES,
   EXAM_LANGUAGES,
 } from "@/lib/config/tool-options";
+import {
+  VOICE_TUTOR_LANGUAGE_CODES,
+  VOICE_TUTOR_MAX_HISTORY,
+  VOICE_TUTOR_MAX_PAGE_CHARS,
+  VOICE_TUTOR_MAX_QUESTION_CHARS,
+  VOICE_TUTOR_MAX_UPLOAD_CHARS,
+} from "@/lib/config/voice-tutor";
 
 /**
  * Schémas Zod utilisés à deux endroits :
@@ -457,3 +464,66 @@ export const aiCorrectionSchema = z.object({
 });
 
 export type AICorrectionOutput = z.infer<typeof aiCorrectionSchema>;
+
+// ───────────────────────── Professeur vocal ─────────────────────────
+
+const MAX_PAGE_NUMBER = 5000;
+
+/**
+ * Question au Professeur vocal (`POST /api/ai/voice-tutor`, champ `payload`
+ * du formulaire). Le PDF reste dans le navigateur : seul son texte, page par
+ * page, accompagne chaque question — la route reste sans état.
+ */
+export const voiceTutorRequestSchema = z
+  .object({
+    documentName: z.string().trim().min(1).max(200),
+    pageCount: z.number().int().min(1).max(MAX_PAGE_NUMBER),
+    currentPage: z.number().int().min(1).max(MAX_PAGE_NUMBER),
+    documentLanguage: z.enum(VOICE_TUTOR_LANGUAGE_CODES),
+    replyLanguage: z.enum(VOICE_TUTOR_LANGUAGE_CODES),
+    pages: z
+      .array(
+        z.object({
+          page: z.number().int().min(1).max(MAX_PAGE_NUMBER),
+          text: z.string().max(VOICE_TUTOR_MAX_PAGE_CHARS),
+        }),
+      )
+      .min(1)
+      .max(MAX_PAGE_NUMBER),
+    history: z
+      .array(
+        z.object({
+          role: z.enum(["user", "assistant"]),
+          content: z.string().trim().min(1).max(4000),
+        }),
+      )
+      .max(VOICE_TUTOR_MAX_HISTORY),
+    // Absente quand la question est envoyée en audio (champ `audio`).
+    question: z.string().trim().max(VOICE_TUTOR_MAX_QUESTION_CHARS).default(""),
+  })
+  .refine(
+    ({ pages }) =>
+      pages.reduce((sum, page) => sum + page.text.length, 0) <=
+      VOICE_TUTOR_MAX_UPLOAD_CHARS,
+  );
+
+export type VoiceTutorRequest = z.infer<typeof voiceTutorRequestSchema>;
+
+export const voiceTutorSpeechSchema = z.object({
+  text: z.string().trim().min(1).max(8000),
+  language: z.enum(VOICE_TUTOR_LANGUAGE_CODES),
+  token: z.string().max(200).optional(),
+});
+
+export const aiVoiceTutorAnswerSchema = z.object({
+  answer: z
+    .string()
+    .describe(
+      "Réponse orale du professeur, dans la langue de réponse demandée : texte simple sans Markdown, destiné à être lu à voix haute.",
+    ),
+  pages: z
+    .array(z.number().int())
+    .describe(
+      "Numéros des pages du document sur lesquelles s'appuie la réponse (repères « === Page N === ») ; tableau vide si la réponse ne s'appuie pas sur le document.",
+    ),
+});

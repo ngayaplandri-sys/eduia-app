@@ -23,6 +23,7 @@ export default function robots(): MetadataRoute.Robots {
         "/documents",
         "/historique",
         "/assistant",
+        "/professeur-vocal",
         "/premium",
         "/parametres",
         "/aide",

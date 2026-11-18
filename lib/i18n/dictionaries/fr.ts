@@ -51,6 +51,7 @@ export const fr = {
     generer: "Générer une épreuve",
     corriger: "Corriger une épreuve",
     assistant: "Assistant IA",
+    professeurVocal: "Professeur vocal",
     documents: "Documents",
     historique: "Historique",
     parametres: "Paramètres",
@@ -651,6 +652,121 @@ export const fr = {
     charLimit: "Message trop long (4000 caractères maximum).",
     disclaimer:
       "L'Assistant IA peut se tromper : vérifie toujours les informations importantes.",
+  },
+
+  voiceTutor: {
+    metaTitle: "Professeur vocal",
+    metaDescription:
+      "Importe ton cours en PDF et discute à voix haute avec ton professeur IA : explications simples, exemples et renvois aux pages de ton cours.",
+    title: "Professeur vocal",
+    subtitle: "Discute oralement avec ton professeur IA à partir de ton cours",
+    documentLanguage: "Langue du document",
+    replyLanguage: "Langue de réponse",
+    panelsLabel: "Document et professeur",
+    tabDocument: "Document",
+    tabTeacher: "Professeur",
+
+    // Document
+    uploadTitle: "Importe ton cours",
+    uploadBody:
+      "Glisse ton fichier PDF ici ou choisis-le sur ton appareil. Il s'affiche ici, et ton professeur IA le lit pour répondre à tes questions.",
+    uploadButton: "Choisir un PDF",
+    uploadHint: (max: string) => `PDF uniquement · ${max} maximum`,
+    dropHere: "Dépose ton PDF ici",
+    reading: "Ouverture du document…",
+    readingPages: (done: number, total: number) => `Lecture des pages… ${done}/${total}`,
+    readingScanned: (done: number, total: number) =>
+      `Lecture des pages scannées… ${done}/${total}`,
+    imported: "Importé",
+    pagesAndSize: (pages: number, size: string) =>
+      `${pages} page${pages > 1 ? "s" : ""} · ${size}`,
+    removeDocument: "Retirer le document",
+    changeDocument: "Changer de document",
+    askFromDocument: "Poser une question",
+    errorNotPdf: "Ce fichier n'est pas un PDF valide. Choisis un fichier .pdf.",
+    errorPdfTooLarge: (max: string) => `Ce PDF est trop lourd (${max} maximum).`,
+    errorPdfPassword:
+      "Ce PDF est protégé par un mot de passe : retire la protection, puis importe-le à nouveau.",
+    errorPdfNoText:
+      "Impossible de lire le texte de ce PDF (pages scannées illisibles). Essaie avec une version plus nette du document.",
+    scannedPartial: (count: number) =>
+      `Document scanné : seules les ${count} premières pages scannées ont pu être lues par le professeur.`,
+
+    // Lecteur PDF
+    viewerToolbar: "Outils du document",
+    prevPage: "Page précédente",
+    nextPage: "Page suivante",
+    pageNumber: "Numéro de page",
+    pageAria: (page: number, total: number) => `Page ${page} sur ${total}`,
+    zoomIn: "Zoom avant",
+    zoomOut: "Zoom arrière",
+    zoomLabel: "Zoom",
+    search: "Rechercher dans le document",
+    searchPlaceholder: "Rechercher un mot…",
+    searchResults: (index: number, total: number) =>
+      index > 0
+        ? `Page trouvée ${index}/${total}`
+        : `${total} page${total > 1 ? "s" : ""} trouvée${total > 1 ? "s" : ""}`,
+    searchNoResult: "Aucun résultat",
+    searchNext: "Résultat suivant",
+    searchPrev: "Résultat précédent",
+    closeSearch: "Fermer la recherche",
+    fullscreen: "Plein écran",
+    exitFullscreen: "Quitter le plein écran",
+    renderError: "Impossible d'afficher cette page.",
+
+    // Professeur
+    teacherName: "Mon professeur IA",
+    online: "En ligne",
+    waiting: "En attente de ton cours",
+    menuLabel: "Options du professeur",
+    newConversation: "Nouvelle conversation",
+    emptyConversation:
+      "Importe ton cours à gauche : ton professeur IA le lira et répondra à tes questions, à l'oral ou à l'écrit.",
+    statusNoDocument: "Importe ton cours pour commencer",
+    statusReading: "Je lis ton cours…",
+    statusNoText: "Je n'arrive pas à lire ce document",
+    statusIdle: "Appuie sur le micro et pose ta question",
+    statusListening: "Écoute en cours…",
+    statusThinking: "Je réfléchis…",
+    statusSpeaking: "Je t'explique…",
+    listeningHint: "Parle, puis marque une pause : ta question part toute seule.",
+    micStart: "Appuie pour parler",
+    micSend: "Appuie pour envoyer",
+    micInterrupt: "Appuie pour m'interrompre",
+    micWait: "Un instant…",
+    stopConversation: "Arrêter la conversation",
+    keyboard: "Écrire au clavier",
+    inputPlaceholder: "Écris ta question sur le cours…",
+    inputAria: "Ta question pour le professeur",
+    send: "Envoyer",
+    you: "Toi",
+    listen: "Écouter la réponse",
+    pause: "Mettre en pause",
+    loadingAudio: "Préparation de la voix…",
+    seek: "Position dans la réponse audio",
+    speed: (rate: string) => `Vitesse de lecture : ${rate}`,
+    sources: "Dans ton cours :",
+    pageRef: (page: number) => `page ${page}`,
+    goToPage: (page: number) => `Afficher la page ${page}`,
+    noSpeechStopped:
+      "Je ne t'ai pas entendu, alors j'ai coupé le micro. Appuie dessus quand tu es prêt.",
+    errorNoSpeech: "Je n'ai pas entendu ta question. Rapproche-toi du micro et réessaie.",
+    errorRecordingTooLong: "Ta question est trop longue : une minute maximum.",
+    errorMicDenied:
+      "Accès au micro refusé. Autorise le micro pour EduIA dans les réglages de ton navigateur, ou écris ta question au clavier.",
+    errorMicMissing:
+      "Aucun micro disponible sur cet appareil. Tu peux écrire ta question au clavier.",
+    errorMicUnsupported:
+      "Ton navigateur ne permet pas l'enregistrement vocal. Écris ta question au clavier, ou essaie avec Chrome.",
+    errorSpeech: "Impossible de lire la réponse à voix haute. Tu peux la lire ci-dessus.",
+    autoplayBlocked:
+      "Ton navigateur a bloqué la lecture : appuie sur ▶ pour écouter la réponse.",
+    errorGeneric: "Le professeur n'a pas pu répondre. Réessaie dans un instant.",
+    errorConnection: "Connexion interrompue. Vérifie ta connexion internet, puis réessaie.",
+    timeout: "Le professeur met trop de temps à répondre. Réessaie.",
+    disclaimer:
+      "Le professeur IA peut se tromper : vérifie les informations importantes dans ton cours.",
   },
 
   documents: {
@@ -1508,7 +1624,7 @@ export const fr = {
     usageExams: (count: number) => `Épreuves générées : ${count}`,
     usageCorrections: (count: number) => `Épreuves corrigées : ${count}`,
     usageAssistant: (count: number) =>
-      `Questions posées à l'Assistant IA : ${count}`,
+      `Questions posées au professeur IA : ${count}`,
 
     // Bandeau « crédits insuffisants » (boutons d'action).
     insufficientTitle: "Crédits insuffisants",

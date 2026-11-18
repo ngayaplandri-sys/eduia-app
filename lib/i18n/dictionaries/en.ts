@@ -44,6 +44,7 @@ export const en: Dictionary = {
     generer: "Generate a test",
     corriger: "Grade a test",
     assistant: "AI Assistant",
+    professeurVocal: "Voice tutor",
     documents: "Documents",
     historique: "History",
     parametres: "Settings",
@@ -631,6 +632,118 @@ export const en: Dictionary = {
     charLimit: "Message too long (4000 characters maximum).",
     disclaimer:
       "The AI Assistant can make mistakes: always double-check important information.",
+  },
+
+  voiceTutor: {
+    metaTitle: "Voice tutor",
+    metaDescription:
+      "Import your course as a PDF and talk out loud with your AI teacher: simple explanations, examples and references to the pages of your course.",
+    title: "Voice tutor",
+    subtitle: "Talk out loud with your AI teacher about your course",
+    documentLanguage: "Document language",
+    replyLanguage: "Answer language",
+    panelsLabel: "Document and teacher",
+    tabDocument: "Document",
+    tabTeacher: "Teacher",
+
+    // Document
+    uploadTitle: "Import your course",
+    uploadBody:
+      "Drag your PDF file here or pick it from your device. It shows up here, and your AI teacher reads it to answer your questions.",
+    uploadButton: "Choose a PDF",
+    uploadHint: (max: string) => `PDF only · ${max} max`,
+    dropHere: "Drop your PDF here",
+    reading: "Opening the document…",
+    readingPages: (done: number, total: number) => `Reading pages… ${done}/${total}`,
+    readingScanned: (done: number, total: number) =>
+      `Reading scanned pages… ${done}/${total}`,
+    imported: "Imported",
+    pagesAndSize: (pages: number, size: string) =>
+      `${pages} page${pages > 1 ? "s" : ""} · ${size}`,
+    removeDocument: "Remove the document",
+    changeDocument: "Change document",
+    askFromDocument: "Ask a question",
+    errorNotPdf: "This file isn't a valid PDF. Choose a .pdf file.",
+    errorPdfTooLarge: (max: string) => `This PDF is too large (${max} max).`,
+    errorPdfPassword:
+      "This PDF is password-protected: remove the protection, then import it again.",
+    errorPdfNoText:
+      "The text of this PDF can't be read (unreadable scanned pages). Try a sharper version of the document.",
+    scannedPartial: (count: number) =>
+      `Scanned document: only the first ${count} scanned pages could be read by the teacher.`,
+
+    // PDF viewer
+    viewerToolbar: "Document tools",
+    prevPage: "Previous page",
+    nextPage: "Next page",
+    pageNumber: "Page number",
+    pageAria: (page: number, total: number) => `Page ${page} of ${total}`,
+    zoomIn: "Zoom in",
+    zoomOut: "Zoom out",
+    zoomLabel: "Zoom",
+    search: "Search the document",
+    searchPlaceholder: "Search for a word…",
+    searchResults: (index: number, total: number) =>
+      index > 0
+        ? `Matching page ${index}/${total}`
+        : `${total} matching page${total > 1 ? "s" : ""}`,
+    searchNoResult: "No results",
+    searchNext: "Next result",
+    searchPrev: "Previous result",
+    closeSearch: "Close search",
+    fullscreen: "Full screen",
+    exitFullscreen: "Exit full screen",
+    renderError: "This page can't be displayed.",
+
+    // Teacher
+    teacherName: "My AI teacher",
+    online: "Online",
+    waiting: "Waiting for your course",
+    menuLabel: "Teacher options",
+    newConversation: "New conversation",
+    emptyConversation:
+      "Import your course on the left: your AI teacher will read it and answer your questions, out loud or in writing.",
+    statusNoDocument: "Import your course to get started",
+    statusReading: "I'm reading your course…",
+    statusNoText: "I can't read this document",
+    statusIdle: "Tap the mic and ask your question",
+    statusListening: "Listening…",
+    statusThinking: "Thinking…",
+    statusSpeaking: "Explaining…",
+    listeningHint: "Speak, then pause: your question is sent automatically.",
+    micStart: "Tap to talk",
+    micSend: "Tap to send",
+    micInterrupt: "Tap to interrupt me",
+    micWait: "One moment…",
+    stopConversation: "Stop the conversation",
+    keyboard: "Type with the keyboard",
+    inputPlaceholder: "Type your question about the course…",
+    inputAria: "Your question for the teacher",
+    send: "Send",
+    you: "You",
+    listen: "Listen to the answer",
+    pause: "Pause",
+    loadingAudio: "Preparing the voice…",
+    seek: "Position in the audio answer",
+    speed: (rate: string) => `Playback speed: ${rate}`,
+    sources: "In your course:",
+    pageRef: (page: number) => `page ${page}`,
+    goToPage: (page: number) => `Show page ${page}`,
+    noSpeechStopped:
+      "I didn't hear you, so I turned the mic off. Tap it when you're ready.",
+    errorNoSpeech: "I didn't hear your question. Move closer to the mic and try again.",
+    errorRecordingTooLong: "Your question is too long: one minute max.",
+    errorMicDenied:
+      "Microphone access denied. Allow the microphone for EduIA in your browser settings, or type your question.",
+    errorMicMissing: "No microphone available on this device. You can type your question.",
+    errorMicUnsupported:
+      "Your browser doesn't support voice recording. Type your question, or try Chrome.",
+    errorSpeech: "The answer can't be read out loud. You can read it above.",
+    autoplayBlocked: "Your browser blocked playback: tap ▶ to listen to the answer.",
+    errorGeneric: "The teacher couldn't answer. Try again in a moment.",
+    errorConnection: "Connection lost. Check your internet connection, then try again.",
+    timeout: "The teacher is taking too long to answer. Try again.",
+    disclaimer: "The AI teacher can make mistakes: check important information in your course.",
   },
 
   documents: {
@@ -1479,7 +1592,7 @@ export const en: Dictionary = {
     usageSummaries: (count: number) => `Summaries created: ${count}`,
     usageExams: (count: number) => `Tests generated: ${count}`,
     usageCorrections: (count: number) => `Tests graded: ${count}`,
-    usageAssistant: (count: number) => `Questions asked to the AI Assistant: ${count}`,
+    usageAssistant: (count: number) => `Questions asked to the AI teacher: ${count}`,
 
     // "Insufficient credits" banner (action buttons).
     insufficientTitle: "Insufficient credits",

@@ -15,12 +15,15 @@ const isDev = process.env.NODE_ENV === "development";
 // `connect-src` autorise l'API du stockage Vercel Blob (vercel.com/api/blob et
 // *.blob.vercel-storage.com) : les fichiers de plus de 4 Mo y sont déposés
 // directement depuis le navigateur (voir lib/uploads/client.ts).
+// `media-src` blob:/data: : lecture des réponses vocales du « Professeur vocal »
+// (MP3 reçu puis lu depuis une URL blob:) et WAV vide de déblocage audio (iPhone).
 const cspHeader = `
   default-src 'self';
   script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""};
   style-src 'self' 'unsafe-inline';
   img-src 'self' data: blob: https://*.googleusercontent.com;
   font-src 'self' data:;
+  media-src 'self' blob: data:;
   connect-src 'self' https://vercel.com https://*.blob.vercel-storage.com;
   object-src 'none';
   base-uri 'self';
@@ -35,11 +38,12 @@ const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "X-Frame-Options", value: "DENY" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-  // Caméra autorisée pour l'app elle-même seulement (« Scanner avec la
-  // caméra » : cours, épreuves, copies), jamais pour un contenu tiers intégré.
+  // Caméra et micro autorisés pour l'app elle-même seulement (« Scanner avec
+  // la caméra » : cours, épreuves, copies ; « Professeur vocal » : questions à
+  // l'oral), jamais pour un contenu tiers intégré.
   {
     key: "Permissions-Policy",
-    value: "camera=(self), microphone=(), geolocation=()",
+    value: "camera=(self), microphone=(self), geolocation=()",
   },
   { key: "Content-Security-Policy", value: cspHeader },
   // Ignoré par les navigateurs si reçu en HTTP (dev) — inoffensif à laisser actif.

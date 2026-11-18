@@ -3,7 +3,7 @@ import {
   FileText,
   FilePenLine,
   ClipboardCheck,
-  Bot,
+  Mic,
   Folder,
   ClockArrowLeft,
   Settings,
@@ -22,6 +22,7 @@ export type NavKey =
   | "generer"
   | "corriger"
   | "assistant"
+  | "professeurVocal"
   | "documents"
   | "historique"
   | "parametres"
@@ -42,7 +43,7 @@ export const primaryNav: NavLink[] = [
   { key: "resumer", href: "/resumer", icon: FileText, tone: "success" },
   { key: "generer", href: "/generer", icon: FilePenLine, tone: "primary" },
   { key: "corriger", href: "/corriger", icon: ClipboardCheck, tone: "warning" },
-  { key: "assistant", href: "/assistant", icon: Bot, tone: "primary" },
+  { key: "professeurVocal", href: "/professeur-vocal", icon: Mic, tone: "primary" },
 ];
 
 /** Groupe secondaire — icônes neutres. */
@@ -72,6 +73,7 @@ const PAGE_TITLE_KEYS: Record<string, NavKey> = {
   "/generer": "generer",
   "/corriger": "corriger",
   "/assistant": "assistant",
+  "/professeur-vocal": "professeurVocal",
   "/documents": "documents",
   "/historique": "historique",
   "/parametres": "parametres",

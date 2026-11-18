@@ -30,3 +30,14 @@ export async function needsCountryAnswer(userId: string): Promise<boolean> {
 
   return Boolean(row) && !row.country;
 }
+
+/** Niveau scolaire déclaré à l'onboarding (adapte les explications du Professeur vocal). */
+export async function getSchoolLevel(userId: string): Promise<string | null> {
+  const [row] = await db
+    .select({ schoolLevel: schema.onboarding.schoolLevel })
+    .from(schema.onboarding)
+    .where(eq(schema.onboarding.userId, userId))
+    .limit(1);
+
+  return row?.schoolLevel ?? null;
+}
