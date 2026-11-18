@@ -31,7 +31,7 @@ import { InlineErrorBanner } from "@/components/common/inline-error-banner";
 import { InsufficientCreditsBanner } from "@/components/credits/insufficient-credits-banner";
 import {
   VOICE_TUTOR_MAX_HISTORY,
-  VOICE_TUTOR_MAX_OCR_PAGES,
+  VOICE_TUTOR_MAX_PAGES,
   VOICE_TUTOR_MAX_PDF_BYTES,
   VOICE_TUTOR_MAX_UPLOAD_CHARS,
   VOICE_TUTOR_WELCOME,
@@ -45,7 +45,8 @@ import {
   openPdf,
   readScannedPages,
 } from "./pdf-document";
-import { PdfViewer } from "./pdf-viewer";
+import { PdfViewer, type PdfViewerHandle } from "./pdf-viewer";
+import { detectLanguage } from "./detect-language";
 import { LanguagePicker } from "./language-picker";
 import {
   MicError,
@@ -92,7 +93,6 @@ type DocumentState =
       meta: DocumentMeta;
       pageTexts: string[];
       hasText: boolean;
-      ocrLimited: boolean;
     };
 
 type ReadyDocument = Extract<DocumentState, { status: "ready" }>;
@@ -105,6 +105,12 @@ interface PanelError {
 /** Évènements du flux NDJSON de `POST /api/ai/voice-tutor`. */
 type TutorEvent =
   | { type: "question"; text: string }
+  | {
+      type: "focus";
+      page: number | null;
+      quote: string | null;
+      language: VoiceTutorLanguage | null;
+    }
   | { type: "delta"; text: string }
   | { type: "speech"; text: string; token: string }
   | { type: "done"; answer: string; pages: number[] }
@@ -153,6 +159,17 @@ function contextPages(pageTexts: string[], currentPage: number) {
     used += page.text.length;
   }
   return picked.sort((a, b) => a.page - b.page);
+}
+
+/** JSON compressé en gzip (texte du cours : ~4 fois plus léger à envoyer), si le navigateur le permet. */
+async function gzipJson(json: string): Promise<Blob | null> {
+  if (typeof CompressionStream === "undefined") return null;
+  try {
+    const stream = new Blob([json]).stream().pipeThrough(new CompressionStream("gzip"));
+    return await new Response(stream).blob();
+  } catch {
+    return null;
+  }
 }
 
 function audioFileName(type: string): string {
@@ -229,6 +246,7 @@ export function VoiceTutorWorkspace({
   const [mobileTab, setMobileTab] = React.useState<"document" | "teacher">("document");
 
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const viewerRef = React.useRef<PdfViewerHandle>(null);
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const readAbortRef = React.useRef<AbortController | null>(null);
   const requestAbortRef = React.useRef<AbortController | null>(null);
@@ -359,6 +377,12 @@ export function VoiceTutorWorkspace({
       void doc.loadingTask.destroy();
       return;
     }
+    if (doc.numPages > VOICE_TUTOR_MAX_PAGES) {
+      void doc.loadingTask.destroy();
+      setDocState({ status: "empty" });
+      setDocError(t.errorTooManyPages(doc.numPages, VOICE_TUTOR_MAX_PAGES));
+      return;
+    }
 
     docKeyRef.current += 1;
     const meta: DocumentMeta = {
@@ -387,7 +411,7 @@ export function VoiceTutorWorkspace({
         isScannedPageText(text) ? [index + 1] : [],
       );
       if (scannedPages.length > 0) {
-        progress(0, Math.min(scannedPages.length, VOICE_TUTOR_MAX_OCR_PAGES), true);
+        progress(0, scannedPages.length, true);
         const read = await readScannedPages(
           doc,
           scannedPages,
@@ -399,14 +423,13 @@ export function VoiceTutorWorkspace({
       if (controller.signal.aborted) return;
 
       const hasText = texts.some((text) => !isScannedPageText(text));
-      setDocState({
-        status: "ready",
-        doc,
-        meta,
-        pageTexts: texts,
-        hasText,
-        ocrLimited: scannedPages.length > VOICE_TUTOR_MAX_OCR_PAGES,
-      });
+      setDocState({ status: "ready", doc, meta, pageTexts: texts, hasText });
+      // « Langue du document » préremplie d'après le texte du cours.
+      const detected = detectLanguage(texts.join("\n"));
+      if (detected && detected !== languagesRef.current.documentLanguage) {
+        setDocumentLanguage(detected);
+        saveLanguages(detected, languagesRef.current.replyLanguage);
+      }
       if (hasText) {
         setMessages([welcomeMessage(languagesRef.current.replyLanguage)]);
       } else {
@@ -414,14 +437,7 @@ export function VoiceTutorWorkspace({
       }
     } catch {
       if (controller.signal.aborted) return;
-      setDocState({
-        status: "ready",
-        doc,
-        meta,
-        pageTexts: [],
-        hasText: false,
-        ocrLimited: false,
-      });
+      setDocState({ status: "ready", doc, meta, pageTexts: [], hasText: false });
       setDocError(t.errorPdfNoText);
     }
   }
@@ -431,7 +447,7 @@ export function VoiceTutorWorkspace({
   }
 
   function openPage(target: number) {
-    setPage(target);
+    viewerRef.current?.goToPage(target);
     setMobileTab("document");
   }
 
@@ -503,8 +519,11 @@ export function VoiceTutorWorkspace({
       pages: contextPages(document.pageTexts, pageRef.current),
       history,
     };
+    const json = JSON.stringify(payload);
+    const compressed = await gzipJson(json);
     const form = new FormData();
-    form.append("payload", JSON.stringify(payload));
+    if (compressed) form.append("payload", compressed, "payload.json.gz");
+    else form.append("payload", json);
     form.append("audio", audio, audioFileName(audio.type));
 
     const controller = new AbortController();
@@ -546,6 +565,8 @@ export function VoiceTutorWorkspace({
       let finished = false;
       let failure: string | null = null;
       let voiceStarted = false;
+      // Langue de la réponse : celle choisie, ou celle que l'élève vient de demander.
+      let answerLanguage = language;
 
       for await (const event of readEvents(response.body)) {
         if (docRef.current !== document) return;
@@ -555,6 +576,21 @@ export function VoiceTutorWorkspace({
             { id: nextMessageId(), role: "user", content: event.text, language },
             { id: answerId, role: "assistant", content: "", language, segments: [], streaming: true },
           ]);
+        } else if (event.type === "focus") {
+          // Le PDF défile jusqu'au passage dont parle le professeur.
+          if (event.page) {
+            const focus = { page: event.page, quote: event.quote };
+            viewerRef.current?.showPassage(focus.page, focus.quote);
+            updateMessage(answerId, (message) => ({ ...message, focus }));
+          }
+          // L'élève a demandé une autre langue : elle devient la langue de réponse.
+          if (event.language && event.language !== answerLanguage) {
+            const next = event.language;
+            answerLanguage = next;
+            setReplyLanguage(next);
+            saveLanguages(languagesRef.current.documentLanguage, next);
+            updateMessage(answerId, (message) => ({ ...message, language: next }));
+          }
         } else if (event.type === "delta") {
           updateMessage(answerId, (message) => ({ ...message, content: message.content + event.text }));
         } else if (event.type === "speech") {
@@ -565,7 +601,7 @@ export function VoiceTutorWorkspace({
           }));
           if (liveAnswerRef.current === answerId) {
             live ??= engine.startLiveSpeech(answerId);
-            const clip = fetchSpeech(segment, language);
+            const clip = fetchSpeech(segment, answerLanguage);
             live.add(clip);
             void clip.then((blob) => {
               if (blob && !voiceStarted && isCurrentTurn() && phaseRef.current === "thinking") {
@@ -725,6 +761,7 @@ export function VoiceTutorWorkspace({
     setError(null);
     setNotice(null);
 
+    if (message.focus) viewerRef.current?.showPassage(message.focus.page, message.focus.quote);
     const segments = segmentsOf(message);
     const resumed = fromStart ? null : engine.resume(message.id, segments.length);
     setPhase("speaking");
@@ -944,17 +981,12 @@ export function VoiceTutorWorkspace({
           ) : null}
 
           {docError ? <InlineErrorBanner message={docError} className="shrink-0" /> : null}
-          {docState.status === "ready" && docState.ocrLimited ? (
-            <p className="shrink-0 rounded-lg bg-warning-50 px-3 py-2 text-fine text-warning-700">
-              {t.scannedPartial(VOICE_TUTOR_MAX_OCR_PAGES)}
-            </p>
-          ) : null}
 
           {openDoc ? (
             <PdfViewer
               key={openDoc.meta.key}
+              ref={viewerRef}
               doc={openDoc.doc}
-              page={page}
               onPageChange={setPage}
               pageTexts={docState.status === "ready" ? docState.pageTexts : null}
             />
@@ -981,7 +1013,7 @@ export function VoiceTutorWorkspace({
                     {t.uploadButton}
                   </Button>
                   <p className="text-meta text-ink-400">
-                    {t.uploadHint(formatBytes(VOICE_TUTOR_MAX_PDF_BYTES, locale))}
+                    {t.uploadHint(formatBytes(VOICE_TUTOR_MAX_PDF_BYTES, locale), VOICE_TUTOR_MAX_PAGES)}
                   </p>
                 </>
               )}

@@ -20,6 +20,8 @@ export interface TutorMessage {
   content: string;
   /** Pages du cours citées dans la réponse. */
   pages?: number[];
+  /** Passage du cours dont parle la réponse (montré dans le PDF pendant la lecture). */
+  focus?: { page: number; quote: string | null };
   /** Passages à prononcer (réponse lue phrase par phrase). */
   segments?: SpeechSegment[];
   /** Réponse encore en cours d'écriture. */

@@ -1,5 +1,5 @@
 import "server-only";
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { toFile } from "openai";
 import type { ResponseInput } from "openai/resources/responses/responses";
 import { getOpenAIClient, OPENAI_MODEL } from "./openai-client";
@@ -8,8 +8,11 @@ import { readUsage } from "./generate";
 import type { VoiceTutorRequest } from "./schemas";
 import type { AiUsageTokens } from "./usage";
 import {
+  VOICE_TUTOR_LANGUAGES,
   VOICE_TUTOR_MAX_SPEECH_CHARS,
+  VOICE_TUTOR_MAX_UPLOAD_CHARS,
   VOICE_TUTOR_WELCOME,
+  isVoiceTutorLanguage,
   voiceTutorLanguage,
   type VoiceTutorLanguage,
 } from "@/lib/config/voice-tutor";
@@ -36,11 +39,12 @@ const TUTOR_REASONING = (process.env.VOICE_TUTOR_REASONING_EFFORT?.trim() || "lo
   | "medium";
 
 /**
- * Texte du cours réellement placé dans le prompt (environ 15 000 jetons). Au-
- * delà, on garde la page affichée, ses voisines et les pages qui partagent des
- * mots avec la question.
+ * Texte du cours placé dans le prompt : le cours entier (jusqu'à 50 pages bien
+ * remplies). Il reste identique d'une question à l'autre, donc mis en cache
+ * par OpenAI. Au-delà, on garde la page affichée, ses voisines et les pages
+ * qui partagent des mots avec la question.
  */
-const MAX_PROMPT_DOCUMENT_CHARS = 60_000;
+const MAX_PROMPT_DOCUMENT_CHARS = VOICE_TUTOR_MAX_UPLOAD_CHARS;
 
 // ───────────────────────────── 1. Reconnaissance vocale ─────────────────────────────
 
@@ -67,18 +71,13 @@ export function audioExtension(mime: string): string | null {
 const SILENCE_HALLUCINATIONS =
   /amara\.org|sous-titr|sottotitoli|subtítulos|untertitel|thanks for watching|thank you for watching|merci d'avoir regardé|abonnez-vous/i;
 
-export async function transcribeQuestion(
-  audio: Blob,
-  extension: string,
-  language: VoiceTutorLanguage,
-): Promise<string> {
+export async function transcribeQuestion(audio: Blob, extension: string): Promise<string> {
   const file = await toFile(audio, `question.${extension}`, { type: audio.type });
+  // Sans langue imposée : l'élève peut parler au professeur dans n'importe
+  // quelle langue (la transcription reste dans la langue parlée).
   const result = await getOpenAIClient().audio.transcriptions.create({
     file,
     model: TRANSCRIBE_MODEL,
-    // L'élève parle au professeur dans la langue de réponse choisie : la
-    // préciser améliore la justesse et la latence sur des phrases courtes.
-    language,
   });
   const text = result.text.trim();
   if (text.length < 40 && SILENCE_HALLUCINATIONS.test(text)) return "";
@@ -92,6 +91,10 @@ export interface TutorProfile {
   schoolLevel: string | null;
 }
 
+/** Langues que le professeur sait parler (et prononcer), pour les consignes. */
+const SUPPORTED_LANGUAGES = VOICE_TUTOR_LANGUAGES.map((language) => language.english).join(", ");
+const LANGUAGE_CODES = VOICE_TUTOR_LANGUAGES.map((language) => language.code).join(", ");
+
 function buildInstructions(
   documentLanguage: VoiceTutorLanguage,
   replyLanguage: VoiceTutorLanguage,
@@ -100,12 +103,16 @@ function buildInstructions(
   const doc = voiceTutorLanguage(documentLanguage).english;
   const reply = voiceTutorLanguage(replyLanguage).english;
   const student = profile.firstName ? `un élève qui s'appelle ${profile.firstName}` : "un élève";
-  const sameLanguage = documentLanguage === replyLanguage;
 
   return [
     `Tu es le Professeur IA d'EduIA : un vrai professeur particulier, chaleureux et passionné, qui parle À VOIX HAUTE avec ${student}. Tu as sous les yeux SON cours, un PDF qu'il a importé et que tu reçois ci-dessous page par page. Ta mission : lui FAIRE COMPRENDRE ce cours, comme un excellent professeur pendant un cours particulier. Tu n'es pas un lecteur de PDF.`,
 
-    `LANGUE : le document est rédigé en ${doc}. Tu parles TOUJOURS et UNIQUEMENT en ${reply}, quelle que soit la langue du document ou de la question. Explique les notions du document dans cette langue ; tu peux citer un terme original entre guillemets quand c'est utile pour le retrouver dans le cours.`,
+    [
+      "LANGUE :",
+      `- Langue de réponse choisie par l'élève : ${reply}. Réponds toujours dans cette langue, quelle que soit la langue du document, et même s'il te parle dans une autre langue (il peut lire une phrase de son cours, ou s'exprimer plus facilement autrement) : ne change de langue QUE s'il te le demande explicitement.`,
+      `- Le document est indiqué comme rédigé en ${doc}, mais fie-toi au texte réel : tu comprends toutes les langues, et un cours peut en mélanger plusieurs. Explique ses notions dans la langue de réponse, en traduisant les termes du cours ; cite si besoin le terme original entre guillemets pour qu'il le retrouve dans son document.`,
+      `- S'il te demande de parler ou d'expliquer dans une autre langue (« explique-moi ça en anglais »), passe à cette langue immédiatement et garde-la ensuite, tant qu'il ne demande pas d'en changer, si c'est l'une de celles-ci : ${SUPPORTED_LANGUAGES}. Pour une autre langue, dis-lui gentiment, dans la langue actuelle, que tu ne la parles pas encore et cite quelques langues disponibles.`,
+    ].join("\n"),
 
     [
       "COMMENT TU ENSEIGNES :",
@@ -134,13 +141,18 @@ function buildInstructions(
       "- Pour une question sans rapport avec le cours (salutation, motivation, méthode de travail), réponds naturellement et brièvement, puis ramène doucement vers le cours.",
     ].join("\n"),
 
-    `LIRE UN PASSAGE : seulement si l'élève te le demande (« lis-moi… », « lis la page 3 »). Lis alors le passage fidèlement et en entier, sans le résumer ni le commenter pendant la lecture${
-      sameLanguage
-        ? ""
-        : `. Comme le document est en ${doc}, lis sa traduction fidèle en ${reply}, sauf s'il demande explicitement le texte original`
-    }. Ensuite, propose-lui en une courte phrase de l'expliquer.`,
+    "LIRE UN PASSAGE : seulement si l'élève te le demande (« lis-moi… », « lis la page 3 »). Lis alors le passage fidèlement et en entier, sans le résumer ni le commenter pendant la lecture. S'il est rédigé dans une autre langue que ta langue de réponse, lis-en la traduction fidèle dans ta langue de réponse, sauf s'il demande explicitement le texte original. Ensuite, propose-lui en une courte phrase de l'expliquer.",
 
     "PAGES : chaque page du document est précédée du repère « === Page N === ». Quand tu expliques une notion pour la première fois (ou que tu lis un passage), dis en passant à quelle page du cours elle se trouve (« c'est à la page 3 de ton cours »), une seule fois par réponse, sans jamais inventer de numéro.",
+
+    [
+      "REPÈRE (obligatoire, jamais lu à l'élève) : commence CHAQUE réponse par une ligne de repère, exactement sous cette forme, puis va à la ligne et réponds normalement :",
+      '[[page:N lang:xx quote:"…"]]',
+      "- page : le numéro de la page du cours où se trouve ce dont il est question (la notion que tu expliques, le passage que tu lis, la page qu'il demande) ; 0 si ta réponse ne porte sur aucun passage précis du cours.",
+      `- lang : le code de la langue de ta réponse (${LANGUAGE_CODES}).`,
+      "- quote : 3 à 8 mots consécutifs recopiés À L'IDENTIQUE dans le texte de cette page, dans la langue du document (sans les traduire ni les corriger), au début du passage concerné ; \"\" si page vaut 0.",
+      "Ce repère sert à faire défiler le PDF de l'élève jusqu'au passage et à le surligner pendant que tu parles. Ne le mentionne jamais et ne l'écris nulle part ailleurs dans ta réponse.",
+    ].join("\n"),
 
     [
       "STYLE ORAL :",
@@ -223,6 +235,7 @@ function buildDocumentMessage(
 /** Retire les marques Markdown qui seraient lues telles quelles à voix haute. */
 function toSpokenText(text: string): string {
   return text
+    .replace(/\[\[[^\]]*\]\]/g, "")
     .replace(/\*\*|__|`/g, "")
     .replace(/^#{1,6}\s+/gm, "")
     .replace(/^\s*[-*•]\s+/gm, "")
@@ -292,14 +305,97 @@ class SpeechChunker {
   }
 }
 
+/**
+ * Ligne de repère placée par le professeur en tête de réponse
+ * (`[[page:3 lang:fr quote:"…"]]`) : retenue jusqu'à sa fermeture, puis
+ * retirée du texte affiché et prononcé. Si la réponse ne commence pas par
+ * « [[ », tout le texte passe tel quel.
+ */
+class LeadTagReader {
+  private buffer = "";
+  private settled = false;
+  private trimNext = false;
+
+  push(delta: string): { tag: string | null; text: string } {
+    if (this.settled) return { tag: null, text: this.trimLeading(delta) };
+    this.buffer += delta;
+    const start = this.buffer.trimStart();
+    if (!start) return { tag: null, text: "" };
+    if (!(start.startsWith("[[") || start === "[")) return this.release(null, this.buffer);
+    const match = /^\s*\[\[([^\]]*)\]\]/.exec(this.buffer);
+    if (match) {
+      this.trimNext = true;
+      return this.release(match[1], this.buffer.slice(match[0].length));
+    }
+    // Repère jamais fermé : on abandonne et on garde le texte (sans « [[ »).
+    if (this.buffer.length > 400) return this.release(null, this.buffer.replace(/^\s*\[\[/, ""));
+    return { tag: null, text: "" };
+  }
+
+  flush(): string {
+    if (this.settled) return "";
+    this.settled = true;
+    return this.buffer;
+  }
+
+  private release(tag: string | null, text: string) {
+    this.settled = true;
+    this.buffer = "";
+    return { tag, text: this.trimLeading(text) };
+  }
+
+  private trimLeading(text: string): string {
+    if (!this.trimNext) return text;
+    const trimmed = text.trimStart();
+    if (trimmed) this.trimNext = false;
+    return trimmed;
+  }
+}
+
+export interface TutorFocus {
+  /** Page du cours dont parle la réponse (null : aucune en particulier). */
+  page: number | null;
+  /** Quelques mots recopiés de cette page, pour retrouver et surligner le passage. */
+  quote: string | null;
+  /** Langue de la réponse, quand elle diffère de la langue de réponse choisie. */
+  language: VoiceTutorLanguage | null;
+}
+
+function parseLeadTag(
+  raw: string,
+  available: Set<number>,
+  replyLanguage: VoiceTutorLanguage,
+): TutorFocus {
+  const page = Number(/page\s*[:=]\s*(\d{1,4})/i.exec(raw)?.[1] ?? 0);
+  const language = /lang\w*\s*[:=]\s*["']?([a-z]{2})\b/i.exec(raw)?.[1]?.toLowerCase() ?? "";
+  const quote = /quote\s*[:=]\s*["“«„]\s*([^"”»“]*?)\s*["”»“]/i.exec(raw)?.[1]?.trim() ?? "";
+  const known = available.has(page);
+  return {
+    page: known ? page : null,
+    quote: known && quote ? quote.slice(0, 200) : null,
+    language: isVoiceTutorLanguage(language) && language !== replyLanguage ? language : null,
+  };
+}
+
 export type TutorStreamEvent =
+  | { type: "focus"; focus: TutorFocus }
   | { type: "delta"; text: string }
   | { type: "speech"; text: string }
   | { type: "done"; answer: string; pages: number[]; usage: AiUsageTokens };
 
+/** Clé de cache du prompt : même élève + même cours → même serveur de cache chez OpenAI. */
+export function promptCacheKey(userId: string, request: VoiceTutorRequest): string {
+  return createHash("sha256")
+    .update(`voice-tutor:${userId}:${request.documentName}:${request.pageCount}`)
+    .digest("base64url")
+    .slice(0, 40);
+}
+
 /**
- * Réponse du professeur en flux : le texte au fil de l'écriture (`delta`), les
- * passages prêts à être prononcés (`speech`), puis la réponse complète (`done`).
+ * Réponse du professeur en flux : d'abord le passage du cours dont il parle
+ * (`focus`, pour faire défiler le PDF), puis le texte au fil de l'écriture
+ * (`delta`), les passages prêts à être prononcés (`speech`) et enfin la
+ * réponse complète (`done`).
  */
 export async function* streamVoiceTutor(
   request: VoiceTutorRequest,
@@ -307,6 +403,7 @@ export async function* streamVoiceTutor(
   profile: TutorProfile,
   dict: Dictionary,
   signal: AbortSignal,
+  cacheKey: string,
 ): AsyncGenerator<TutorStreamEvent> {
   const lastAnswer = [...request.history].reverse().find((message) => message.role === "assistant");
   const { selected, partial } = selectPages(
@@ -330,7 +427,7 @@ export async function* streamVoiceTutor(
     })),
     {
       role: "user",
-      content: `[L'élève regarde actuellement la page ${request.currentPage} : « cette page », « ce passage » ou « ici » y renvoient. Sa question, transcrite depuis sa voix :]\n\n${question}`,
+      content: `[L'élève regarde actuellement la page ${request.currentPage} : « cette page », « ce passage » ou « ici » y renvoient. Réponds en ${voiceTutorLanguage(request.replyLanguage).english}, sauf s'il te demande explicitement une autre langue. Commence ta réponse par la ligne de repère [[page:… lang:… quote:"…"]]. Sa question, transcrite depuis sa voix :]\n\n${question}`,
     },
   ];
 
@@ -341,20 +438,45 @@ export async function* streamVoiceTutor(
       input,
       reasoning: { effort: TUTOR_REASONING },
       max_output_tokens: 3000,
+      prompt_cache_key: cacheKey,
       stream: true,
     },
     { signal },
   );
 
   const chunker = new SpeechChunker();
+  const tagReader = new LeadTagReader();
+  const documentPages = new Set(
+    Array.from({ length: request.pageCount }, (_, index) => index + 1),
+  );
+  let focusSent = false;
   let raw = "";
   let usage: AiUsageTokens = { inputTokens: null, outputTokens: null };
 
+  function* emit(text: string): Generator<TutorStreamEvent> {
+    if (!text) return;
+    raw += text;
+    // Sans ligne de repère : la première page citée dans la réponse sert de repère.
+    if (!focusSent) {
+      const page = citedPages(raw, documentPages)[0];
+      if (page) {
+        focusSent = true;
+        yield { type: "focus", focus: { page, quote: null, language: null } };
+      }
+    }
+    yield { type: "delta", text };
+    for (const chunk of chunker.push(text)) yield { type: "speech", text: chunk };
+  }
+
   for await (const event of stream) {
     if (event.type === "response.output_text.delta") {
-      raw += event.delta;
-      yield { type: "delta", text: event.delta };
-      for (const text of chunker.push(event.delta)) yield { type: "speech", text };
+      const { tag, text } = tagReader.push(event.delta);
+      if (tag !== null && !focusSent) {
+        focusSent = true;
+        const focus = parseLeadTag(tag, documentPages, request.replyLanguage);
+        if (focus.page || focus.language) yield { type: "focus", focus };
+      }
+      yield* emit(text);
     } else if (event.type === "response.completed" || event.type === "response.incomplete") {
       usage = readUsage(event.response);
     } else if (event.type === "response.failed") {
@@ -363,6 +485,7 @@ export async function* streamVoiceTutor(
       throw new AIGenerationError(dict.voiceTutor.errorGeneric, 502);
     }
   }
+  yield* emit(tagReader.flush());
   for (const text of chunker.flush()) yield { type: "speech", text };
 
   const answer = toSpokenText(raw);

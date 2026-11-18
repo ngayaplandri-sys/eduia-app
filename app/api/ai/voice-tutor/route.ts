@@ -1,3 +1,4 @@
+import { gunzipSync } from "node:zlib";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser, hasUnlimitedAccess } from "@/lib/data/user";
@@ -9,6 +10,7 @@ import {
 import { getTutorProfile } from "@/lib/data/onboarding";
 import {
   audioExtension,
+  promptCacheKey,
   signSpeechText,
   streamVoiceTutor,
   transcribeQuestion,
@@ -26,9 +28,29 @@ import type { CreditDebitResult } from "@/types";
 export const maxDuration = 60;
 
 /**
+ * `payload` compressé (gzip) par le navigateur : taille maximale reçue, et
+ * taille maximale une fois décompressé (cours de 50 pages + historique).
+ */
+const MAX_COMPRESSED_PAYLOAD_BYTES = 1024 * 1024;
+const MAX_PAYLOAD_BYTES = 2 * 1024 * 1024;
+
+/** Lit `payload` : texte JSON, ou fichier JSON compressé en gzip. */
+async function readPayload(value: FormDataEntryValue | null): Promise<unknown> {
+  if (typeof value === "string") return JSON.parse(value);
+  if (!(value instanceof File) || value.size > MAX_COMPRESSED_PAYLOAD_BYTES) {
+    throw new Error("payload invalide");
+  }
+  const json = gunzipSync(Buffer.from(await value.arrayBuffer()), {
+    maxOutputLength: MAX_PAYLOAD_BYTES,
+  });
+  return JSON.parse(json.toString("utf8"));
+}
+
+/**
  * Question orale au « Professeur vocal » (formulaire `multipart/form-data`) :
  *  - `payload` : JSON validé par `voiceTutorRequestSchema` (texte du PDF page
- *    par page, langues, page affichée, historique de la conversation) ;
+ *    par page, langues, page affichée, historique de la conversation), envoyé
+ *    compressé en gzip par les navigateurs qui le permettent ;
  *  - `audio` : la question enregistrée au micro.
  *
  * L'audio est d'abord transcrit (sans débit : une question inaudible ne coûte
@@ -38,6 +60,8 @@ export const maxDuration = 60;
  * illimité de l'admin), puis la réponse part en flux NDJSON, une ligne JSON
  * par évènement :
  *  - `question` : la question transcrite ;
+ *  - `focus` : la page (et quelques mots) du cours dont parle la réponse, et
+ *    sa langue si l'élève a demandé d'en changer ;
  *  - `delta` : le texte de la réponse au fil de l'écriture ;
  *  - `speech` : un passage prêt à être prononcé, avec le jeton qui autorise sa
  *    lecture par `POST /api/ai/voice-tutor/speech` ;
@@ -63,7 +87,7 @@ export async function POST(request: Request) {
 
   let payload: unknown;
   try {
-    payload = JSON.parse(String(form.get("payload") ?? ""));
+    payload = await readPayload(form.get("payload"));
   } catch {
     return NextResponse.json({ error: t.invalidRequest }, { status: 400 });
   }
@@ -90,7 +114,7 @@ export async function POST(request: Request) {
 
   let question: string;
   try {
-    question = await transcribeQuestion(audio, extension, data.replyLanguage);
+    question = await transcribeQuestion(audio, extension);
   } catch (error) {
     console.error("[/api/ai/voice-tutor] échec de la transcription :", error);
     const { status, message } = describeAIError(error, dict);
@@ -140,8 +164,11 @@ export async function POST(request: Request) {
 
       send({ type: "question", text: question });
       try {
-        for await (const event of streamVoiceTutor(data, question, profile, dict, upstream.signal)) {
-          if (event.type === "delta") {
+        const cacheKey = promptCacheKey(user.id, data);
+        for await (const event of streamVoiceTutor(data, question, profile, dict, upstream.signal, cacheKey)) {
+          if (event.type === "focus") {
+            send({ type: "focus", ...event.focus });
+          } else if (event.type === "delta") {
             send({ type: "delta", text: event.text });
           } else if (event.type === "speech") {
             send({ type: "speech", text: event.text, token: signSpeechText(user.id, event.text) });

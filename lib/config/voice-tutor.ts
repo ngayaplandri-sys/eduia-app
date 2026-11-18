@@ -12,6 +12,16 @@ export const VOICE_TUTOR_LANGUAGES = [
   { code: "es", label: "Español", english: "Spanish" },
   { code: "ar", label: "العربية", english: "Arabic" },
   { code: "pt", label: "Português", english: "Portuguese" },
+  { code: "it", label: "Italiano", english: "Italian" },
+  { code: "nl", label: "Nederlands", english: "Dutch" },
+  { code: "pl", label: "Polski", english: "Polish" },
+  { code: "ru", label: "Русский", english: "Russian" },
+  { code: "zh", label: "中文", english: "Chinese (Mandarin)" },
+  { code: "ja", label: "日本語", english: "Japanese" },
+  { code: "ko", label: "한국어", english: "Korean" },
+  { code: "hi", label: "हिन्दी", english: "Hindi" },
+  { code: "sw", label: "Kiswahili", english: "Swahili" },
+  { code: "vi", label: "Tiếng Việt", english: "Vietnamese" },
 ] as const;
 
 export type VoiceTutorLanguage = (typeof VOICE_TUTOR_LANGUAGES)[number]["code"];
@@ -54,23 +64,39 @@ export const VOICE_TUTOR_WELCOME: Record<VoiceTutorLanguage, string> = {
   es: "¡Hola! Soy tu profesor de IA y ya he leído tu curso. Toca el micrófono y hazme tu pregunta: te lo explico todo de forma sencilla, a tu ritmo.",
   ar: "مرحبًا! أنا معلّمك بالذكاء الاصطناعي، وقد قرأت درسك. اضغط على الميكروفون واطرح سؤالك: سأشرح لك كل شيء ببساطة وعلى مهلك.",
   pt: "Olá! Sou o teu professor de IA e já li o teu curso. Toca no microfone e faz-me a tua pergunta: explico-te tudo de forma simples, ao teu ritmo.",
+  it: "Ciao! Sono il tuo professore IA e ho letto il tuo corso. Tocca il microfono e fammi la tua domanda: ti spiego tutto in modo semplice, al tuo ritmo.",
+  nl: "Hallo! Ik ben je AI-leraar en ik heb je cursus gelezen. Tik op de microfoon en stel me je vraag: ik leg alles eenvoudig uit, in jouw tempo.",
+  pl: "Cześć! Jestem twoim nauczycielem AI i przeczytałem twój kurs. Dotknij mikrofonu i zadaj mi pytanie: wyjaśnię ci wszystko prosto, w twoim tempie.",
+  ru: "Привет! Я твой ИИ-учитель, и я прочитал твой курс. Нажми на микрофон и задай свой вопрос: я всё объясню просто и в твоём темпе.",
+  zh: "你好！我是你的AI老师，我已经读过你的课程了。点一下麦克风，向我提问吧：我会按照你的节奏，用简单的方式为你讲解。",
+  ja: "こんにちは！私はあなたのAI先生です。あなたの授業の資料を読みました。マイクをタップして質問してください。あなたのペースで、わかりやすく説明します。",
+  ko: "안녕! 나는 너의 AI 선생님이야. 네 수업 자료를 다 읽었어. 마이크를 누르고 질문해 줘. 네 속도에 맞춰 쉽게 설명해 줄게.",
+  hi: "नमस्ते! मैं तुम्हारा AI शिक्षक हूँ, और मैंने तुम्हारा पाठ पढ़ लिया है। माइक दबाओ और मुझसे अपना सवाल पूछो: मैं सब कुछ आसान तरीके से, तुम्हारी गति से समझाऊँगा।",
+  sw: "Habari! Mimi ni mwalimu wako wa AI, na nimesoma somo lako. Gusa kipaza sauti kisha uniulize swali lako: nitakueleza kila kitu kwa urahisi, kwa kasi yako.",
+  vi: "Xin chào! Mình là giáo viên AI của bạn, và mình đã đọc bài học của bạn. Hãy chạm vào micro và đặt câu hỏi: mình sẽ giải thích mọi thứ thật đơn giản, theo nhịp độ của bạn.",
 };
 
 /** PDF lu dans le navigateur : jamais envoyé au serveur, seul son texte l'est. */
 export const VOICE_TUTOR_MAX_PDF_BYTES = 50 * 1024 * 1024;
 
+/**
+ * Nombre de pages maximal d'un cours : toutes ses pages sont affichées, lues
+ * (y compris scannées) et jointes en entier à chaque question.
+ */
+export const VOICE_TUTOR_MAX_PAGES = 50;
+
 /** Texte maximal d'une page envoyé au professeur. */
 export const VOICE_TUTOR_MAX_PAGE_CHARS = 12_000;
 
 /**
- * Texte du cours joint à chaque question (pages les plus proches de la page
- * affichée d'abord quand le cours est plus long) — borne la taille de la
- * requête sur une connexion mobile.
+ * Texte du cours joint à chaque question (compressé avant l'envoi) : de quoi
+ * joindre 50 pages bien remplies en entier. Au-delà (pages exceptionnellement
+ * denses), les pages les plus proches de celle affichée passent d'abord.
  */
-export const VOICE_TUTOR_MAX_UPLOAD_CHARS = 150_000;
+export const VOICE_TUTOR_MAX_UPLOAD_CHARS = 250_000;
 
-/** Pages scannées (sans texte) lues par la reconnaissance d'image, au plus. */
-export const VOICE_TUTOR_MAX_OCR_PAGES = 20;
+/** Pages scannées (sans texte) lues par la reconnaissance d'image : toutes. */
+export const VOICE_TUTOR_MAX_OCR_PAGES = VOICE_TUTOR_MAX_PAGES;
 
 /** Derniers messages renvoyés au professeur pour garder le fil. */
 export const VOICE_TUTOR_MAX_HISTORY = 20;

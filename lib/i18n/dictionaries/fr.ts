@@ -671,7 +671,8 @@ export const fr = {
     uploadBody:
       "Glisse ton fichier PDF ici ou choisis-le sur ton appareil. Il s'affiche ici, et ton professeur IA le lit pour répondre à tes questions.",
     uploadButton: "Choisir un PDF",
-    uploadHint: (max: string) => `PDF uniquement · ${max} maximum`,
+    uploadHint: (maxSize: string, maxPages: number) =>
+      `PDF uniquement · jusqu'à ${maxPages} pages et ${maxSize}`,
     dropHere: "Dépose ton PDF ici",
     reading: "Ouverture du document…",
     readingPages: (done: number, total: number) => `Lecture des pages… ${done}/${total}`,
@@ -685,12 +686,12 @@ export const fr = {
     askFromDocument: "Poser une question",
     errorNotPdf: "Ce fichier n'est pas un PDF valide. Choisis un fichier .pdf.",
     errorPdfTooLarge: (max: string) => `Ce PDF est trop lourd (${max} maximum).`,
+    errorTooManyPages: (pages: number, max: number) =>
+      `Ce PDF a ${pages} pages : le professeur vocal accepte jusqu'à ${max} pages. Importe une partie du cours (un chapitre, par exemple).`,
     errorPdfPassword:
       "Ce PDF est protégé par un mot de passe : retire la protection, puis importe-le à nouveau.",
     errorPdfNoText:
       "Impossible de lire le texte de ce PDF (pages scannées illisibles). Essaie avec une version plus nette du document.",
-    scannedPartial: (count: number) =>
-      `Document scanné : seules les ${count} premières pages scannées ont pu être lues par le professeur.`,
 
     // Lecteur PDF
     viewerToolbar: "Outils du document",

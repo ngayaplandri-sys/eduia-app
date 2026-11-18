@@ -651,7 +651,8 @@ export const en: Dictionary = {
     uploadBody:
       "Drag your PDF file here or pick it from your device. It shows up here, and your AI teacher reads it to answer your questions.",
     uploadButton: "Choose a PDF",
-    uploadHint: (max: string) => `PDF only · ${max} max`,
+    uploadHint: (maxSize: string, maxPages: number) =>
+      `PDF only · up to ${maxPages} pages and ${maxSize}`,
     dropHere: "Drop your PDF here",
     reading: "Opening the document…",
     readingPages: (done: number, total: number) => `Reading pages… ${done}/${total}`,
@@ -665,12 +666,12 @@ export const en: Dictionary = {
     askFromDocument: "Ask a question",
     errorNotPdf: "This file isn't a valid PDF. Choose a .pdf file.",
     errorPdfTooLarge: (max: string) => `This PDF is too large (${max} max).`,
+    errorTooManyPages: (pages: number, max: number) =>
+      `This PDF has ${pages} pages: the voice teacher accepts up to ${max} pages. Import part of the course (a chapter, for example).`,
     errorPdfPassword:
       "This PDF is password-protected: remove the protection, then import it again.",
     errorPdfNoText:
       "The text of this PDF can't be read (unreadable scanned pages). Try a sharper version of the document.",
-    scannedPartial: (count: number) =>
-      `Scanned document: only the first ${count} scanned pages could be read by the teacher.`,
 
     // PDF viewer
     viewerToolbar: "Document tools",

@@ -10,6 +10,175 @@ import {
   type VoiceTutorLanguage,
 } from "@/lib/config/voice-tutor";
 
+/** Étoile à cinq branches (une pointe dirigée selon `rotation`, en degrés). */
+function starPoints(cx: number, cy: number, outer: number, rotation = 0): string {
+  const inner = outer * 0.382;
+  return Array.from({ length: 10 }, (_, index) => {
+    const radius = index % 2 === 0 ? outer : inner;
+    const angle = ((rotation - 90 + index * 36) * Math.PI) / 180;
+    return `${(cx + radius * Math.cos(angle)).toFixed(2)},${(cy + radius * Math.sin(angle)).toFixed(2)}`;
+  }).join(" ");
+}
+
+/** Petite étoile du drapeau chinois, une pointe tournée vers la grande étoile. */
+function chinaStar(cx: number, cy: number): string {
+  const rotation = (Math.atan2(5 - cy, 5 - cx) * 180) / Math.PI + 90;
+  return starPoints(cx, cy, 1, rotation);
+}
+
+function Stripes({ colors, vertical }: { colors: string[]; vertical?: boolean }) {
+  const size = (vertical ? 30 : 20) / colors.length;
+  return (
+    <>
+      {colors.map((color, index) =>
+        vertical ? (
+          <rect key={color} x={index * size} width={size} height="20" fill={color} />
+        ) : (
+          <rect key={color} y={index * size} width="30" height={size} fill={color} />
+        ),
+      )}
+    </>
+  );
+}
+
+/** Trigramme du drapeau coréen, simplifié en trois traits. */
+function Trigram({ x, y, angle }: { x: number; y: number; angle: number }) {
+  return (
+    <g transform={`translate(${x} ${y}) rotate(${angle})`} fill="#000">
+      <rect x="-2" y="-1.6" width="4" height="0.7" />
+      <rect x="-2" y="-0.35" width="4" height="0.7" />
+      <rect x="-2" y="0.9" width="4" height="0.7" />
+    </g>
+  );
+}
+
+function FlagShapes({ code, id }: { code: VoiceTutorLanguage; id: string }) {
+  switch (code) {
+    case "fr":
+      return <Stripes vertical colors={["#002654", "#fff", "#ce1126"]} />;
+    case "de":
+      return <Stripes colors={["#000", "#dd0000", "#ffce00"]} />;
+    case "it":
+      return <Stripes vertical colors={["#009246", "#fff", "#ce2b37"]} />;
+    case "nl":
+      return <Stripes colors={["#ae1c28", "#fff", "#21468b"]} />;
+    case "pl":
+      return <Stripes colors={["#fff", "#dc143c"]} />;
+    case "ru":
+      return <Stripes colors={["#fff", "#0039a6", "#d52b1e"]} />;
+    case "es":
+      return (
+        <>
+          <rect width="30" height="20" fill="#aa151b" />
+          <rect y="5" width="30" height="10" fill="#f1bf00" />
+        </>
+      );
+    case "pt":
+      return (
+        <>
+          <rect width="12" height="20" fill="#046a38" />
+          <rect x="12" width="18" height="20" fill="#da291c" />
+          <circle cx="12" cy="10" r="4.2" fill="#ffe900" />
+          <circle cx="12" cy="10" r="2.7" fill="#da291c" />
+          <circle cx="12" cy="10" r="1.6" fill="#fff" />
+        </>
+      );
+    case "tr":
+      return (
+        <>
+          <rect width="30" height="20" fill="#e30a17" />
+          <circle cx="11" cy="10" r="5" fill="#fff" />
+          <circle cx="12.25" cy="10" r="4" fill="#e30a17" />
+          <polygon
+            fill="#fff"
+            points="14.9,10 16.556,9.459 16.558,7.717 17.584,9.125 19.242,8.589 18.22,10 19.242,11.411 17.584,10.875 16.558,12.283 16.556,10.541"
+          />
+        </>
+      );
+    case "zh":
+      return (
+        <>
+          <rect width="30" height="20" fill="#ee1c25" />
+          <g fill="#ffde00">
+            <polygon points={starPoints(5, 5, 3)} />
+            <polygon points={chinaStar(10, 2)} />
+            <polygon points={chinaStar(12, 4)} />
+            <polygon points={chinaStar(12, 7)} />
+            <polygon points={chinaStar(10, 9)} />
+          </g>
+        </>
+      );
+    case "ja":
+      return (
+        <>
+          <rect width="30" height="20" fill="#fff" />
+          <circle cx="15" cy="10" r="6" fill="#bc002d" />
+        </>
+      );
+    case "ko":
+      return (
+        <>
+          <rect width="30" height="20" fill="#fff" />
+          <g transform="rotate(33.7 15 10)">
+            <circle cx="15" cy="10" r="5" fill="#0047a0" />
+            <path d="M10,10 a5,5 0 0 1 10,0 z" fill="#cd2e3a" />
+            <circle cx="12.5" cy="10" r="2.5" fill="#cd2e3a" />
+            <circle cx="17.5" cy="10" r="2.5" fill="#0047a0" />
+          </g>
+          <Trigram x={5.5} y={4} angle={-56.3} />
+          <Trigram x={24.5} y={4} angle={56.3} />
+          <Trigram x={5.5} y={16} angle={56.3} />
+          <Trigram x={24.5} y={16} angle={-56.3} />
+        </>
+      );
+    case "hi":
+      return (
+        <>
+          <Stripes colors={["#ff9933", "#fff", "#138808"]} />
+          <circle cx="15" cy="10" r="2.4" fill="none" stroke="#000080" strokeWidth="0.7" />
+          <circle cx="15" cy="10" r="0.6" fill="#000080" />
+        </>
+      );
+    case "sw":
+      // Tanzanie, l'un des pays où le swahili est langue nationale.
+      return (
+        <>
+          <polygon points="0,0 30,0 0,20" fill="#1eb53a" />
+          <polygon points="30,0 30,20 0,20" fill="#00a3dd" />
+          <line x1="0" y1="20" x2="30" y2="0" stroke="#fcd116" strokeWidth="7" />
+          <line x1="0" y1="20" x2="30" y2="0" stroke="#000" strokeWidth="4.5" />
+        </>
+      );
+    case "vi":
+      return (
+        <>
+          <rect width="30" height="20" fill="#da251d" />
+          <polygon points={starPoints(15, 10, 6)} fill="#ffcd00" />
+        </>
+      );
+    case "en":
+    default:
+      // Royaume-Uni (anglais).
+      return (
+        <g transform="scale(0.5 0.6667)">
+          <clipPath id={`${id}-t`}>
+            <path d="M30,15 h30 v15 z v15 h-30 z h-30 v-15 z v-15 h30 z" />
+          </clipPath>
+          <rect width="60" height="30" fill="#012169" />
+          <path d="M0,0 L60,30 M60,0 L0,30" stroke="#fff" strokeWidth="6" />
+          <path
+            d="M0,0 L60,30 M60,0 L0,30"
+            clipPath={`url(#${id}-t)`}
+            stroke="#c8102e"
+            strokeWidth="4"
+          />
+          <path d="M30,0 v30 M0,15 h60" stroke="#fff" strokeWidth="10" />
+          <path d="M30,0 v30 M0,15 h60" stroke="#c8102e" strokeWidth="6" />
+        </g>
+      );
+  }
+}
+
 /**
  * Drapeaux simplifiés (sans armoiries), dessinés en SVG : les émojis drapeaux
  * ne s'affichent pas sous Windows. L'arabe, parlé dans de nombreux pays, est
@@ -32,59 +201,7 @@ function LanguageFlag({ code, className }: { code: VoiceTutorLanguage; className
 
   return (
     <svg aria-hidden viewBox="0 0 30 20" preserveAspectRatio="xMidYMid slice" className={frame}>
-      {code === "fr" ? (
-        <>
-          <rect width="10" height="20" fill="#002654" />
-          <rect x="10" width="10" height="20" fill="#fff" />
-          <rect x="20" width="10" height="20" fill="#ce1126" />
-        </>
-      ) : code === "de" ? (
-        <>
-          <rect width="30" height="6.67" fill="#000" />
-          <rect y="6.67" width="30" height="6.67" fill="#dd0000" />
-          <rect y="13.33" width="30" height="6.67" fill="#ffce00" />
-        </>
-      ) : code === "es" ? (
-        <>
-          <rect width="30" height="20" fill="#aa151b" />
-          <rect y="5" width="30" height="10" fill="#f1bf00" />
-        </>
-      ) : code === "pt" ? (
-        <>
-          <rect width="12" height="20" fill="#046a38" />
-          <rect x="12" width="18" height="20" fill="#da291c" />
-          <circle cx="12" cy="10" r="4.2" fill="#ffe900" />
-          <circle cx="12" cy="10" r="2.7" fill="#da291c" />
-          <circle cx="12" cy="10" r="1.6" fill="#fff" />
-        </>
-      ) : code === "tr" ? (
-        <>
-          <rect width="30" height="20" fill="#e30a17" />
-          <circle cx="11" cy="10" r="5" fill="#fff" />
-          <circle cx="12.25" cy="10" r="4" fill="#e30a17" />
-          <polygon
-            fill="#fff"
-            points="14.9,10 16.556,9.459 16.558,7.717 17.584,9.125 19.242,8.589 18.22,10 19.242,11.411 17.584,10.875 16.558,12.283 16.556,10.541"
-          />
-        </>
-      ) : (
-        // Royaume-Uni (anglais).
-        <g transform="scale(0.5 0.6667)">
-          <clipPath id={`${id}-t`}>
-            <path d="M30,15 h30 v15 z v15 h-30 z h-30 v-15 z v-15 h30 z" />
-          </clipPath>
-          <rect width="60" height="30" fill="#012169" />
-          <path d="M0,0 L60,30 M60,0 L0,30" stroke="#fff" strokeWidth="6" />
-          <path
-            d="M0,0 L60,30 M60,0 L0,30"
-            clipPath={`url(#${id}-t)`}
-            stroke="#c8102e"
-            strokeWidth="4"
-          />
-          <path d="M30,0 v30 M0,15 h60" stroke="#fff" strokeWidth="10" />
-          <path d="M30,0 v30 M0,15 h60" stroke="#c8102e" strokeWidth="6" />
-        </g>
-      )}
+      <FlagShapes code={code} id={id} />
     </svg>
   );
 }
