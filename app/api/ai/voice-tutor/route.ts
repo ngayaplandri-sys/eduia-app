@@ -20,7 +20,7 @@ import { describeAIError } from "@/lib/ai/errors";
 import { OPENAI_MODEL } from "@/lib/ai/openai-client";
 import { logAiUsage } from "@/lib/ai/usage";
 import { isSameOriginRequest } from "@/lib/http/guards";
-import { VOICE_TUTOR_MAX_AUDIO_BYTES } from "@/lib/config/voice-tutor";
+import { VOICE_TUTOR_MAX_AUDIO_BYTES, isChargedLessonPage } from "@/lib/config/voice-tutor";
 import { getDictionary } from "@/lib/i18n/server";
 import type { CreditDebitResult } from "@/types";
 
@@ -136,9 +136,11 @@ export async function POST(request: Request) {
   }
 
   const unlimited = hasUnlimitedAccess(user);
+  // Suite d'une explication page par page : 1 crédit toutes les 3 pages seulement.
+  const charged = !data.continueLesson || isChargedLessonPage((data.lessonPage ?? 0) + 1);
   let debit: CreditDebitResult | null = null;
   try {
-    if (!unlimited) {
+    if (!unlimited && charged) {
       debit = await db.transaction((tx) => consumeCredits(tx, user.id, "assistant"));
       if (!debit.ok) {
         return NextResponse.json(

@@ -126,6 +126,21 @@ export const VOICE_TUTOR_MAX_OCR_PAGES = VOICE_TUTOR_MAX_PAGES;
 /** Derniers messages renvoyés au professeur pour garder le fil. */
 export const VOICE_TUTOR_MAX_HISTORY = 20;
 
+/** Taille maximale de chaque message de l'historique renvoyé (tokens économisés). */
+export const VOICE_TUTOR_HISTORY_MESSAGE_CHARS = 1500;
+
+/**
+ * Explication page par page : la question qui la lance coûte 1 crédit, puis
+ * les pages qui suivent ne coûtent qu'1 crédit toutes les 3 pages (pages 4, 7,
+ * 10… facturées, les autres offertes).
+ */
+export const VOICE_TUTOR_LESSON_PAGES_PER_CREDIT = 3;
+
+/** La page `page` d'une explication page par page est-elle facturée ? */
+export function isChargedLessonPage(page: number): boolean {
+  return page % VOICE_TUTOR_LESSON_PAGES_PER_CREDIT === 1;
+}
+
 /** Enregistrement vocal : durée et taille maximales d'une question. */
 export const VOICE_TUTOR_MAX_RECORDING_MS = 60_000;
 export const VOICE_TUTOR_MAX_AUDIO_BYTES = 4 * 1024 * 1024;

@@ -515,8 +515,8 @@ export async function* streamVoiceTutor(
   );
   const replyName = voiceTutorLanguage(request.replyLanguage).english;
   const lessonContext = request.lessonPage
-    ? ` Une explication page par page est en cours : la dernière page expliquée est la page ${request.lessonPage} sur ${request.pageCount}.`
-    : "";
+    ? ` Une explication page par page est en cours : la dernière page expliquée est la page ${request.lessonPage} sur ${request.pageCount}. S'il ne demande pas explicitement de continuer, réponds à ce qu'il dit, puis termine OBLIGATOIREMENT par une question qui lui propose de reprendre, par exemple « C'est plus clair ? On reprend à la page ${Math.min(request.lessonPage + 1, request.pageCount)} ? ».`
+    : " Après ton explication, termine par UNE courte question pour vérifier qu'il a compris, ou pour lui proposer la suite.";
   const turn = lessonNext
     ? `[EXPLICATION PAGE PAR PAGE — suite automatique : l'élève écoute sans rien dire. Explique maintenant la page ${lessonNext} sur ${request.pageCount} de son cours, comme la suite naturelle de ta dernière explication.${lessonNext < request.pageCount ? " Termine par une courte transition vers la page suivante, sans question." : " C'est la DERNIÈRE page du cours : explique-la, puis résume l'essentiel du cours en deux phrases et termine en lui demandant s'il a des questions."} Réponds en ${replyName}. Commence ta réponse par la ligne de repère [[page:${lessonNext} lang:… quote:"…" suite:${lessonNext < request.pageCount ? "oui" : "non"}]].]`
     : `[L'élève regarde actuellement la page ${request.currentPage} : « cette page », « ce passage » ou « ici » y renvoient.${lessonContext} Réponds en ${replyName}, sauf s'il te demande explicitement une autre langue. Commence ta réponse par la ligne de repère [[page:… lang:… quote:"…" suite:…]]. Sa question, transcrite depuis sa voix :]\n\n${question}`;
@@ -548,6 +548,9 @@ export async function* streamVoiceTutor(
       reasoning: { effort: TUTOR_REASONING },
       max_output_tokens: 3000,
       prompt_cache_key: cacheKey,
+      // Le cours reste en cache jusqu'à 24 h (au lieu de quelques minutes) :
+      // une question posée plus tard le paie environ 10 fois moins cher.
+      prompt_cache_retention: "24h",
       stream: true,
     },
     { signal },

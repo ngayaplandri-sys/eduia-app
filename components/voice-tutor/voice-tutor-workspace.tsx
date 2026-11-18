@@ -31,6 +31,7 @@ import { InlineErrorBanner } from "@/components/common/inline-error-banner";
 import { InsufficientCreditsBanner } from "@/components/credits/insufficient-credits-banner";
 import {
   VOICE_TUTOR_GREETING,
+  VOICE_TUTOR_HISTORY_MESSAGE_CHARS,
   VOICE_TUTOR_MAX_HISTORY,
   VOICE_TUTOR_MAX_PAGES,
   VOICE_TUTOR_MAX_PDF_BYTES,
@@ -767,7 +768,10 @@ export function VoiceTutorWorkspace({
     const history = messagesRef.current
       .filter((message) => !message.welcome && message.content.trim())
       .slice(-VOICE_TUTOR_MAX_HISTORY)
-      .map((message) => ({ role: message.role, content: message.content.slice(0, 4000) }));
+      .map((message) => ({
+        role: message.role,
+        content: message.content.slice(0, VOICE_TUTOR_HISTORY_MESSAGE_CHARS),
+      }));
 
     const payload = {
       documentName: document.meta.name.slice(0, 200),
