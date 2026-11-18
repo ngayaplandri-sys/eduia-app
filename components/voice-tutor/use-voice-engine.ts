@@ -5,15 +5,18 @@ import { VOICE_TUTOR_MAX_RECORDING_MS } from "@/lib/config/voice-tutor";
 
 /**
  * Moteur audio du Professeur vocal, sans état React superflu :
- *  - enregistrement de la question au micro (MediaRecorder) avec détection de
- *    la fin de phrase (niveau sonore analysé par Web Audio) ;
+ *  - écoute de l'élève au micro (MediaRecorder) avec détection de la fin de
+ *    phrase (niveau sonore analysé par Web Audio) ;
+ *  - écoute pendant que le professeur parle : si l'élève prend la parole, il
+ *    est coupé (`startWatching`) et la phrase de l'élève est enregistrée ;
  *  - lecture des réponses : une réponse = une suite de passages audio, joués
  *    l'un après l'autre dès qu'ils arrivent (la voix démarre pendant que le
  *    professeur écrit encore la suite), puis réécoutables en entier.
  *
- * Le micro est relâché après chaque question : l'indicateur d'enregistrement
- * s'éteint pendant que le professeur parle, et sur iPhone la voix ne bascule
- * pas sur l'écouteur (volume très faible quand le micro reste ouvert).
+ * Le micro reste ouvert pendant toute la conversation (jusqu'à `releaseMic`),
+ * sauf sur iPhone et iPad : micro ouvert, la voix du professeur y devient très
+ * faible. Il y est relâché après chaque question, et l'élève interrompt le
+ * professeur en appuyant sur le micro.
  */
 
 export type MicFailure = "denied" | "missing" | "unsupported";
@@ -51,7 +54,11 @@ interface ListenHandlers {
   /** Question enregistrée (fin de phrase détectée, ou envoi manuel). */
   onUtterance: (audio: Blob) => void;
   /** Rien entendu avant le délai : l'écoute s'arrête d'elle-même. */
-  onNoSpeech: () => void;
+  onNoSpeech?: () => void;
+  /** L'élève a pris la parole pendant que le professeur parlait. */
+  onBargeIn?: () => void;
+  /** Fausse alerte (toux, bruit bref) après `onBargeIn` : rien n'est envoyé. */
+  onFalseStart?: () => void;
 }
 
 const RECORDER_TYPES = [
@@ -71,6 +78,17 @@ const NO_SPEECH_TIMEOUT_MS = 10_000;
 /** Envoi manuel : en dessous, l'enregistrement est jugé vide. */
 const MIN_MANUAL_MS = 500;
 
+/** Pendant que le professeur parle : voix soutenue qui lui coupe la parole. */
+const BARGE_IN_MS = 350;
+/** Seuil minimal de cette voix (le professeur s'entend un peu dans le micro). */
+const BARGE_IN_MIN_LEVEL = 0.03;
+/** Début de l'écoute : on mesure d'abord l'écho de la voix du professeur. */
+const BARGE_IN_WARMUP_MS = 700;
+/** Enregistrement commencé sur un bruit qui ne s'est pas confirmé : abandonné. */
+const SPECULATIVE_DROP_MS = 600;
+/** Parole totale en dessous : fausse alerte. */
+const FALSE_START_MS = 450;
+
 /** WAV vide : « débloque » la lecture audio sur iPhone lors d'un appui. */
 const SILENT_WAV =
   "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA=";
@@ -89,6 +107,30 @@ function toMicError(error: unknown): MicError {
   return new MicError("unsupported");
 }
 
+/** iPhone, iPad (y compris iPadOS qui se présente comme un Mac). */
+function isAppleMobile(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return (
+    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+  );
+}
+
+function canRecord(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    Boolean(navigator.mediaDevices?.getUserMedia) &&
+    typeof MediaRecorder !== "undefined"
+  );
+}
+
+/** L'élève peut-il couper la parole au professeur en parlant ? */
+function voiceInterruptSupported(): boolean {
+  return canRecord() && !isAppleMobile();
+}
+
+const noSubscription = () => () => {};
+
 /** Durée d'un passage audio (métadonnées), sans le jouer. */
 function probeDuration(blob: Blob): Promise<number> {
   return new Promise((resolve) => {
@@ -105,10 +147,19 @@ function probeDuration(blob: Blob): Promise<number> {
   });
 }
 
-interface RecordingSession {
-  id: number;
+/** Micro ouvert : flux et analyse du niveau sonore. */
+interface MicInput {
   stream: MediaStream;
-  recorder: MediaRecorder;
+  analyser: AnalyserNode | null;
+  samples: Uint8Array<ArrayBuffer>;
+}
+
+interface MicSession {
+  id: number;
+  mode: "listen" | "watch";
+  input: MicInput;
+  /** Enregistrement en cours (dès l'ouverture en écoute ; dès un bruit en veille). */
+  recorder: MediaRecorder | null;
   chunks: Blob[];
   startedAt: number;
   speechStarted: boolean;
@@ -136,9 +187,13 @@ export function useVoiceEngine() {
   const contextRef = React.useRef<AudioContext | null>(null);
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
   const unlockedRef = React.useRef(false);
-  const sessionRef = React.useRef<RecordingSession | null>(null);
+  const micRef = React.useRef<MicInput | null>(null);
+  const micPromiseRef = React.useRef<Promise<MicInput> | null>(null);
+  const sessionRef = React.useRef<MicSession | null>(null);
   const sessionCounter = React.useRef(0);
   const levelRef = React.useRef(0);
+  /** Bruit de fond mesuré à la dernière écoute (seuil de parole). */
+  const noiseFloorRef = React.useRef<number | null>(null);
 
   const sequencesRef = React.useRef(new Map<string, Sequence>());
   /** Lecture en cours : séquence, passage et numéro de lecture (annulation). */
@@ -154,6 +209,12 @@ export function useVoiceEngine() {
   /** Durée totale des réponses entièrement chargées, affichée même à l'arrêt. */
   const [durations, setDurations] = React.useState<Record<string, number>>({});
   const [rate, setRateState] = React.useState(1);
+
+  const canInterruptByVoice = React.useSyncExternalStore(
+    noSubscription,
+    voiceInterruptSupported,
+    () => false,
+  );
 
   function ensureContext(): AudioContext | null {
     if (!contextRef.current) {
@@ -406,11 +467,22 @@ export function useVoiceEngine() {
     return run(seq, 0, 0);
   }
 
-  /** Reprend une réponse mise en pause là où elle s'était arrêtée. */
-  function resume(id: string, expected: number): Promise<PlayOutcome> | null {
+  /**
+   * Reprend une réponse là où elle s'était arrêtée (pause, interruption). Les
+   * passages qui n'avaient pas encore été chargés (réponse coupée pendant
+   * qu'elle s'écrivait) sont demandés à `loadClip`.
+   */
+  function resumeMessage(
+    id: string,
+    expected: number,
+    loadClip: (index: number) => Promise<Blob | null>,
+  ): Promise<PlayOutcome> | null {
     const position = resumeRef.current;
-    const seq = loadedSequence(id, expected);
-    if (!position || position.id !== id || !seq) return null;
+    const seq = sequencesRef.current.get(id);
+    if (!position || position.id !== id || !seq || seq.clips.length > expected) return null;
+    for (let index = seq.clips.length; index < expected; index++) addClip(seq, loadClip(index));
+    seq.closed = true;
+    recordDuration(seq);
     return run(seq, position.index, position.offset);
   }
 
@@ -424,7 +496,7 @@ export function useVoiceEngine() {
 
   /**
    * Repositionne une réponse (clic sur sa forme d'onde). Renvoie `true` si elle
-   * était en cours de lecture : l'appelant la relance alors avec `resume`.
+   * était en cours de lecture : l'appelant la relance alors avec `resumeMessage`.
    */
   function seek(id: string, ratio: number): boolean {
     const seq = sequencesRef.current.get(id);
@@ -467,76 +539,145 @@ export function useVoiceEngine() {
 
   // ───────────────────────────── Micro ─────────────────────────────
 
-  function releaseSession(session: RecordingSession) {
-    if (session.timer !== null) window.clearInterval(session.timer);
-    session.stream.getTracks().forEach((track) => track.stop());
-    if (sessionRef.current === session) sessionRef.current = null;
+  /** Ouvre le micro, ou réutilise celui déjà ouvert pendant la conversation. */
+  function openMic(): Promise<MicInput> {
+    const current = micRef.current;
+    if (current && current.stream.getAudioTracks().some((track) => track.readyState === "live")) {
+      return Promise.resolve(current);
+    }
+    if (current) closeMic();
+    micPromiseRef.current ??= (async () => {
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+        });
+      } catch (error) {
+        throw toMicError(error);
+      }
+      // Analyse du niveau sonore. Sans contexte audio actif (rare : ancien
+      // navigateur, contexte suspendu hors appui), l'élève envoie à la main.
+      const context = ensureContext();
+      let analyser: AnalyserNode | null = null;
+      if (context) {
+        try {
+          analyser = context.createAnalyser();
+          analyser.fftSize = 1024;
+          context.createMediaStreamSource(stream).connect(analyser);
+        } catch {
+          analyser = null;
+        }
+      }
+      const input: MicInput = {
+        stream,
+        analyser,
+        samples: new Uint8Array(new ArrayBuffer(analyser?.fftSize ?? 0)),
+      };
+      micRef.current = input;
+      return input;
+    })().finally(() => {
+      micPromiseRef.current = null;
+    });
+    return micPromiseRef.current;
+  }
+
+  function closeMic() {
+    const input = micRef.current;
+    micRef.current = null;
+    input?.stream.getTracks().forEach((track) => track.stop());
     levelRef.current = 0;
   }
 
-  function finish(session: RecordingSession, submit: boolean, reason?: "no-speech") {
+  /** Niveau sonore instantané du micro (RMS, 0 à ~1). */
+  function readLevel(input: MicInput): number | null {
+    if (!input.analyser || contextRef.current?.state !== "running") return null;
+    input.analyser.getByteTimeDomainData(input.samples);
+    let sum = 0;
+    for (const value of input.samples) {
+      const centered = (value - 128) / 128;
+      sum += centered * centered;
+    }
+    const rms = Math.sqrt(sum / input.samples.length);
+    levelRef.current = levelRef.current * 0.6 + Math.min(1, rms * 9) * 0.4;
+    return rms;
+  }
+
+  /** Seuil de parole déduit du bruit de fond. */
+  function speechThreshold(floor: number): number {
+    return Math.min(0.09, Math.max(0.014, floor * 2.8));
+  }
+
+  function startRecorder(session: MicSession): MediaRecorder | null {
+    const mimeType = pickRecorderType();
+    let recorder: MediaRecorder;
+    try {
+      recorder = new MediaRecorder(session.input.stream, mimeType ? { mimeType } : undefined);
+    } catch {
+      return null;
+    }
+    const chunks: Blob[] = [];
+    recorder.addEventListener("dataavailable", (event) => {
+      if (event.data.size > 0) chunks.push(event.data);
+    });
+    recorder.start(250);
+    session.recorder = recorder;
+    session.chunks = chunks;
+    return recorder;
+  }
+
+  /** Enregistrement commencé sur un bruit non confirmé : jeté. */
+  function dropRecorder(session: MicSession) {
+    const recorder = session.recorder;
+    session.recorder = null;
+    session.chunks = [];
+    if (recorder && recorder.state !== "inactive") recorder.stop();
+  }
+
+  function finish(session: MicSession, submit: boolean, reason?: "no-speech" | "false-start") {
     if (session.finishing) return;
     session.finishing = true;
     if (session.timer !== null) {
       window.clearInterval(session.timer);
       session.timer = null;
     }
+    const recorder = session.recorder;
     const deliver = () => {
-      releaseSession(session);
+      if (sessionRef.current === session) sessionRef.current = null;
+      levelRef.current = 0;
+      // iPhone : micro relâché dès la question enregistrée (volume de la voix).
+      if (!voiceInterruptSupported()) closeMic();
       if (session.id !== sessionCounter.current) return;
       if (submit) {
-        const type = session.recorder.mimeType || session.chunks[0]?.type || "audio/webm";
+        const type = recorder?.mimeType || session.chunks[0]?.type || "audio/webm";
         session.handlers.onUtterance(new Blob(session.chunks, { type }));
       } else if (reason === "no-speech") {
-        session.handlers.onNoSpeech();
+        session.handlers.onNoSpeech?.();
+      } else if (reason === "false-start") {
+        session.handlers.onFalseStart?.();
       }
     };
-    if (session.recorder.state === "inactive") {
+    if (!recorder || recorder.state === "inactive") {
       deliver();
       return;
     }
-    session.recorder.addEventListener("stop", deliver, { once: true });
-    session.recorder.stop();
+    recorder.addEventListener("stop", deliver, { once: true });
+    recorder.stop();
   }
 
-  async function startListening(handlers: ListenHandlers): Promise<void> {
-    if (
-      typeof window === "undefined" ||
-      !navigator.mediaDevices?.getUserMedia ||
-      typeof MediaRecorder === "undefined"
-    ) {
-      throw new MicError("unsupported");
-    }
+  /** Ouvre (ou réutilise) le micro pour une nouvelle session ; `null` si annulée entre-temps. */
+  async function beginSession(
+    mode: MicSession["mode"],
+    handlers: ListenHandlers,
+  ): Promise<MicSession | null> {
     cancelListening();
     const id = ++sessionCounter.current;
-
-    let stream: MediaStream;
-    try {
-      stream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-      });
-    } catch (error) {
-      throw toMicError(error);
-    }
-    // Écoute annulée pendant la demande d'autorisation.
-    if (id !== sessionCounter.current) {
-      stream.getTracks().forEach((track) => track.stop());
-      return;
-    }
-
-    const mimeType = pickRecorderType();
-    let recorder: MediaRecorder;
-    try {
-      recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
-    } catch {
-      stream.getTracks().forEach((track) => track.stop());
-      throw new MicError("unsupported");
-    }
-
-    const session: RecordingSession = {
+    const input = await openMic();
+    if (id !== sessionCounter.current) return null;
+    const session: MicSession = {
       id,
-      stream,
-      recorder,
+      mode,
+      input,
+      recorder: null,
       chunks: [],
       startedAt: performance.now(),
       speechStarted: false,
@@ -545,26 +686,19 @@ export function useVoiceEngine() {
       finishing: false,
     };
     sessionRef.current = session;
-    recorder.addEventListener("dataavailable", (event) => {
-      if (event.data.size > 0) session.chunks.push(event.data);
-    });
-    recorder.start(250);
+    return session;
+  }
 
-    // Analyse du niveau sonore. Sans contexte audio actif (rare : ancien
-    // navigateur, contexte suspendu hors appui), l'élève envoie à la main.
-    const context = ensureContext();
-    let analyser: AnalyserNode | null = null;
-    if (context) {
-      try {
-        analyser = context.createAnalyser();
-        analyser.fftSize = 1024;
-        context.createMediaStreamSource(stream).connect(analyser);
-      } catch {
-        analyser = null;
-      }
+  /** Écoute la question de l'élève jusqu'à la fin de sa phrase. */
+  async function startListening(handlers: ListenHandlers): Promise<void> {
+    if (!canRecord()) throw new MicError("unsupported");
+    const session = await beginSession("listen", handlers);
+    if (!session) return;
+    if (!startRecorder(session)) {
+      sessionRef.current = null;
+      throw new MicError("unsupported");
     }
 
-    const samples = new Uint8Array(analyser?.fftSize ?? 0);
     const noise: number[] = [];
     let threshold = 0;
     let voicedMs = 0;
@@ -576,16 +710,8 @@ export function useVoiceEngine() {
         finish(session, true);
         return;
       }
-      if (!analyser || contextRef.current?.state !== "running") return;
-
-      analyser.getByteTimeDomainData(samples);
-      let sum = 0;
-      for (const value of samples) {
-        const centered = (value - 128) / 128;
-        sum += centered * centered;
-      }
-      const rms = Math.sqrt(sum / samples.length);
-      levelRef.current = levelRef.current * 0.6 + Math.min(1, rms * 9) * 0.4;
+      const rms = readLevel(session.input);
+      if (rms === null) return;
 
       if (elapsed < CALIBRATION_MS) {
         noise.push(rms);
@@ -594,7 +720,8 @@ export function useVoiceEngine() {
       if (!threshold) {
         const sorted = [...noise].sort((a, b) => a - b);
         const floor = sorted[Math.floor(sorted.length / 2)] ?? 0;
-        threshold = Math.min(0.09, Math.max(0.014, floor * 2.8));
+        noiseFloorRef.current = floor;
+        threshold = speechThreshold(floor);
       }
 
       if (rms > threshold) {
@@ -615,23 +742,111 @@ export function useVoiceEngine() {
   }
 
   /**
+   * Pendant que le professeur parle : le micro reste à l'écoute. Si l'élève
+   * prend la parole (voix nettement au-dessus de l'écho du professeur pendant
+   * `BARGE_IN_MS`), `onBargeIn` est appelé — l'appelant coupe la voix — puis
+   * sa phrase est enregistrée jusqu'à la fin (`onUtterance`), ou abandonnée si
+   * ce n'était qu'un bruit (`onFalseStart`). L'enregistrement commence dès le
+   * premier bruit, pour ne pas perdre le début de la phrase.
+   *
+   * Renvoie `false` si ce n'est pas possible (iPhone, micro indisponible).
+   */
+  async function startWatching(handlers: ListenHandlers): Promise<boolean> {
+    if (!voiceInterruptSupported()) return false;
+    let session: MicSession | null;
+    try {
+      session = await beginSession("watch", handlers);
+    } catch {
+      return false;
+    }
+    if (!session || !session.input.analyser) return false;
+    const watched = session;
+
+    const listenThreshold = speechThreshold(noiseFloorRef.current ?? 0.006);
+    let echo = 0;
+    let voicedMs = 0;
+    let quietMs = 0;
+    let silentMs = 0;
+    let spokenMs = 0;
+    let interruptedAt = 0;
+
+    watched.timer = window.setInterval(() => {
+      const now = performance.now();
+      const rms = readLevel(watched.input);
+      if (rms === null) return;
+
+      if (!watched.speechStarted) {
+        // Écho de la voix du professeur : suivi lent, pour ne pas confondre.
+        if (now - watched.startedAt < BARGE_IN_WARMUP_MS) {
+          echo = Math.max(echo * 0.8, rms);
+          return;
+        }
+        const threshold = Math.max(BARGE_IN_MIN_LEVEL, listenThreshold * 2, echo * 3);
+        if (rms > threshold) {
+          voicedMs += TICK_MS;
+          quietMs = 0;
+          if (!watched.recorder) startRecorder(watched);
+          echo = echo * 0.995 + rms * 0.005;
+        } else {
+          voicedMs = Math.max(0, voicedMs - TICK_MS / 2);
+          echo = echo * 0.95 + rms * 0.05;
+          if (watched.recorder) {
+            quietMs += TICK_MS;
+            if (voicedMs === 0 && quietMs >= SPECULATIVE_DROP_MS) dropRecorder(watched);
+          }
+        }
+        if (voicedMs >= BARGE_IN_MS && watched.recorder) {
+          watched.speechStarted = true;
+          interruptedAt = now;
+          spokenMs = voicedMs;
+          watched.handlers.onBargeIn?.();
+        }
+        return;
+      }
+
+      // L'élève a pris la parole : on l'écoute jusqu'à la fin de sa phrase.
+      if (now - interruptedAt >= VOICE_TUTOR_MAX_RECORDING_MS) {
+        finish(watched, true);
+        return;
+      }
+      if (rms > listenThreshold) {
+        spokenMs += TICK_MS;
+        silentMs = 0;
+      } else {
+        silentMs += TICK_MS;
+      }
+      if (silentMs >= END_SILENCE_MS) {
+        const real = spokenMs >= FALSE_START_MS;
+        finish(watched, real, real ? undefined : "false-start");
+      }
+    }, TICK_MS);
+    return true;
+  }
+
+  /**
    * Envoi immédiat de la question en cours (appui sur le micro pendant
    * l'écoute). `false` : enregistrement trop court, abandonné sans envoi.
    */
   function submitListening(): boolean {
     const session = sessionRef.current;
-    if (!session || session.finishing) return false;
+    if (!session || session.finishing || !session.recorder) return false;
     const submit =
       session.speechStarted || performance.now() - session.startedAt >= MIN_MANUAL_MS;
     finish(session, submit);
     return submit;
   }
 
-  /** Abandon de l'écoute en cours, sans rien envoyer. */
+  /** Abandon de l'écoute en cours, sans rien envoyer (le micro reste ouvert). */
   function cancelListening() {
     sessionCounter.current++;
     const session = sessionRef.current;
     if (session) finish(session, false);
+  }
+
+  /** Fin de la conversation : écoute annulée et micro fermé. */
+  function releaseMic() {
+    cancelListening();
+    closeMic();
   }
 
   /** Niveau du micro, de 0 à 1 (animation du cercle vocal). */
@@ -648,9 +863,9 @@ export function useVoiceEngine() {
       const session = sessionRef.current;
       if (session) {
         if (session.timer !== null) window.clearInterval(session.timer);
-        if (session.recorder.state !== "inactive") session.recorder.stop();
-        session.stream.getTracks().forEach((track) => track.stop());
+        if (session.recorder && session.recorder.state !== "inactive") session.recorder.stop();
       }
+      micRef.current?.stream.getTracks().forEach((track) => track.stop());
       audioRef.current?.pause();
       if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
       void contextRef.current?.close().catch(() => {});
@@ -660,12 +875,15 @@ export function useVoiceEngine() {
   return {
     unlock,
     startListening,
+    startWatching,
     submitListening,
     cancelListening,
+    releaseMic,
     getMicLevel,
+    canInterruptByVoice,
     startLiveSpeech,
     playMessage,
-    resume,
+    resumeMessage,
     pause,
     seek,
     stopPlayback,

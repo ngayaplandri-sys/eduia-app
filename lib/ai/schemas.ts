@@ -498,11 +498,19 @@ export const voiceTutorRequestSchema = z
         }),
       )
       .max(VOICE_TUTOR_MAX_HISTORY),
+    /** Explication page par page en cours : dernière page expliquée. */
+    lessonPage: z.number().int().min(1).max(MAX_PAGE_NUMBER).nullable().optional(),
+    /** Suite automatique de l'explication (sans question) : page `lessonPage + 1`. */
+    continueLesson: z.boolean().optional(),
   })
   .refine(
     ({ pages }) =>
       pages.reduce((sum, page) => sum + page.text.length, 0) <=
       VOICE_TUTOR_MAX_UPLOAD_CHARS,
+  )
+  .refine(
+    ({ continueLesson, lessonPage, pageCount }) =>
+      !continueLesson || (lessonPage != null && lessonPage < pageCount),
   );
 
 export type VoiceTutorRequest = z.infer<typeof voiceTutorRequestSchema>;

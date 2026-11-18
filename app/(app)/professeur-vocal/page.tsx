@@ -6,6 +6,7 @@ import {
   parseVoiceTutorLanguages,
 } from "@/lib/config/voice-tutor";
 import { getDictionary, getLocale } from "@/lib/i18n/server";
+import { getCurrentUser } from "@/lib/data/user";
 
 export async function generateMetadata(): Promise<Metadata> {
   const dict = await getDictionary();
@@ -21,12 +22,13 @@ export async function generateMetadata(): Promise<Metadata> {
  * l'interface pour les deux.
  */
 export default async function VoiceTutorPage() {
-  const [locale, cookieStore] = await Promise.all([getLocale(), cookies()]);
+  const [locale, cookieStore, user] = await Promise.all([getLocale(), cookies(), getCurrentUser()]);
   const saved = parseVoiceTutorLanguages(cookieStore.get(VOICE_TUTOR_LANGUAGES_COOKIE)?.value);
   const fallback = locale === "en" ? "en" : "fr";
 
   return (
     <VoiceTutorWorkspace
+      userId={user?.id ?? "anonymous"}
       initialDocumentLanguage={saved?.document ?? fallback}
       initialReplyLanguage={saved?.reply ?? fallback}
     />

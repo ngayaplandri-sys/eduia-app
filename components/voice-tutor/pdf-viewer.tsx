@@ -36,8 +36,8 @@ const READING_LINE = 0.3;
 /** Passage montré par le professeur : placé à cette hauteur du panneau. */
 const PASSAGE_LINE = 0.22;
 
-/** Au-delà de cet écart, on saute directement à la page au lieu de défiler. */
-const SMOOTH_SCROLL_PAGES = 6;
+/** Au-delà de cet écart (en hauteurs de panneau), on saute directement au lieu de défiler. */
+const SMOOTH_SCROLL_SCREENS = 5;
 
 /** Rectangle en unités de la page à l'échelle 1 (multiplié par l'échelle affichée). */
 interface PageRect {
@@ -358,9 +358,12 @@ export function PdfViewer({
   doc,
   onPageChange,
   pageTexts,
+  initialPage = 1,
   ref,
 }: {
   doc: PDFDocumentProxy;
+  /** Page à afficher à l'ouverture (cours retrouvé là où l'élève en était). */
+  initialPage?: number;
   /** Page qui traverse la ligne de lecture, à chaque changement. */
   onPageChange: (page: number) => void;
   /** Texte de chaque page (index 0 = page 1), une fois la lecture terminée. */
@@ -377,9 +380,9 @@ export function PdfViewer({
   const [sizes, setSizes] = React.useState<PageSize[]>([]);
   const [availableWidth, setAvailableWidth] = React.useState(0);
   const [zoom, setZoom] = React.useState(1);
-  const [page, setPage] = React.useState(1);
+  const [page, setPage] = React.useState(initialPage);
   const [range, setRange] = React.useState({ first: 1, last: 2 });
-  const [pageInput, setPageInput] = React.useState("1");
+  const [pageInput, setPageInput] = React.useState(String(initialPage));
 
   const [searchOpen, setSearchOpen] = React.useState(false);
   const [query, setQuery] = React.useState("");
@@ -427,9 +430,11 @@ export function PdfViewer({
 
   // Endroit lu (page + fraction de page sous la ligne de lecture) : conservé
   // quand le zoom ou la largeur changent, ou quand le panneau était masqué.
-  const anchorRef = React.useRef({ page: 1, fraction: 0 });
+  const anchorRef = React.useRef({ page: initialPage, fraction: 0 });
   // Passage à montrer dès que le panneau sera visible (onglet masqué sur mobile).
-  const pendingRef = React.useRef<{ page: number; offset: number | null } | null>(null);
+  const pendingRef = React.useRef<{ page: number; offset: number | null } | null>(
+    initialPage > 1 ? { page: initialPage, offset: null } : null,
+  );
   const hiddenRef = React.useRef(false);
   const textCacheRef = React.useRef(new Map<number, Promise<PageText>>());
   const focusCounterRef = React.useRef(0);
@@ -544,10 +549,10 @@ export function PdfViewer({
         offset === null
           ? entry.top - PAGE_GAP
           : entry.top + offset * entry.scale - element.clientHeight * line;
-      const distance = Math.abs(target - pageRef.current);
+      const distance = Math.abs(Math.max(0, top) - element.scrollTop);
       element.scrollTo({
         top: Math.max(0, top),
-        behavior: distance <= SMOOTH_SCROLL_PAGES ? "smooth" : "instant",
+        behavior: distance <= element.clientHeight * SMOOTH_SCROLL_SCREENS ? "smooth" : "instant",
       });
     },
     [],

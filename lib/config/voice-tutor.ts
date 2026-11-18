@@ -76,6 +76,31 @@ export const VOICE_TUTOR_WELCOME: Record<VoiceTutorLanguage, string> = {
   vi: "Xin chào! Mình là giáo viên AI của bạn, và mình đã đọc bài học của bạn. Hãy chạm vào micro và đặt câu hỏi: mình sẽ giải thích mọi thứ thật đơn giản, theo nhịp độ của bạn.",
 };
 
+/**
+ * Salutation prononcée par le professeur au premier appui sur le micro d'une
+ * conversation, avant d'écouter l'élève. Texte fixe, lui aussi accepté sans
+ * jeton par la route de synthèse vocale.
+ */
+export const VOICE_TUTOR_GREETING: Record<VoiceTutorLanguage, string> = {
+  fr: "Bienvenue ! Comment puis-je vous aider aujourd'hui ?",
+  en: "Welcome! How can I help you today?",
+  tr: "Hoş geldiniz! Bugün size nasıl yardımcı olabilirim?",
+  de: "Willkommen! Wie kann ich Ihnen heute helfen?",
+  es: "¡Bienvenido! ¿En qué puedo ayudarle hoy?",
+  ar: "أهلًا وسهلًا! كيف يمكنني مساعدتك اليوم؟",
+  pt: "Bem-vindo! Como posso ajudar hoje?",
+  it: "Benvenuto! Come posso aiutarla oggi?",
+  nl: "Welkom! Hoe kan ik u vandaag helpen?",
+  pl: "Witam! W czym mogę dziś pomóc?",
+  ru: "Добро пожаловать! Чем я могу вам помочь сегодня?",
+  zh: "欢迎！今天我能为您做些什么？",
+  ja: "ようこそ！今日はどのようなお手伝いができますか？",
+  ko: "환영합니다! 오늘 무엇을 도와드릴까요?",
+  hi: "स्वागत है! आज मैं आपकी कैसे मदद कर सकता हूँ?",
+  sw: "Karibu! Nikusaidie vipi leo?",
+  vi: "Chào mừng bạn! Hôm nay mình có thể giúp gì cho bạn?",
+};
+
 /** PDF lu dans le navigateur : jamais envoyé au serveur, seul son texte l'est. */
 export const VOICE_TUTOR_MAX_PDF_BYTES = 50 * 1024 * 1024;
 

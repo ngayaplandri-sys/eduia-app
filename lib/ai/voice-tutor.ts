@@ -11,6 +11,7 @@ import {
   VOICE_TUTOR_LANGUAGES,
   VOICE_TUTOR_MAX_SPEECH_CHARS,
   VOICE_TUTOR_MAX_UPLOAD_CHARS,
+  VOICE_TUTOR_GREETING,
   VOICE_TUTOR_WELCOME,
   isVoiceTutorLanguage,
   voiceTutorLanguage,
@@ -146,11 +147,20 @@ function buildInstructions(
     "PAGES : chaque page du document est précédée du repère « === Page N === ». Quand tu expliques une notion pour la première fois (ou que tu lis un passage), dis en passant à quelle page du cours elle se trouve (« c'est à la page 3 de ton cours »), une seule fois par réponse, sans jamais inventer de numéro.",
 
     [
+      "EXPLICATION PAGE PAR PAGE :",
+      "- Si l'élève te demande d'expliquer tout le cours, tout le document, un chapitre, ou d'expliquer « page par page » (éventuellement à partir d'une page), tu commences une explication pas à pas. Dans cette réponse, explique UNIQUEMENT la première page concernée (la page 1, sauf s'il en indique une autre), en annonçant en une phrase que vous allez avancer page par page et qu'il peut t'interrompre à tout moment. Mets suite:oui dans le repère : le système fera défiler son PDF et te demandera automatiquement la page suivante, sans qu'il ait à parler.",
+      "- Pendant cette explication, chaque réponse explique UNE seule page : ses idées essentielles avec tes mots, un exemple ou une comparaison si utile, en 4 à 8 phrases (environ 80 à 150 mots). Ne termine pas par une question (il ne peut pas répondre pendant l'enchaînement) : termine par une courte transition vers la suite. Une page presque vide (titre, sommaire, image) : une ou deux phrases suffisent.",
+      "- Mets suite:oui tant qu'il reste des pages à expliquer. Pour la dernière page, mets suite:non et conclus : résume l'essentiel en deux phrases et demande-lui s'il a des questions.",
+      "- S'il t'interrompt (question, « explique autrement », « plus simplement »…), réponds à ce qu'il demande avec suite:non, puis propose de reprendre là où vous en étiez. S'il veut reprendre (« oui », « continue »), explique la page suivante de l'explication avec suite:oui.",
+    ].join("\n"),
+
+    [
       "REPÈRE (obligatoire, jamais lu à l'élève) : commence CHAQUE réponse par une ligne de repère, exactement sous cette forme, puis va à la ligne et réponds normalement :",
-      '[[page:N lang:xx quote:"…"]]',
+      '[[page:N lang:xx quote:"…" suite:non]]',
       "- page : le numéro de la page du cours où se trouve ce dont il est question (la notion que tu expliques, le passage que tu lis, la page qu'il demande) ; 0 si ta réponse ne porte sur aucun passage précis du cours.",
       `- lang : le code de la langue de ta réponse (${LANGUAGE_CODES}).`,
       "- quote : 3 à 8 mots consécutifs recopiés À L'IDENTIQUE dans le texte de cette page, dans la langue du document (sans les traduire ni les corriger), au début du passage concerné ; \"\" si page vaut 0.",
+      "- suite : oui seulement pendant une explication page par page, quand le système doit enchaîner automatiquement sur la page suivante ; non dans tous les autres cas.",
       "Ce repère sert à faire défiler le PDF de l'élève jusqu'au passage et à le surligner pendant que tu parles. Ne le mentionne jamais et ne l'écris nulle part ailleurs dans ta réponse.",
     ].join("\n"),
 
@@ -359,6 +369,8 @@ export interface TutorFocus {
   quote: string | null;
   /** Langue de la réponse, quand elle diffère de la langue de réponse choisie. */
   language: VoiceTutorLanguage | null;
+  /** Explication page par page : enchaîner automatiquement sur la page suivante. */
+  continues: boolean;
 }
 
 function parseLeadTag(
@@ -369,11 +381,13 @@ function parseLeadTag(
   const page = Number(/page\s*[:=]\s*(\d{1,4})/i.exec(raw)?.[1] ?? 0);
   const language = /lang\w*\s*[:=]\s*["']?([a-z]{2})\b/i.exec(raw)?.[1]?.toLowerCase() ?? "";
   const quote = /quote\s*[:=]\s*["“«„]\s*([^"”»“]*?)\s*["”»“]/i.exec(raw)?.[1]?.trim() ?? "";
+  const next = /suite\s*[:=]\s*["']?(oui|yes|true|non|no|false)\b/i.exec(raw)?.[1]?.toLowerCase() ?? "";
   const known = available.has(page);
   return {
     page: known ? page : null,
     quote: known && quote ? quote.slice(0, 200) : null,
     language: isVoiceTutorLanguage(language) && language !== replyLanguage ? language : null,
+    continues: known && (next === "oui" || next === "yes" || next === "true") && page < available.size,
   };
 }
 
@@ -406,11 +420,21 @@ export async function* streamVoiceTutor(
   cacheKey: string,
 ): AsyncGenerator<TutorStreamEvent> {
   const lastAnswer = [...request.history].reverse().find((message) => message.role === "assistant");
+  // Suite automatique d'une explication page par page : la page à expliquer.
+  const lessonNext =
+    request.continueLesson && request.lessonPage ? request.lessonPage + 1 : null;
   const { selected, partial } = selectPages(
     request.pages,
     `${question} ${lastAnswer?.content ?? ""}`,
-    request.currentPage,
+    lessonNext ?? request.currentPage,
   );
+  const replyName = voiceTutorLanguage(request.replyLanguage).english;
+  const lessonContext = request.lessonPage
+    ? ` Une explication page par page est en cours : la dernière page expliquée est la page ${request.lessonPage} sur ${request.pageCount}.`
+    : "";
+  const turn = lessonNext
+    ? `[EXPLICATION PAGE PAR PAGE — suite automatique : l'élève écoute sans rien dire. Explique maintenant la page ${lessonNext} sur ${request.pageCount} de son cours, comme la suite naturelle de ta dernière explication.${lessonNext < request.pageCount ? " Termine par une courte transition vers la page suivante, sans question." : " C'est la DERNIÈRE page du cours : explique-la, puis résume l'essentiel du cours en deux phrases et termine en lui demandant s'il a des questions."} Réponds en ${replyName}. Commence ta réponse par la ligne de repère [[page:${lessonNext} lang:… quote:"…" suite:${lessonNext < request.pageCount ? "oui" : "non"}]].]`
+    : `[L'élève regarde actuellement la page ${request.currentPage} : « cette page », « ce passage » ou « ici » y renvoient.${lessonContext} Réponds en ${replyName}, sauf s'il te demande explicitement une autre langue. Commence ta réponse par la ligne de repère [[page:… lang:… quote:"…" suite:…]]. Sa question, transcrite depuis sa voix :]\n\n${question}`;
 
   // Ordre pensé pour la mise en cache automatique des prompts côté OpenAI :
   // consignes et document (identiques d'une question à l'autre) d'abord, la
@@ -427,7 +451,7 @@ export async function* streamVoiceTutor(
     })),
     {
       role: "user",
-      content: `[L'élève regarde actuellement la page ${request.currentPage} : « cette page », « ce passage » ou « ici » y renvoient. Réponds en ${voiceTutorLanguage(request.replyLanguage).english}, sauf s'il te demande explicitement une autre langue. Commence ta réponse par la ligne de repère [[page:… lang:… quote:"…"]]. Sa question, transcrite depuis sa voix :]\n\n${question}`,
+      content: turn,
     },
   ];
 
@@ -461,7 +485,10 @@ export async function* streamVoiceTutor(
       const page = citedPages(raw, documentPages)[0];
       if (page) {
         focusSent = true;
-        yield { type: "focus", focus: { page, quote: null, language: null } };
+        yield {
+          type: "focus",
+          focus: { page, quote: null, language: null, continues: false },
+        };
       }
     }
     yield { type: "delta", text };
@@ -474,7 +501,20 @@ export async function* streamVoiceTutor(
       if (tag !== null && !focusSent) {
         focusSent = true;
         const focus = parseLeadTag(tag, documentPages, request.replyLanguage);
-        if (focus.page || focus.language) yield { type: "focus", focus };
+        if (focus.page || focus.language || focus.continues) yield { type: "focus", focus };
+      }
+      // Suite automatique sans repère : la page demandée sert de repère.
+      if (lessonNext && !focusSent && (tag !== null || text)) {
+        focusSent = true;
+        yield {
+          type: "focus",
+          focus: {
+            page: lessonNext,
+            quote: null,
+            language: null,
+            continues: lessonNext < request.pageCount,
+          },
+        };
       }
       yield* emit(text);
     } else if (event.type === "response.completed" || event.type === "response.incomplete") {
@@ -544,6 +584,7 @@ export function isSpeakableText(
   token: string | undefined,
 ): boolean {
   if (Object.values(VOICE_TUTOR_WELCOME).includes(text)) return true;
+  if (Object.values(VOICE_TUTOR_GREETING).includes(text)) return true;
   if (!token) return false;
   const expected = Buffer.from(signSpeechText(userId, text));
   const received = Buffer.from(token);

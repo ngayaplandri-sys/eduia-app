@@ -51,7 +51,9 @@ async function readPayload(value: FormDataEntryValue | null): Promise<unknown> {
  *  - `payload` : JSON validé par `voiceTutorRequestSchema` (texte du PDF page
  *    par page, langues, page affichée, historique de la conversation), envoyé
  *    compressé en gzip par les navigateurs qui le permettent ;
- *  - `audio` : la question enregistrée au micro.
+ *  - `audio` : la question enregistrée au micro (absente pour la suite
+ *    automatique d'une explication page par page : `continueLesson`, facturée
+ *    comme une question).
  *
  * L'audio est d'abord transcrit (sans débit : une question inaudible ne coûte
  * rien, et les erreurs sont renvoyées avec leur code HTTP). La question est
@@ -92,39 +94,45 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: t.invalidRequest }, { status: 400 });
   }
   const parsed = voiceTutorRequestSchema.safeParse(payload);
-  const audio = form.get("audio");
-  if (!parsed.success || !(audio instanceof File) || audio.size === 0) {
+  if (!parsed.success) {
     return NextResponse.json({ error: t.invalidRequest }, { status: 400 });
   }
   const data = parsed.data;
 
-  if (audio.size > VOICE_TUTOR_MAX_AUDIO_BYTES) {
-    return NextResponse.json(
-      { error: dict.voiceTutor.errorRecordingTooLong, code: "AUDIO_TOO_LARGE" },
-      { status: 413 },
-    );
-  }
-  const extension = audioExtension(audio.type);
-  if (!extension) {
-    return NextResponse.json(
-      { error: dict.voiceTutor.errorMicUnsupported, code: "UNSUPPORTED_AUDIO" },
-      { status: 415 },
-    );
-  }
+  // Suite automatique d'une explication page par page : pas de question orale.
+  let question = "";
+  if (!data.continueLesson) {
+    const audio = form.get("audio");
+    if (!(audio instanceof File) || audio.size === 0) {
+      return NextResponse.json({ error: t.invalidRequest }, { status: 400 });
+    }
+    if (audio.size > VOICE_TUTOR_MAX_AUDIO_BYTES) {
+      return NextResponse.json(
+        { error: dict.voiceTutor.errorRecordingTooLong, code: "AUDIO_TOO_LARGE" },
+        { status: 413 },
+      );
+    }
+    const extension = audioExtension(audio.type);
+    if (!extension) {
+      return NextResponse.json(
+        { error: dict.voiceTutor.errorMicUnsupported, code: "UNSUPPORTED_AUDIO" },
+        { status: 415 },
+      );
+    }
 
-  let question: string;
-  try {
-    question = await transcribeQuestion(audio, extension);
-  } catch (error) {
-    console.error("[/api/ai/voice-tutor] échec de la transcription :", error);
-    const { status, message } = describeAIError(error, dict);
-    return NextResponse.json({ error: message }, { status });
-  }
-  if (!question) {
-    return NextResponse.json(
-      { error: dict.voiceTutor.errorNoSpeech, code: "NO_SPEECH" },
-      { status: 422 },
-    );
+    try {
+      question = await transcribeQuestion(audio, extension);
+    } catch (error) {
+      console.error("[/api/ai/voice-tutor] échec de la transcription :", error);
+      const { status, message } = describeAIError(error, dict);
+      return NextResponse.json({ error: message }, { status });
+    }
+    if (!question) {
+      return NextResponse.json(
+        { error: dict.voiceTutor.errorNoSpeech, code: "NO_SPEECH" },
+        { status: 422 },
+      );
+    }
   }
 
   const unlimited = hasUnlimitedAccess(user);

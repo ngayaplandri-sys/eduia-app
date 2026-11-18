@@ -30,6 +30,7 @@ import {
 import { InlineErrorBanner } from "@/components/common/inline-error-banner";
 import { InsufficientCreditsBanner } from "@/components/credits/insufficient-credits-banner";
 import {
+  VOICE_TUTOR_GREETING,
   VOICE_TUTOR_MAX_HISTORY,
   VOICE_TUTOR_MAX_PAGES,
   VOICE_TUTOR_MAX_PDF_BYTES,
@@ -47,6 +48,12 @@ import {
 } from "./pdf-document";
 import { PdfViewer, type PdfViewerHandle } from "./pdf-viewer";
 import { detectLanguage } from "./detect-language";
+import {
+  deleteSavedDocument,
+  loadSavedDocument,
+  saveDocument,
+  saveDocumentPage,
+} from "./saved-document";
 import { LanguagePicker } from "./language-picker";
 import {
   MicError,
@@ -74,6 +81,8 @@ interface DocumentMeta {
   name: string;
   size: number;
   pageCount: number;
+  /** Page affichée à l'ouverture (cours retrouvé : là où l'élève en était). */
+  initialPage: number;
 }
 
 type DocumentState =
@@ -110,11 +119,15 @@ type TutorEvent =
       page: number | null;
       quote: string | null;
       language: VoiceTutorLanguage | null;
+      continues: boolean;
     }
   | { type: "delta"; text: string }
   | { type: "speech"; text: string; token: string }
   | { type: "done"; answer: string; pages: number[] }
   | { type: "error"; message: string };
+
+/** Ce que l'élève a coupé en prenant la parole (repris si ce n'était qu'un bruit). */
+type Interrupted = { kind: "answer"; messageId: string } | { kind: "lesson" };
 
 let messageCounter = 0;
 function nextMessageId(): string {
@@ -132,7 +145,7 @@ function welcomeMessage(language: VoiceTutorLanguage): TutorMessage {
   };
 }
 
-/** Passages à prononcer d'un message (l'accueil : un seul, sans jeton). */
+/** Passages à prononcer d'un message (accueil et salutation : un seul, sans jeton). */
 function segmentsOf(message: TutorMessage): SpeechSegment[] {
   return message.segments?.length ? message.segments : [{ text: message.content }];
 }
@@ -167,6 +180,26 @@ async function gzipJson(json: string): Promise<Blob | null> {
   try {
     const stream = new Blob([json]).stream().pipeThrough(new CompressionStream("gzip"));
     return await new Response(stream).blob();
+  } catch {
+    return null;
+  }
+}
+
+/** Voix d'un texte du professeur (jeton : texte signé par le serveur). */
+async function requestSpeech(
+  text: string,
+  language: VoiceTutorLanguage,
+  token?: string,
+): Promise<Blob | null> {
+  try {
+    const response = await fetch("/api/ai/voice-tutor/speech", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ text, language, token }),
+    });
+    if (!response.ok) return null;
+    const blob = await response.blob();
+    return blob.size > 0 ? blob : null;
   } catch {
     return null;
   }
@@ -209,19 +242,25 @@ async function* readEvents(body: ReadableStream<Uint8Array>): AsyncGenerator<Tut
 
 /**
  * Page « Professeur vocal » : PDF du cours à gauche, conversation 100 % orale
- * à droite, deux langues en haut. Le PDF est lu dans le navigateur ; chaque
- * question enregistrée au micro part avec le texte du cours vers
- * `POST /api/ai/voice-tutor`, dont la réponse arrive en flux : le texte
- * s'affiche au fil de l'écriture et chaque passage est prononcé dès qu'il est
- * prêt (`POST /api/ai/voice-tutor/speech`).
+ * à droite, deux langues en haut. Le PDF est lu dans le navigateur (et gardé
+ * sur l'appareil jusqu'à ce que l'élève le retire) ; chaque question part avec
+ * le texte du cours vers `POST /api/ai/voice-tutor`, dont la réponse arrive en
+ * flux : le texte s'affiche au fil de l'écriture et chaque passage est
+ * prononcé dès qu'il est prêt (`POST /api/ai/voice-tutor/speech`).
  *
- * Conversation mains libres : après chaque réponse prononcée, le micro se
- * rouvre de lui-même jusqu'à ce que l'élève arrête (bouton carré) ou se taise.
+ * Conversation mains libres : au premier appui, le professeur salue l'élève,
+ * puis le micro se rouvre après chaque réponse. Pendant qu'il parle, l'élève
+ * peut lui couper la parole en parlant (ou en appuyant sur le micro sur
+ * iPhone). Explication page par page : le professeur enchaîne seul les pages
+ * (le PDF défile avec lui) jusqu'à la fin du cours ou jusqu'à ce que l'élève
+ * l'interrompe.
  */
 export function VoiceTutorWorkspace({
+  userId,
   initialDocumentLanguage,
   initialReplyLanguage,
 }: {
+  userId: string;
   initialDocumentLanguage: VoiceTutorLanguage;
   initialReplyLanguage: VoiceTutorLanguage;
 }) {
@@ -244,6 +283,8 @@ export function VoiceTutorWorkspace({
   const [error, setError] = React.useState<PanelError | null>(null);
   const [notice, setNotice] = React.useState<string | null>(null);
   const [mobileTab, setMobileTab] = React.useState<"document" | "teacher">("document");
+  /** Explication page par page : page que le professeur prépare (il « tourne la page »). */
+  const [preparingPage, setPreparingPage] = React.useState<number | null>(null);
 
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const viewerRef = React.useRef<PdfViewerHandle>(null);
@@ -256,13 +297,24 @@ export function VoiceTutorWorkspace({
   // Réponse dont les passages sont prononcés au fil de l'eau (coupée si l'élève
   // interrompt ou arrête : la suite s'affiche sans être lue).
   const liveAnswerRef = React.useRef<string | null>(null);
-  // « Tour » de parole : chaque nouvelle action de l'élève (écouter, arrêter,
-  // lire une réponse) invalide les changements d'état des actions précédentes.
+  // Message en cours de lecture à voix haute.
+  const speakingRef = React.useRef<string | null>(null);
+  // Suite d'explication demandée, pas encore prononcée (annulable).
+  const continuationRef = React.useRef(false);
+  // Explication page par page : dernière page entièrement expliquée.
+  const lessonPageRef = React.useRef<number | null>(null);
+  // Salutation déjà prononcée dans cette conversation.
+  const greetedRef = React.useRef(false);
+  const interruptedRef = React.useRef<Interrupted | null>(null);
+  // « Tour » de parole : chaque nouvelle action (écouter, arrêter, lire une
+  // réponse, couper la parole) invalide les suites des actions précédentes.
   const turnRef = React.useRef(0);
   const speechQueueRef = React.useRef<{ active: number; waiting: (() => void)[] }>({
     active: 0,
     waiting: [],
   });
+  // Voix des salutations, préparées dès que le cours est prêt.
+  const greetingAudioRef = React.useRef(new Map<string, Promise<Blob | null>>());
 
   // Dernières valeurs, lues par les rappels asynchrones (fin de phrase, audio).
   const phaseRef = React.useRef<VoicePhase>("idle");
@@ -277,10 +329,15 @@ export function VoiceTutorWorkspace({
     languagesRef.current = { documentLanguage, replyLanguage };
   });
 
-  const setPhase = React.useCallback((next: VoicePhase) => {
-    phaseRef.current = next;
-    setPhaseState(next);
-  }, []);
+  const setPhase = React.useCallback(
+    (next: VoicePhase) => {
+      phaseRef.current = next;
+      setPhaseState(next);
+      // Fin de la conversation : le micro se ferme.
+      if (next === "idle") engine.releaseMic();
+    },
+    [engine],
+  );
 
   // Langues mémorisées un an sur cet appareil (cookie relu par la page serveur,
   // donc affichées dès le premier rendu).
@@ -308,7 +365,8 @@ export function VoiceTutorWorkspace({
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, phase]);
 
-  // Fermeture de la page : arrête la lecture du PDF et libère sa mémoire.
+  // Fermeture de la page : arrête la lecture du PDF et libère sa mémoire (le
+  // cours reste enregistré sur l'appareil).
   React.useEffect(() => {
     return () => {
       readAbortRef.current?.abort();
@@ -318,12 +376,80 @@ export function VoiceTutorWorkspace({
     };
   }, []);
 
+  // Retour sur la page : le cours enregistré sur l'appareil est rouvert, avec
+  // son texte déjà lu, à la page où l'élève en était.
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const saved = await loadSavedDocument(userId);
+      if (cancelled || !saved || docRef.current.status !== "empty") return;
+      const controller = new AbortController();
+      readAbortRef.current = controller;
+      setDocState({ status: "opening", name: saved.name });
+      let doc: PDFDocumentProxy;
+      try {
+        doc = await openPdf(new File([saved.file], saved.name, { type: "application/pdf" }));
+      } catch {
+        if (controller.signal.aborted || cancelled) return;
+        setDocState({ status: "empty" });
+        void deleteSavedDocument(userId);
+        return;
+      }
+      if (controller.signal.aborted || cancelled) {
+        void doc.loadingTask.destroy();
+        return;
+      }
+      if (doc.numPages !== saved.pageTexts.length) {
+        void doc.loadingTask.destroy();
+        setDocState({ status: "empty" });
+        void deleteSavedDocument(userId);
+        return;
+      }
+      docKeyRef.current += 1;
+      const initialPage = Math.min(doc.numPages, Math.max(1, Math.round(saved.page) || 1));
+      const hasText = saved.pageTexts.some((text) => !isScannedPageText(text));
+      setPage(initialPage);
+      setDocState({
+        status: "ready",
+        doc,
+        meta: {
+          key: docKeyRef.current,
+          name: saved.name,
+          size: saved.size,
+          pageCount: doc.numPages,
+          initialPage,
+        },
+        pageTexts: saved.pageTexts,
+        hasText,
+      });
+      setMessages(hasText ? [welcomeMessage(languagesRef.current.replyLanguage)] : []);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
+
+  // Page affichée mémorisée avec le cours (reprise au même endroit).
+  const savedPageKey = docState.status === "ready" && docState.hasText ? docState.meta.key : 0;
+  React.useEffect(() => {
+    if (!savedPageKey) return;
+    const timer = window.setTimeout(() => void saveDocumentPage(userId, page), 600);
+    return () => window.clearTimeout(timer);
+  }, [page, savedPageKey, userId]);
+
   // ───────────────────────────── Document ─────────────────────────────
 
   function stopConversation() {
     turnRef.current += 1;
     conversationRef.current = false;
     liveAnswerRef.current = null;
+    speakingRef.current = null;
+    interruptedRef.current = null;
+    if (continuationRef.current) {
+      continuationRef.current = false;
+      requestAbortRef.current?.abort();
+    }
+    setPreparingPage(null);
     engine.cancelListening();
     engine.stopPlayback();
     setPhase("idle");
@@ -335,7 +461,10 @@ export function VoiceTutorWorkspace({
     readAbortRef.current?.abort();
     const current = docRef.current;
     if (current.status === "reading" || current.status === "ready") void current.doc.loadingTask.destroy();
+    void deleteSavedDocument(userId);
     engine.reset();
+    lessonPageRef.current = null;
+    greetedRef.current = false;
     setDocState({ status: "empty" });
     setMessages([]);
     setError(null);
@@ -390,6 +519,7 @@ export function VoiceTutorWorkspace({
       name: file.name,
       size: file.size,
       pageCount: doc.numPages,
+      initialPage: 1,
     };
     setPage(1);
     setDocState({ status: "reading", doc, meta, done: 0, total: doc.numPages, scanned: false });
@@ -432,6 +562,16 @@ export function VoiceTutorWorkspace({
       }
       if (hasText) {
         setMessages([welcomeMessage(languagesRef.current.replyLanguage)]);
+        // Gardé sur l'appareil jusqu'à ce que l'élève le retire.
+        void saveDocument({
+          userId,
+          name: file.name,
+          size: file.size,
+          file,
+          pageTexts: texts,
+          page: 1,
+          savedAt: Date.now(),
+        });
       } else {
         setDocError(t.errorPdfNoText);
       }
@@ -456,6 +596,19 @@ export function VoiceTutorWorkspace({
   const ready = docState.status === "ready" && docState.hasText ? docState : null;
   const canTalk = Boolean(ready);
 
+  // Salutation préparée à l'avance : elle part sans attente au premier appui.
+  const greetingText = ready ? VOICE_TUTOR_GREETING[replyLanguage] : null;
+  React.useEffect(() => {
+    if (!greetingText) return;
+    const cache = greetingAudioRef.current;
+    if (cache.has(greetingText)) return;
+    const request = requestSpeech(greetingText, replyLanguage).then((blob) => {
+      if (!blob) cache.delete(greetingText);
+      return blob;
+    });
+    cache.set(greetingText, request);
+  }, [greetingText, replyLanguage]);
+
   function micErrorMessage(reason: MicFailure): string {
     if (reason === "denied") return t.errorMicDenied;
     if (reason === "missing") return t.errorMicMissing;
@@ -467,22 +620,15 @@ export function VoiceTutorWorkspace({
     segment: SpeechSegment,
     language: VoiceTutorLanguage,
   ): Promise<Blob | null> {
+    const prepared = segment.token ? undefined : greetingAudioRef.current.get(segment.text);
+    if (prepared) return prepared;
     const queue = speechQueueRef.current;
     if (queue.active >= SPEECH_CONCURRENCY) {
       await new Promise<void>((resolve) => queue.waiting.push(resolve));
     }
     queue.active += 1;
     try {
-      const response = await fetch("/api/ai/voice-tutor/speech", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ text: segment.text, language, token: segment.token }),
-      });
-      if (!response.ok) return null;
-      const blob = await response.blob();
-      return blob.size > 0 ? blob : null;
-    } catch {
-      return null;
+      return await requestSpeech(segment.text, language, segment.token);
     } finally {
       queue.active -= 1;
       queue.waiting.shift()?.();
@@ -493,10 +639,107 @@ export function VoiceTutorWorkspace({
     setMessages((list) => list.map((message) => (message.id === id ? update(message) : message)));
   }
 
-  async function ask(audio: Blob) {
+  /**
+   * Après une réponse prononcée en entier : explication page par page →
+   * page suivante ; sinon le micro se rouvre (mains libres).
+   */
+  function afterAnswer(message: Pick<TutorMessage, "focus" | "continues" | "lesson"> | null) {
+    const pageCount = docRef.current.status === "ready" ? docRef.current.meta.pageCount : 0;
+    if (message?.focus && (message.continues || message.lesson)) {
+      lessonPageRef.current = message.focus.page >= pageCount ? null : message.focus.page;
+    }
+    if (!conversationRef.current) {
+      setPhase("idle");
+      return;
+    }
+    if (message?.continues && lessonPageRef.current && lessonPageRef.current < pageCount) {
+      void continueLesson();
+      return;
+    }
+    void listen();
+  }
+
+  /** L'élève peut couper la parole au professeur en parlant (sauf iPhone). */
+  function watchForInterruption(turn: number) {
+    if (!engine.canInterruptByVoice || !conversationRef.current) return;
+    void engine.startWatching({
+      onBargeIn: () => {
+        if (turnRef.current === turn) interrupt();
+      },
+      onUtterance: (audio) => void ask(audio),
+      onFalseStart: () => recoverFromFalseStart(),
+    });
+  }
+
+  /** Le professeur se tait : l'élève a la parole. */
+  function interrupt() {
+    turnRef.current += 1;
+    interruptedRef.current = speakingRef.current
+      ? { kind: "answer", messageId: speakingRef.current }
+      : continuationRef.current
+        ? { kind: "lesson" }
+        : null;
+    if (continuationRef.current) {
+      continuationRef.current = false;
+      requestAbortRef.current?.abort();
+    }
+    liveAnswerRef.current = null;
+    speakingRef.current = null;
+    conversationRef.current = true;
+    engine.stopPlayback();
+    setPreparingPage(null);
+    setError(null);
+    setNotice(null);
+    setPhase("listening");
+  }
+
+  /** Ce n'était qu'un bruit : le professeur reprend là où il s'était arrêté. */
+  function recoverFromFalseStart() {
+    const interrupted = interruptedRef.current;
+    interruptedRef.current = null;
+    if (!conversationRef.current) {
+      setPhase("idle");
+      return;
+    }
+    if (interrupted?.kind === "lesson") {
+      void continueLesson();
+      return;
+    }
+    const message =
+      interrupted?.kind === "answer"
+        ? messagesRef.current.find((item) => item.id === interrupted.messageId)
+        : undefined;
+    if (message) void speak(message, { conversation: true });
+    else void listen();
+  }
+
+  /** Explication page par page : le professeur passe seul à la page suivante. */
+  async function continueLesson() {
+    const from = lessonPageRef.current;
+    if (!from) {
+      void listen();
+      return;
+    }
+    // Il « tourne la page » : le PDF y va tout de suite.
+    viewerRef.current?.goToPage(from + 1);
+    await ask(null);
+  }
+
+  /**
+   * Un tour du professeur : la question enregistrée (`audio`), ou, sans audio,
+   * la suite d'une explication page par page.
+   */
+  async function ask(audio: Blob | null) {
     const current = docRef.current;
     if (current.status !== "ready" || !current.hasText) return;
     const document: ReadyDocument = current;
+    const continuation = audio === null;
+    const lessonPage = lessonPageRef.current;
+    if (continuation && (!lessonPage || lessonPage >= document.meta.pageCount)) {
+      void listen();
+      return;
+    }
+    turnRef.current += 1;
     const turn = turnRef.current;
     const isCurrentTurn = () => turnRef.current === turn;
     const { documentLanguage: docLanguage, replyLanguage: language } = languagesRef.current;
@@ -504,6 +747,10 @@ export function VoiceTutorWorkspace({
     setError(null);
     setNotice(null);
     setPhase("thinking");
+    continuationRef.current = continuation;
+    setPreparingPage(continuation && lessonPage ? lessonPage + 1 : null);
+    // Pendant qu'il prépare la page suivante, l'élève peut déjà l'arrêter.
+    if (continuation) watchForInterruption(turn);
 
     const history = messagesRef.current
       .filter((message) => !message.welcome && message.content.trim())
@@ -518,19 +765,32 @@ export function VoiceTutorWorkspace({
       replyLanguage: language,
       pages: contextPages(document.pageTexts, pageRef.current),
       history,
+      lessonPage,
+      continueLesson: continuation,
     };
     const json = JSON.stringify(payload);
     const compressed = await gzipJson(json);
     const form = new FormData();
     if (compressed) form.append("payload", compressed, "payload.json.gz");
     else form.append("payload", json);
-    form.append("audio", audio, audioFileName(audio.type));
+    if (audio) form.append("audio", audio, audioFileName(audio.type));
 
     const controller = new AbortController();
     requestAbortRef.current = controller;
     const timer = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
     const answerId = nextMessageId();
     let live: LiveSpeech | null = null;
+
+    const dropEmptyAnswer = () =>
+      setMessages((list) =>
+        list.flatMap((message) =>
+          message.id !== answerId
+            ? [message]
+            : message.content.trim()
+              ? [{ ...message, streaming: false }]
+              : [],
+        ),
+      );
 
     try {
       const response = await fetch("/api/ai/voice-tutor", {
@@ -552,6 +812,14 @@ export function VoiceTutorWorkspace({
           ]);
         }
         if (!isCurrentTurn()) return;
+        continuationRef.current = false;
+        setPreparingPage(null);
+        // Coupure de parole sur un simple bruit : le professeur reprend.
+        if (data?.code === "NO_SPEECH" && interruptedRef.current) {
+          recoverFromFalseStart();
+          return;
+        }
+        interruptedRef.current = null;
         conversationRef.current = false;
         if (data?.code === "NO_SPEECH") setNotice(data.error ?? t.errorNoSpeech);
         else setError({ message: data?.error ?? t.errorGeneric, code: data?.code });
@@ -567,22 +835,37 @@ export function VoiceTutorWorkspace({
       let voiceStarted = false;
       // Langue de la réponse : celle choisie, ou celle que l'élève vient de demander.
       let answerLanguage = language;
+      let answerFocus: TutorMessage["focus"];
+      let answerContinues = false;
 
       for await (const event of readEvents(response.body)) {
         if (docRef.current !== document) return;
         if (event.type === "question") {
-          setMessages((list) => [
-            ...list,
-            { id: nextMessageId(), role: "user", content: event.text, language },
-            { id: answerId, role: "assistant", content: "", language, segments: [], streaming: true },
-          ]);
+          interruptedRef.current = null;
+          const answer: TutorMessage = {
+            id: answerId,
+            role: "assistant",
+            content: "",
+            language,
+            segments: [],
+            streaming: true,
+            lesson: continuation,
+          };
+          setMessages((list) =>
+            continuation
+              ? [...list, answer]
+              : [...list, { id: nextMessageId(), role: "user", content: event.text, language }, answer],
+          );
         } else if (event.type === "focus") {
+          answerContinues = event.continues;
           // Le PDF défile jusqu'au passage dont parle le professeur.
           if (event.page) {
             const focus = { page: event.page, quote: event.quote };
-            viewerRef.current?.showPassage(focus.page, focus.quote);
-            updateMessage(answerId, (message) => ({ ...message, focus }));
+            answerFocus = focus;
+            if (isCurrentTurn()) viewerRef.current?.showPassage(focus.page, focus.quote);
           }
+          const focus = answerFocus;
+          updateMessage(answerId, (message) => ({ ...message, focus, continues: event.continues }));
           // L'élève a demandé une autre langue : elle devient la langue de réponse.
           if (event.language && event.language !== answerLanguage) {
             const next = event.language;
@@ -606,7 +889,12 @@ export function VoiceTutorWorkspace({
             void clip.then((blob) => {
               if (blob && !voiceStarted && isCurrentTurn() && phaseRef.current === "thinking") {
                 voiceStarted = true;
+                continuationRef.current = false;
+                speakingRef.current = answerId;
+                setPreparingPage(null);
                 setPhase("speaking");
+                // Le professeur parle : l'élève peut lui couper la parole.
+                watchForInterruption(turn);
               }
             });
           }
@@ -627,17 +915,12 @@ export function VoiceTutorWorkspace({
 
       if (!finished) {
         // Réponse interrompue : on garde ce qui a été écrit, sans le prononcer.
-        setMessages((list) =>
-          list.flatMap((message) =>
-            message.id !== answerId
-              ? [message]
-              : message.content.trim()
-                ? [{ ...message, streaming: false }]
-                : [],
-          ),
-        );
+        dropEmptyAnswer();
         if (liveAnswerRef.current === answerId) liveAnswerRef.current = null;
         if (!isCurrentTurn()) return;
+        continuationRef.current = false;
+        speakingRef.current = null;
+        setPreparingPage(null);
         engine.stopPlayback();
         conversationRef.current = false;
         setError({ message: failure ?? t.errorConnection });
@@ -653,6 +936,8 @@ export function VoiceTutorWorkspace({
       const outcome: PlayOutcome = await live.done;
       if (liveAnswerRef.current === answerId) liveAnswerRef.current = null;
       if (!isCurrentTurn()) return;
+      speakingRef.current = null;
+      continuationRef.current = false;
       if (outcome === "blocked") {
         conversationRef.current = false;
         setNotice(t.autoplayBlocked);
@@ -661,24 +946,20 @@ export function VoiceTutorWorkspace({
         conversationRef.current = false;
         setNotice(t.errorSpeech);
       }
-      if (outcome === "ended" && conversationRef.current) {
-        void listen();
+      if (outcome === "ended") {
+        afterAnswer({ focus: answerFocus, continues: answerContinues, lesson: continuation });
         return;
       }
       setPhase("idle");
     } catch (caught) {
       live?.close();
       if (docRef.current !== document) return;
-      setMessages((list) =>
-        list.flatMap((message) =>
-          message.id !== answerId
-            ? [message]
-            : message.content.trim()
-              ? [{ ...message, streaming: false }]
-              : [],
-        ),
-      );
+      dropEmptyAnswer();
       if (!isCurrentTurn()) return;
+      continuationRef.current = false;
+      speakingRef.current = null;
+      interruptedRef.current = null;
+      setPreparingPage(null);
       conversationRef.current = false;
       liveAnswerRef.current = null;
       engine.stopPlayback();
@@ -721,13 +1002,32 @@ export function VoiceTutorWorkspace({
     }
   }
 
+  /** Premier appui de la conversation : le professeur salue l'élève, puis l'écoute. */
+  function greet() {
+    const language = languagesRef.current.replyLanguage;
+    const greeting: TutorMessage = {
+      id: nextMessageId(),
+      role: "assistant",
+      content: VOICE_TUTOR_GREETING[language],
+      language,
+      welcome: true,
+    };
+    setMessages((list) => [...list, greeting]);
+    void speak(greeting, { conversation: true, fromStart: true });
+  }
+
   function handleMic() {
     if (!canTalk) return;
     engine.unlock();
     switch (phaseRef.current) {
       case "idle":
         conversationRef.current = true;
-        void listen();
+        if (!greetedRef.current) {
+          greetedRef.current = true;
+          greet();
+        } else {
+          void listen();
+        }
         break;
       case "listening":
         if (engine.submitListening()) {
@@ -738,39 +1038,59 @@ export function VoiceTutorWorkspace({
         }
         break;
       case "speaking":
-        // L'élève coupe la parole au professeur pour poser une autre question.
-        liveAnswerRef.current = null;
-        engine.stopPlayback();
-        conversationRef.current = true;
-        void listen();
-        break;
       case "thinking":
+        // Appui pendant qu'il parle (ou prépare la page suivante) : l'élève
+        // lui coupe la parole pour poser une autre question.
+        if (phaseRef.current === "thinking" && !continuationRef.current) break;
+        interrupt();
+        interruptedRef.current = null;
+        void listen();
         break;
     }
   }
 
-  /** Lecture d'une réponse depuis sa bulle (reprise là où elle s'était arrêtée). */
-  async function playMessage(message: TutorMessage, fromStart = false) {
+  /**
+   * Lecture d'un message à voix haute (reprise là où il s'était arrêté, sauf
+   * `fromStart`). Depuis sa bulle, la conversation s'arrête ; en conversation
+   * (salutation, reprise après un bruit), elle continue ensuite.
+   */
+  async function speak(
+    message: TutorMessage,
+    options: { fromStart?: boolean; conversation?: boolean } = {},
+  ) {
     engine.unlock();
-    if (phaseRef.current === "thinking") return;
+    if (phaseRef.current === "thinking" && !options.conversation) return;
     turnRef.current += 1;
     const turn = turnRef.current;
-    conversationRef.current = false;
+    if (!options.conversation) {
+      conversationRef.current = false;
+      engine.cancelListening();
+    }
     liveAnswerRef.current = null;
-    engine.cancelListening();
     setError(null);
     setNotice(null);
 
     if (message.focus) viewerRef.current?.showPassage(message.focus.page, message.focus.quote);
     const segments = segmentsOf(message);
-    const resumed = fromStart ? null : engine.resume(message.id, segments.length);
+    const load = (index: number) => fetchSpeech(segments[index], message.language);
+    const resumed = options.fromStart ? null : engine.resumeMessage(message.id, segments.length, load);
+    speakingRef.current = message.id;
     setPhase("speaking");
+    if (options.conversation) watchForInterruption(turn);
     const outcome = await (resumed ??
-      engine.playMessage(message.id, segments.length, () =>
-        segments.map((segment) => fetchSpeech(segment, message.language)),
-      ));
+      engine.playMessage(message.id, segments.length, () => segments.map((_, index) => load(index))));
     if (turnRef.current !== turn) return;
-    if (outcome === "blocked") setNotice(t.autoplayBlocked);
+    speakingRef.current = null;
+    if (outcome === "blocked") {
+      conversationRef.current = false;
+      setNotice(t.autoplayBlocked);
+      setPhase("idle");
+      return;
+    }
+    if (options.conversation && outcome === "ended") {
+      afterAnswer(message);
+      return;
+    }
     setPhase("idle");
   }
 
@@ -778,12 +1098,13 @@ export function VoiceTutorWorkspace({
     turnRef.current += 1;
     conversationRef.current = false;
     liveAnswerRef.current = null;
+    speakingRef.current = null;
     engine.pause();
     setPhase("idle");
   }
 
   function seekMessage(message: TutorMessage, ratio: number) {
-    if (engine.seek(message.id, ratio)) void playMessage(message);
+    if (engine.seek(message.id, ratio)) void speak(message);
   }
 
   function cycleRate() {
@@ -795,6 +1116,8 @@ export function VoiceTutorWorkspace({
     stopConversation();
     requestAbortRef.current?.abort();
     engine.reset();
+    lessonPageRef.current = null;
+    greetedRef.current = false;
     setError(null);
     setNotice(null);
     setMessages(ready ? [welcomeMessage(replyLanguage)] : []);
@@ -802,9 +1125,21 @@ export function VoiceTutorWorkspace({
 
   const lastAnswer = [...messages]
     .reverse()
-    .find((message) => message.role === "assistant" && message.content.trim() && !message.streaming);
+    .find(
+      (message) =>
+        message.role === "assistant" && !message.welcome && message.content.trim() && !message.streaming,
+    );
 
   // ───────────────────────────── Affichage ─────────────────────────────
+
+  // Explication page par page : la page que le professeur est en train d'expliquer.
+  const spokenMessage =
+    phase === "speaking" && playback ? messages.find((message) => message.id === playback.id) : undefined;
+  const lessonPageShown =
+    spokenMessage?.focus && (spokenMessage.lesson || spokenMessage.continues)
+      ? spokenMessage.focus.page
+      : null;
+  const interruptible = phase === "speaking" || (phase === "thinking" && preparingPage !== null);
 
   const statusLabel = !ready
     ? docState.status === "reading" || docState.status === "opening"
@@ -815,15 +1150,19 @@ export function VoiceTutorWorkspace({
     : phase === "listening"
       ? t.statusListening
       : phase === "thinking"
-        ? t.statusThinking
+        ? preparingPage !== null
+          ? t.statusNextPage(preparingPage)
+          : t.statusThinking
         : phase === "speaking"
-          ? t.statusSpeaking
+          ? lessonPageShown !== null && ready
+            ? t.statusLesson(lessonPageShown, ready.meta.pageCount)
+            : t.statusSpeaking
           : t.statusIdle;
 
   const micLabel =
     phase === "listening"
       ? t.micSend
-      : phase === "speaking"
+      : interruptible
         ? t.micInterrupt
         : phase === "thinking"
           ? t.micWait
@@ -987,6 +1326,7 @@ export function VoiceTutorWorkspace({
               key={openDoc.meta.key}
               ref={viewerRef}
               doc={openDoc.doc}
+              initialPage={openDoc.meta.initialPage}
               onPageChange={setPage}
               pageTexts={docState.status === "ready" ? docState.pageTexts : null}
             />
@@ -1100,6 +1440,10 @@ export function VoiceTutorWorkspace({
             </p>
             {phase === "listening" ? (
               <p className="mt-0.5 text-center text-meta text-ink-500">{t.listeningHint}</p>
+            ) : interruptible ? (
+              <p className="mt-0.5 text-center text-meta text-ink-500">
+                {engine.canInterruptByVoice ? t.interruptHintVoice : t.interruptHintTap}
+              </p>
             ) : null}
           </div>
 
@@ -1118,7 +1462,7 @@ export function VoiceTutorWorkspace({
                   phase === "thinking" || (Boolean(message.streaming) && playback?.id !== message.id)
                 }
                 rate={engine.rate}
-                onPlay={() => void playMessage(message)}
+                onPlay={() => void speak(message)}
                 onPause={pauseMessage}
                 onSeek={(ratio) => seekMessage(message, ratio)}
                 onRateChange={cycleRate}
@@ -1160,7 +1504,7 @@ export function VoiceTutorWorkspace({
             <div className="flex items-center justify-center gap-6 sm:gap-8">
               <button
                 type="button"
-                onClick={() => lastAnswer && void playMessage(lastAnswer, true)}
+                onClick={() => lastAnswer && void speak(lastAnswer, { fromStart: true })}
                 disabled={!lastAnswer || phase === "thinking" || phase === "listening"}
                 aria-label={t.replay}
                 title={t.replay}
@@ -1172,14 +1516,14 @@ export function VoiceTutorWorkspace({
               <button
                 type="button"
                 onClick={handleMic}
-                disabled={!canTalk || phase === "thinking"}
+                disabled={!canTalk || (phase === "thinking" && !interruptible)}
                 aria-label={micLabel}
                 className={cn(
                   "relative flex size-[4.5rem] items-center justify-center rounded-full bg-[linear-gradient(135deg,#a985f2_0%,#7c4fbe_50%,#553087_100%)] text-white shadow-[var(--shadow-btn-primary)] ring-[6px] ring-primary-100 transition-transform active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 sm:size-20",
                   phase === "listening" && "voice-mic-live",
                 )}
               >
-                {phase === "thinking" ? (
+                {phase === "thinking" && !interruptible ? (
                   <LoaderCircle className="size-8 animate-spin" aria-hidden />
                 ) : phase === "listening" ? (
                   <Send className="size-7" aria-hidden />

@@ -22,6 +22,10 @@ export interface TutorMessage {
   pages?: number[];
   /** Passage du cours dont parle la réponse (montré dans le PDF pendant la lecture). */
   focus?: { page: number; quote: string | null };
+  /** Explication page par page : enchaîner sur la page suivante après cette réponse. */
+  continues?: boolean;
+  /** Page expliquée d'elle-même, dans la suite d'une explication page par page. */
+  lesson?: boolean;
   /** Passages à prononcer (réponse lue phrase par phrase). */
   segments?: SpeechSegment[];
   /** Réponse encore en cours d'écriture. */
