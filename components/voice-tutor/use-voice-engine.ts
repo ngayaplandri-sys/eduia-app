@@ -181,6 +181,8 @@ interface Sequence {
   /** Plus aucun passage ne sera ajouté. */
   closed: boolean;
   wake: (() => void) | null;
+  /** Appelé quand un passage commence à être joué. */
+  onClipStart?: (index: number) => void;
 }
 
 export function useVoiceEngine() {
@@ -382,6 +384,7 @@ export function useVoiceEngine() {
         offset = 0;
         continue;
       }
+      seq.onClipStart?.(index);
       const outcome = await playClip(seq, index, blob, offset);
       if (runCounter.current !== runId) return "stopped";
       if (outcome !== "ended") {
@@ -426,8 +429,8 @@ export function useVoiceEngine() {
    * Nouvelle réponse lue au fil de l'eau : les passages s'ajoutent avec `add`
    * et sont joués dans l'ordre ; `close` quand la réponse est complète.
    */
-  function startLiveSpeech(id: string): LiveSpeech {
-    const seq: Sequence = { id, clips: [], closed: false, wake: null };
+  function startLiveSpeech(id: string, onClipStart?: (index: number) => void): LiveSpeech {
+    const seq: Sequence = { id, clips: [], closed: false, wake: null, onClipStart };
     sequencesRef.current.set(id, seq);
     const done = run(seq, 0, 0);
     return {
@@ -456,6 +459,7 @@ export function useVoiceEngine() {
     id: string,
     expected: number,
     loadClips: () => Promise<Blob | null>[],
+    onClipStart?: (index: number) => void,
   ): Promise<PlayOutcome> {
     let seq = loadedSequence(id, expected);
     if (!seq) {
@@ -464,6 +468,7 @@ export function useVoiceEngine() {
       for (const clip of loadClips()) addClip(seq, clip);
       seq.closed = true;
     }
+    seq.onClipStart = onClipStart;
     return run(seq, 0, 0);
   }
 
@@ -476,12 +481,14 @@ export function useVoiceEngine() {
     id: string,
     expected: number,
     loadClip: (index: number) => Promise<Blob | null>,
+    onClipStart?: (index: number) => void,
   ): Promise<PlayOutcome> | null {
     const position = resumeRef.current;
     const seq = sequencesRef.current.get(id);
     if (!position || position.id !== id || !seq || seq.clips.length > expected) return null;
     for (let index = seq.clips.length; index < expected; index++) addClip(seq, loadClip(index));
     seq.closed = true;
+    seq.onClipStart = onClipStart;
     recordDuration(seq);
     return run(seq, position.index, position.offset);
   }

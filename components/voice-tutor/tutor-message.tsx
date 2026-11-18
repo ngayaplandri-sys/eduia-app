@@ -12,6 +12,10 @@ import { TeacherBadge } from "./voice-orb";
 export interface SpeechSegment {
   text: string;
   token?: string;
+  /** Lecture du texte original du cours (surlignée dans le PDF pendant la lecture). */
+  original?: boolean;
+  /** Langue de prononciation, si elle diffère de celle de la réponse (texte original). */
+  language?: VoiceTutorLanguage;
 }
 
 export interface TutorMessage {

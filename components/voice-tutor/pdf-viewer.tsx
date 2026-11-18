@@ -77,6 +77,11 @@ export interface PdfViewerHandle {
   showPassage: (page: number, quote?: string | null) => void;
   /** Fait défiler jusqu'au haut d'une page. */
   goToPage: (page: number) => void;
+  /**
+   * Surligne une phrase lue par le professeur, cherchée dans ces pages (dans
+   * l'ordre) ; rien ne bouge si elle n'y est pas retrouvée.
+   */
+  highlightPassage: (quote: string, pages: number[]) => void;
 }
 
 function normalizeForSearch(text: string): string {
@@ -657,7 +662,36 @@ export function PdfViewer({
     [pageCount, pageText, scrollToPage],
   );
 
-  React.useImperativeHandle(ref, () => ({ showPassage, goToPage }), [showPassage, goToPage]);
+  const highlightPassage = React.useCallback(
+    (quote: string, pages: number[]) => {
+      const cited = quote.trim();
+      if (!cited) return;
+      focusCounterRef.current += 1;
+      const key = focusCounterRef.current;
+      (async () => {
+        const pdfjs = await loadPdfJs();
+        for (const target of pages) {
+          if (!Number.isInteger(target) || target < 1 || target > pageCount) continue;
+          const rects = quoteRects(await pageText(target), cited, pdfjs.Util.transform);
+          if (rects.length > 0) return { target, rects };
+        }
+        return null;
+      })()
+        .catch(() => null)
+        .then((found) => {
+          if (!found || focusCounterRef.current !== key) return;
+          setFocus({ key, page: found.target, rects: found.rects });
+          scrollToPage(found.target, Math.min(...found.rects.map((rect) => rect.top)), PASSAGE_LINE);
+        });
+    },
+    [pageCount, pageText, scrollToPage],
+  );
+
+  React.useImperativeHandle(ref, () => ({ showPassage, goToPage, highlightPassage }), [
+    showPassage,
+    goToPage,
+    highlightPassage,
+  ]);
 
   // Pages contenant le terme recherché (texte déjà extrait du document).
   const matches = React.useMemo(() => {

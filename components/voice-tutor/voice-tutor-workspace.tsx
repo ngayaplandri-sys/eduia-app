@@ -122,7 +122,13 @@ type TutorEvent =
       continues: boolean;
     }
   | { type: "delta"; text: string }
-  | { type: "speech"; text: string; token: string }
+  | {
+      type: "speech";
+      text: string;
+      token: string;
+      original?: boolean;
+      language?: VoiceTutorLanguage;
+    }
   | { type: "done"; answer: string; pages: number[] }
   | { type: "error"; message: string };
 
@@ -635,6 +641,12 @@ export function VoiceTutorWorkspace({
     }
   }
 
+  /** Phrase du cours lue à voix haute : surlignée dans le PDF pendant sa lecture. */
+  function highlightReading(segment: SpeechSegment | undefined, page: number | undefined) {
+    if (!segment?.original || !page) return;
+    viewerRef.current?.highlightPassage(segment.text, [page, page + 1, page - 1]);
+  }
+
   function updateMessage(id: string, update: (message: TutorMessage) => TutorMessage) {
     setMessages((list) => list.map((message) => (message.id === id ? update(message) : message)));
   }
@@ -837,6 +849,8 @@ export function VoiceTutorWorkspace({
       let answerLanguage = language;
       let answerFocus: TutorMessage["focus"];
       let answerContinues = false;
+      // Passages prononcés au fil de l'eau (dans l'ordre de lecture).
+      const liveSegments: SpeechSegment[] = [];
 
       for await (const event of readEvents(response.body)) {
         if (docRef.current !== document) return;
@@ -877,14 +891,21 @@ export function VoiceTutorWorkspace({
         } else if (event.type === "delta") {
           updateMessage(answerId, (message) => ({ ...message, content: message.content + event.text }));
         } else if (event.type === "speech") {
-          const segment: SpeechSegment = { text: event.text, token: event.token };
+          const segment: SpeechSegment = {
+            text: event.text,
+            token: event.token,
+            ...(event.original ? { original: true, language: event.language } : {}),
+          };
           updateMessage(answerId, (message) => ({
             ...message,
             segments: [...(message.segments ?? []), segment],
           }));
           if (liveAnswerRef.current === answerId) {
-            live ??= engine.startLiveSpeech(answerId);
-            const clip = fetchSpeech(segment, answerLanguage);
+            live ??= engine.startLiveSpeech(answerId, (index) =>
+              highlightReading(liveSegments[index], answerFocus?.page),
+            );
+            liveSegments.push(segment);
+            const clip = fetchSpeech(segment, segment.language ?? answerLanguage);
             live.add(clip);
             void clip.then((blob) => {
               if (blob && !voiceStarted && isCurrentTurn() && phaseRef.current === "thinking") {
@@ -1072,13 +1093,22 @@ export function VoiceTutorWorkspace({
 
     if (message.focus) viewerRef.current?.showPassage(message.focus.page, message.focus.quote);
     const segments = segmentsOf(message);
-    const load = (index: number) => fetchSpeech(segments[index], message.language);
-    const resumed = options.fromStart ? null : engine.resumeMessage(message.id, segments.length, load);
+    const load = (index: number) =>
+      fetchSpeech(segments[index], segments[index].language ?? message.language);
+    const onClipStart = (index: number) => highlightReading(segments[index], message.focus?.page);
+    const resumed = options.fromStart
+      ? null
+      : engine.resumeMessage(message.id, segments.length, load, onClipStart);
     speakingRef.current = message.id;
     setPhase("speaking");
     if (options.conversation) watchForInterruption(turn);
     const outcome = await (resumed ??
-      engine.playMessage(message.id, segments.length, () => segments.map((_, index) => load(index))));
+      engine.playMessage(
+        message.id,
+        segments.length,
+        () => segments.map((_, index) => load(index)),
+        onClipStart,
+      ));
     if (turnRef.current !== turn) return;
     speakingRef.current = null;
     if (outcome === "blocked") {

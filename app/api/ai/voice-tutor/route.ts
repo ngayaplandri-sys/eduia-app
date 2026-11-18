@@ -179,7 +179,12 @@ export async function POST(request: Request) {
           } else if (event.type === "delta") {
             send({ type: "delta", text: event.text });
           } else if (event.type === "speech") {
-            send({ type: "speech", text: event.text, token: signSpeechText(user.id, event.text) });
+            send({
+              type: "speech",
+              text: event.text,
+              token: signSpeechText(user.id, event.text),
+              ...(event.original ? { original: true, language: event.language } : {}),
+            });
           } else {
             await logAiUsage({
               userId: user.id,
