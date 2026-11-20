@@ -216,6 +216,15 @@ interface MicSession {
   timer: number | null;
   handlers: ListenHandlers;
   finishing: boolean;
+  /** Veille (`watch`) : reprise sans coupure par la veille ou l'écoute suivante. */
+  control?: WatchControl;
+}
+
+interface WatchControl {
+  /** Nouvelle phase (page suivante, voix qui reprend) : écho remesuré, sauf si l'élève parle déjà. */
+  rewarm: () => void;
+  /** L'élève parle déjà : sa phrase devient la question. `false` s'il ne parle pas. */
+  adopt: () => boolean;
 }
 
 interface Clip {
@@ -773,6 +782,19 @@ export function useVoiceEngine() {
   /** Écoute la question de l'élève jusqu'à la fin de sa phrase. */
   async function startListening(handlers: ListenHandlers): Promise<void> {
     if (!canRecord()) throw new MicError("unsupported");
+    // L'élève a commencé à parler juste avant la fin de la réponse : on garde
+    // son enregistrement au lieu de le jeter (et de calibrer le bruit sur sa voix).
+    const current = sessionRef.current;
+    if (current?.mode === "watch" && !current.finishing && current.control?.adopt()) {
+      current.handlers = {
+        ...handlers,
+        // Ce n'était qu'un bruit : écoute normale de sa question.
+        onFalseStart: () => {
+          void startListening(handlers).catch(() => handlers.onNoSpeech?.());
+        },
+      };
+      return;
+    }
     const session = await beginSession("listen", handlers);
     if (!session) return;
     if (!startRecorder(session)) {
@@ -830,10 +852,21 @@ export function useVoiceEngine() {
    * ce n'était qu'un bruit (`onFalseStart`). L'enregistrement commence dès le
    * premier bruit, pour ne pas perdre le début de la phrase.
    *
+   * Une veille déjà active (passage d'une page à la suivante, réflexion puis
+   * parole) est reprise telle quelle : relancée, elle jetait la phrase que
+   * l'élève avait commencée et prenait sa voix pour l'écho du professeur —
+   * justement au moment, entre deux pages, où il prend la parole.
+   *
    * Renvoie `false` si ce n'est pas possible (iPhone, micro indisponible).
    */
   async function startWatching(handlers: ListenHandlers): Promise<boolean> {
     if (!voiceInterruptSupported()) return false;
+    const current = sessionRef.current;
+    if (current?.mode === "watch" && !current.finishing && current.control) {
+      current.handlers = handlers;
+      current.control.rewarm();
+      return true;
+    }
     let session: MicSession | null;
     try {
       session = await beginSession("watch", handlers);
@@ -850,6 +883,25 @@ export function useVoiceEngine() {
     let silentMs = 0;
     let spokenMs = 0;
     let interruptedAt = 0;
+    let warmupStart = watched.startedAt;
+
+    watched.control = {
+      rewarm: () => {
+        if (watched.recorder || watched.speechStarted) return;
+        warmupStart = performance.now();
+        echo = 0;
+        voicedMs = 0;
+      },
+      adopt: () => {
+        if (!watched.recorder || watched.finishing) return false;
+        if (!watched.speechStarted) {
+          watched.speechStarted = true;
+          interruptedAt = performance.now();
+          spokenMs = voicedMs;
+        }
+        return true;
+      },
+    };
 
     watched.timer = window.setInterval(() => {
       const now = performance.now();
@@ -858,7 +910,7 @@ export function useVoiceEngine() {
 
       if (!watched.speechStarted) {
         // Écho de la voix du professeur : suivi lent, pour ne pas confondre.
-        if (now - watched.startedAt < BARGE_IN_WARMUP_MS) {
+        if (now - warmupStart < BARGE_IN_WARMUP_MS && !watched.recorder) {
           echo = Math.max(echo * 0.8, rms);
           return;
         }
