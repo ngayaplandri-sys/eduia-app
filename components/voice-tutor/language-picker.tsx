@@ -207,9 +207,13 @@ function LanguageFlag({ code, className }: { code: VoiceTutorLanguage; className
 }
 
 /**
- * Sélecteur de langue en carte (« Langue du document », « Langue de réponse ») :
- * une vraie liste déroulante native, transparente, couvre la carte — clavier,
+ * Sélecteur de langue (« Langue du document », « Langue de réponse ») : une
+ * vraie liste déroulante native, transparente, couvre le sélecteur — clavier,
  * lecteur d'écran et sélecteur mobile du système fonctionnent tels quels.
+ *  - `card` : grande carte avec son libellé ;
+ *  - `compact` : pastille pour l'en-tête d'un panneau. Le nom de la langue
+ *    s'affiche si le panneau (`@container`) fait au moins 24rem de large, son
+ *    code sinon ; `caption` (« Cours », « Réponse ») selon `captionClassName`.
  */
 export function LanguagePicker({
   id,
@@ -219,6 +223,9 @@ export function LanguagePicker({
   onChange,
   disabled,
   className,
+  variant = "card",
+  caption,
+  captionClassName,
 }: {
   id: string;
   icon: LucideIcon;
@@ -227,6 +234,9 @@ export function LanguagePicker({
   onChange: (value: VoiceTutorLanguage) => void;
   disabled?: boolean;
   className?: string;
+  variant?: "card" | "compact";
+  caption?: string;
+  captionClassName?: string;
 }) {
   const { locale } = useI18n();
   const names = React.useMemo(() => {
@@ -237,6 +247,62 @@ export function LanguagePicker({
     }
   }, [locale]);
   const selected = voiceTutorLanguage(value);
+
+  const select = (
+    <select
+      id={id}
+      value={value}
+      disabled={disabled}
+      onChange={(event) => onChange(event.target.value as VoiceTutorLanguage)}
+      aria-label={label}
+      className={cn(
+        "absolute inset-0 size-full cursor-pointer appearance-none opacity-0 disabled:cursor-not-allowed",
+        variant === "compact" ? "rounded-full" : "rounded-2xl",
+      )}
+    >
+      {VOICE_TUTOR_LANGUAGES.map((language) => {
+        const localized = names?.of(language.code);
+        const extra =
+          localized && localized.toLowerCase() !== language.label.toLowerCase()
+            ? ` (${localized})`
+            : "";
+        return (
+          <option key={language.code} value={language.code}>
+            {language.label}
+            {extra}
+          </option>
+        );
+      })}
+    </select>
+  );
+
+  if (variant === "compact") {
+    return (
+      <div
+        title={`${label} · ${selected.label}`}
+        className={cn(
+          "relative inline-flex h-9 min-w-0 shrink-0 items-center gap-1.5 rounded-full bg-canvas pl-2.5 pr-2 ring-1 ring-line-soft transition-[box-shadow,background-color] focus-within:ring-2 focus-within:ring-primary-300 hover:bg-primary-50 hover:ring-primary-200",
+          disabled && "opacity-60",
+          className,
+        )}
+      >
+        <Icon className="size-3.5 shrink-0 text-primary-600" aria-hidden />
+        {caption ? (
+          // Pas de `cn` ici : tailwind-merge prendrait `text-meta` (taille) pour une couleur.
+          <span className={`hidden text-meta font-medium text-ink-500 ${captionClassName ?? ""}`}>
+            {caption}
+          </span>
+        ) : null}
+        <LanguageFlag code={value} />
+        <span className="hidden text-fine font-bold text-ink-900 @sm:inline" lang={value}>
+          {selected.label}
+        </span>
+        <span className="text-meta font-bold uppercase text-ink-900 @sm:hidden">{value}</span>
+        <ChevronDown className="size-3.5 shrink-0 text-ink-400" aria-hidden />
+        {select}
+      </div>
+    );
+  }
 
   return (
     <div
@@ -259,28 +325,7 @@ export function LanguagePicker({
           <ChevronDown className="size-4 shrink-0 text-ink-400" aria-hidden />
         </span>
       </span>
-      <select
-        id={id}
-        value={value}
-        disabled={disabled}
-        onChange={(event) => onChange(event.target.value as VoiceTutorLanguage)}
-        aria-label={label}
-        className="absolute inset-0 size-full cursor-pointer appearance-none rounded-2xl opacity-0 disabled:cursor-not-allowed"
-      >
-        {VOICE_TUTOR_LANGUAGES.map((language) => {
-          const localized = names?.of(language.code);
-          const extra =
-            localized && localized.toLowerCase() !== language.label.toLowerCase()
-              ? ` (${localized})`
-              : "";
-          return (
-            <option key={language.code} value={language.code}>
-              {language.label}
-              {extra}
-            </option>
-          );
-        })}
-      </select>
+      {select}
     </div>
   );
 }

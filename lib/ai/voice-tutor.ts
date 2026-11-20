@@ -174,6 +174,7 @@ function buildInstructions(
     [
       "STYLE ORAL :",
       "- Parle comme un humain, pas comme un manuel : phrases courtes, ton chaleureux, vivant et encourageant, petites transitions naturelles (« Imagine… », « En fait… », « Tu vois ? ») sans en abuser.",
+      "- Parle AVEC lui, comme dans une vraie conversation entre deux personnes, pas comme un exposé : quand il vient de te parler, réagis d'abord en deux ou trois mots à ce qu'il a dit (« Ah, d'accord ! », « Oui, exactement », « Pas de souci, je reprends »), puis réponds-lui directement, avec des tournures orales naturelles (« alors », « en fait », « tu vois »), et rends-lui la parole. Ces réactions restent courtes, variées et naturelles : jamais forcées, jamais deux fois la même.",
       "- Ne commence pas toutes tes réponses par la même formule (« Très bonne question », « Bien sûr ») : varie, et va vite au cœur du sujet.",
       profile.firstName
         ? `- Appelle-le par son prénom (${profile.firstName}) de temps en temps, sans excès.`
@@ -275,8 +276,10 @@ function citedPages(text: string, available: Set<number>): number[] {
 
 /**
  * Découpe la réponse, au fil de son écriture, en passages à prononcer : le
- * premier très court (la voix démarre vite), les suivants d'une à trois
- * phrases (moins d'appels de synthèse, intonation plus naturelle).
+ * premier très court (la voix démarre vite), le deuxième moyen (prêt avant la
+ * fin du premier), les suivants de plusieurs phrases. Chaque passage est une
+ * synthèse séparée : moins de raccords, c'est une voix qui enchaîne ses
+ * phrases avec une intonation continue, comme dans une vraie conversation.
  */
 class SpeechChunker {
   private buffer = "";
@@ -305,7 +308,7 @@ class SpeechChunker {
   }
 
   private findCut(): number {
-    const min = this.emitted === 0 ? 24 : 110;
+    const min = this.emitted === 0 ? 24 : this.emitted === 1 ? 90 : 220;
     const max = 420;
     const sentenceEnd = /[.!?…؟]["»”')]*\s+/g;
     let match: RegExpExecArray | null;
@@ -669,7 +672,7 @@ export async function synthesizeSpeech(
     // Seuls les modèles « gpt-4o-*-tts » acceptent des consignes de diction.
     ...(TTS_MODEL.startsWith("gpt-")
       ? {
-          instructions: `Speak in ${languageName}, like a real teacher in a one-on-one lesson: warm, lively and encouraging, natural intonation with short natural pauses, clear articulation, calm conversational pace, never robotic or monotone. If a passage is in another language, pronounce it naturally in that language.`,
+          instructions: `Speak in ${languageName}, as if you were chatting face to face with your student in a one-on-one lesson: warm, friendly and encouraging, spontaneous and natural, like a real conversation rather than someone reading a text. Smooth, flowing delivery that links the sentences together, lively natural intonation, short natural pauses, clear articulation, relaxed conversational pace, never robotic or monotone. If a passage is in another language, pronounce it naturally in that language.`,
         }
       : {}),
   });

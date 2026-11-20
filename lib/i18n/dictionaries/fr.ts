@@ -662,6 +662,8 @@ export const fr = {
     subtitle: "Discute oralement avec ton professeur IA à partir de ton cours",
     documentLanguage: "Langue du document",
     replyLanguage: "Langue de réponse",
+    documentLanguageShort: "Cours",
+    replyLanguageShort: "Réponse",
     panelsLabel: "Document et professeur",
     tabDocument: "Document",
     tabTeacher: "Professeur",

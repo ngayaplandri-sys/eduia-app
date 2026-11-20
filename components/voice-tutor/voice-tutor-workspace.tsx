@@ -1204,39 +1204,23 @@ export function VoiceTutorWorkspace({
 
   const openDoc = docState.status === "reading" || docState.status === "ready" ? docState : null;
   const answerWriting = messages.some((message) => message.streaming);
+  const documentLanguagePicker = (
+    <LanguagePicker
+      id="voice-tutor-document-language"
+      variant="compact"
+      icon={FileSearch}
+      label={t.documentLanguage}
+      caption={t.documentLanguageShort}
+      captionClassName="@lg:inline"
+      value={documentLanguage}
+      onChange={changeDocumentLanguage}
+    />
+  );
 
   return (
-    <div className="flex flex-col gap-4 lg:h-[calc(100dvh-var(--spacing-header)-4rem)] lg:min-h-[36rem]">
-      {/* En-tête : titre + les deux langues */}
-      <div className="flex shrink-0 flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-        <div className="hidden min-w-0 items-center gap-3.5 sm:flex">
-          <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(135deg,#a985f2_0%,#7c4fbe_50%,#553087_100%)] text-white shadow-[var(--shadow-btn-primary)] sm:size-14">
-            <Mic className="size-6" aria-hidden />
-          </span>
-          <div className="min-w-0">
-            <h2 className="text-lg font-extrabold tracking-[-0.02em] text-ink-900 sm:text-xl">
-              {t.title}
-            </h2>
-            <p className="text-sm text-ink-500">{t.subtitle}</p>
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-2.5 sm:gap-3 xl:w-[32rem]">
-          <LanguagePicker
-            id="voice-tutor-document-language"
-            icon={FileSearch}
-            label={t.documentLanguage}
-            value={documentLanguage}
-            onChange={changeDocumentLanguage}
-          />
-          <LanguagePicker
-            id="voice-tutor-reply-language"
-            icon={MessageCircle}
-            label={t.replyLanguage}
-            value={replyLanguage}
-            onChange={changeReplyLanguage}
-          />
-        </div>
-      </div>
+    // `voice-tutor-page` : la zone principale s'élargit pour cette page (globals.css).
+    <div className="voice-tutor-page flex flex-col gap-3 sm:gap-4 lg:h-[calc(100dvh-var(--spacing-header)-2.5rem)] lg:min-h-[36rem]">
+      <h2 className="sr-only">{t.title}</h2>
 
       {/* Onglets sur mobile et tablette */}
       <div
@@ -1273,14 +1257,14 @@ export function VoiceTutorWorkspace({
         ))}
       </div>
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.12fr)_minmax(0,1fr)] lg:gap-5">
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.12fr)_minmax(0,1fr)] lg:gap-5 2xl:gap-6">
         {/* ───────── Document ───────── */}
         <section
           id="voice-tutor-panel-document"
           role="tabpanel"
           aria-labelledby="voice-tutor-tab-document"
           className={cn(
-            "relative h-[calc(100dvh-var(--spacing-header)-11.5rem)] min-h-[26rem] sm:h-[calc(100dvh-var(--spacing-header)-17rem)] flex-col gap-3 rounded-2xl bg-surface p-3 shadow-card ring-1 ring-line-soft sm:p-4 lg:flex lg:h-auto lg:min-h-0",
+            "@container relative h-[calc(100dvh-var(--spacing-header)-6.5rem)] min-h-[26rem] sm:h-[calc(100dvh-var(--spacing-header)-7.5rem)] flex-col gap-3 rounded-2xl bg-surface p-3 shadow-card ring-1 ring-line-soft lg:flex lg:h-auto lg:min-h-0",
             mobileTab === "document" ? "flex" : "hidden",
             dragging && "ring-2 ring-primary-400",
           )}
@@ -1311,36 +1295,39 @@ export function VoiceTutorWorkspace({
           />
 
           {openDoc ? (
-            <div className="flex shrink-0 items-center gap-3 rounded-xl bg-surface px-3 py-2.5 ring-1 ring-line-soft">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-danger-50 text-[0.65rem] font-extrabold text-danger-600 ring-1 ring-danger-100">
+            <div className="flex shrink-0 items-center gap-2.5 rounded-xl bg-surface px-3 py-2 ring-1 ring-line-soft">
+              <span className="hidden size-10 shrink-0 items-center justify-center rounded-lg bg-danger-50 text-[0.65rem] font-extrabold text-danger-600 ring-1 ring-danger-100 @xs:flex">
                 PDF
               </span>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-bold text-ink-900" title={openDoc.meta.name}>
                   {openDoc.meta.name}
                 </p>
-                <p className="text-meta text-ink-500">
-                  {t.pagesAndSize(openDoc.meta.pageCount, formatBytes(openDoc.meta.size, locale))}
+                <p className="flex min-w-0 items-center gap-1.5 text-meta text-ink-500">
+                  <span className="truncate">
+                    {t.pagesAndSize(openDoc.meta.pageCount, formatBytes(openDoc.meta.size, locale))}
+                  </span>
+                  {openDoc.status === "reading" ? (
+                    <span className="inline-flex shrink-0 items-center gap-1 font-semibold text-primary-700">
+                      <LoaderCircle className="size-3.5 animate-spin" aria-hidden />
+                      <span className="hidden @md:inline">
+                        {openDoc.scanned
+                          ? t.readingScanned(openDoc.done, openDoc.total)
+                          : t.readingPages(openDoc.done, openDoc.total)}
+                      </span>
+                      <span className="@md:hidden">
+                        {openDoc.done}/{openDoc.total}
+                      </span>
+                    </span>
+                  ) : openDoc.hasText ? (
+                    <span className="inline-flex shrink-0 items-center gap-1 font-semibold text-success-700">
+                      <Check className="size-3.5" aria-hidden />
+                      {t.imported}
+                    </span>
+                  ) : null}
                 </p>
               </div>
-              {openDoc.status === "reading" ? (
-                <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-primary-50 px-2.5 py-1 text-meta font-semibold text-primary-700">
-                  <LoaderCircle className="size-3.5 animate-spin" aria-hidden />
-                  <span className="hidden sm:inline">
-                    {openDoc.scanned
-                      ? t.readingScanned(openDoc.done, openDoc.total)
-                      : t.readingPages(openDoc.done, openDoc.total)}
-                  </span>
-                  <span className="sm:hidden">
-                    {openDoc.done}/{openDoc.total}
-                  </span>
-                </span>
-              ) : openDoc.hasText ? (
-                <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-success-50 px-2.5 py-1 text-meta font-semibold text-success-700 ring-1 ring-success-100">
-                  <Check className="size-3.5" aria-hidden />
-                  {t.imported}
-                </span>
-              ) : null}
+              {documentLanguagePicker}
               <button
                 type="button"
                 onClick={clearDocument}
@@ -1351,7 +1338,12 @@ export function VoiceTutorWorkspace({
                 <X className="size-4" aria-hidden />
               </button>
             </div>
-          ) : null}
+          ) : (
+            <div className="flex shrink-0 items-center justify-between gap-3 pl-1">
+              <p className="truncate text-sm font-bold text-ink-900">{t.documentLanguage}</p>
+              {documentLanguagePicker}
+            </div>
+          )}
 
           {docError ? <InlineErrorBanner message={docError} className="shrink-0" /> : null}
 
@@ -1416,13 +1408,13 @@ export function VoiceTutorWorkspace({
           role="tabpanel"
           aria-labelledby="voice-tutor-tab-teacher"
           className={cn(
-            "h-[calc(100dvh-var(--spacing-header)-11.5rem)] min-h-[28rem] sm:h-[calc(100dvh-var(--spacing-header)-17rem)] flex-col overflow-hidden rounded-2xl bg-surface shadow-card ring-1 ring-line-soft lg:flex lg:h-auto lg:min-h-0",
+            "@container h-[calc(100dvh-var(--spacing-header)-6.5rem)] min-h-[28rem] sm:h-[calc(100dvh-var(--spacing-header)-7.5rem)] flex-col overflow-hidden rounded-2xl bg-surface shadow-card ring-1 ring-line-soft lg:flex lg:h-auto lg:min-h-0",
             mobileTab === "teacher" ? "flex" : "hidden",
           )}
         >
-          <div className="flex shrink-0 items-center justify-between gap-3 border-b border-line-soft px-4 py-3">
-            <div className="flex min-w-0 items-center gap-3">
-              <TeacherBadge className="size-9" />
+          <div className="flex shrink-0 items-center justify-between gap-2 border-b border-line-soft px-4 py-3 @md:px-5">
+            <div className="flex min-w-0 flex-1 items-center gap-3">
+              <TeacherBadge className="hidden size-9 @sm:inline-flex" />
               <div className="min-w-0">
                 <p className="truncate text-sm font-bold text-ink-900">{t.teacherName}</p>
                 <p className="flex items-center gap-1.5 text-meta text-ink-500">
@@ -1434,6 +1426,16 @@ export function VoiceTutorWorkspace({
                 </p>
               </div>
             </div>
+            <LanguagePicker
+              id="voice-tutor-reply-language"
+              variant="compact"
+              icon={MessageCircle}
+              label={t.replyLanguage}
+              caption={t.replyLanguageShort}
+              captionClassName="@md:inline"
+              value={replyLanguage}
+              onChange={changeReplyLanguage}
+            />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
@@ -1457,7 +1459,7 @@ export function VoiceTutorWorkspace({
             </DropdownMenu>
           </div>
 
-          <div className="flex shrink-0 flex-col items-center px-4 pt-3">
+          <div className="flex shrink-0 flex-col items-center px-4 pt-4 @md:px-5">
             <VoiceOrb
               phase={phase}
               getLevel={engine.getMicLevel}
@@ -1483,7 +1485,7 @@ export function VoiceTutorWorkspace({
 
           <div
             ref={scrollRef}
-            className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-3"
+            className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4 @md:px-5"
           >
             {messages.map((message) => (
               <TutorMessageBubble
@@ -1521,7 +1523,7 @@ export function VoiceTutorWorkspace({
             ) : null}
           </div>
 
-          <div className="shrink-0 space-y-2 px-4">
+          <div className="shrink-0 space-y-2 px-4 @md:px-5">
             {error?.code === "INSUFFICIENT_CREDITS" ? (
               <InsufficientCreditsBanner message={error.message} />
             ) : error ? (
@@ -1534,7 +1536,7 @@ export function VoiceTutorWorkspace({
             ) : null}
           </div>
 
-          <div className="shrink-0 px-4 pb-4 pt-3">
+          <div className="shrink-0 border-t border-line-soft/70 px-4 pb-4 pt-3 @md:px-5">
             <div className="flex items-center justify-center gap-6 sm:gap-8">
               <button
                 type="button"

@@ -847,13 +847,25 @@
 
 @media (min-width: 640px) and (min-height: 700px) {
   .voice-orb {
-    --orb: 5.25rem;
+    --orb: 4.75rem;
   }
 }
 
-@media (min-width: 1024px) and (min-height: 760px) {
+/* Grand cercle seulement sur les écrans hauts : sur un portable, la place va
+   aux messages. */
+@media (min-width: 1024px) and (min-height: 900px) {
   .voice-orb {
-    --orb: 6.5rem;
+    --orb: 6rem;
+  }
+}
+
+/* Professeur vocal : la zone principale prend toute la largeur (jusqu'à
+   120rem) et presque toute la hauteur de l'écran, pour que le cours et la
+   conversation aient de la place. Voir `.voice-tutor-page`. */
+@media (min-width: 1024px) {
+  main:has(.voice-tutor-page) {
+    max-width: 120rem;
+    padding: 1.25rem 1.5rem;
   }
 }
 

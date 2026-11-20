@@ -73,7 +73,7 @@ const RECORDER_TYPES = [
 const TICK_MS = 50;
 const CALIBRATION_MS = 350;
 const SPEECH_MIN_MS = 200;
-const END_SILENCE_MS = 1500;
+const END_SILENCE_MS = 1200;
 const NO_SPEECH_TIMEOUT_MS = 10_000;
 /** Envoi manuel : en dessous, l'enregistrement est jugé vide. */
 const MIN_MANUAL_MS = 500;
@@ -131,6 +131,56 @@ function voiceInterruptSupported(): boolean {
 
 const noSubscription = () => () => {};
 
+/** Silence gardé à la fin de chaque passage (s) : un raccord comme une pause entre deux phrases. */
+const SPEECH_TAIL_S = 0.12;
+/** En dessous de ce niveau (≈ −40 dB), un échantillon compte comme du silence. */
+const SILENCE_LEVEL = 0.01;
+/** Fréquence de vérification de la fin de la voix pendant la lecture (ms). */
+const CLIP_WATCH_MS = 30;
+
+let clipDecoderInstance: OfflineAudioContext | null | undefined;
+
+/** Contexte audio hors ligne, jamais relié aux haut-parleurs : sert à décoder les passages. */
+function clipDecoder(): OfflineAudioContext | null {
+  if (clipDecoderInstance === undefined) {
+    try {
+      const Ctor =
+        window.OfflineAudioContext ??
+        (window as unknown as { webkitOfflineAudioContext?: typeof OfflineAudioContext })
+          .webkitOfflineAudioContext;
+      clipDecoderInstance = Ctor ? new Ctor(1, 1, 24000) : null;
+    } catch {
+      clipDecoderInstance = null;
+    }
+  }
+  return clipDecoderInstance;
+}
+
+/**
+ * Durée d'un passage et instant où la voix s'y termine (`end`). La synthèse
+ * vocale ajoute 0,3 à 0,5 s de silence à la fin de chaque passage : ajouté au
+ * raccord, il hachait la parole. Chaque passage s'arrête donc peu après sa
+ * dernière syllabe, et sa durée affichée s'arrête au même endroit.
+ */
+async function measureClip(blob: Blob): Promise<{ duration: number; end?: number }> {
+  const context = clipDecoder();
+  if (context) {
+    try {
+      const buffer = await context.decodeAudioData(await blob.arrayBuffer());
+      const data = buffer.getChannelData(0);
+      let last = data.length - 1;
+      while (last > 0 && Math.abs(data[last]) < SILENCE_LEVEL) last--;
+      if (last > 0 && buffer.duration > 0) {
+        const end = Math.min(buffer.duration, last / buffer.sampleRate + SPEECH_TAIL_S);
+        return { duration: end, end };
+      }
+    } catch {
+      // Décodage impossible (ancien navigateur) : durée lue dans les métadonnées.
+    }
+  }
+  return { duration: await probeDuration(blob) };
+}
+
 /** Durée d'un passage audio (métadonnées), sans le jouer. */
 function probeDuration(blob: Blob): Promise<number> {
   return new Promise((resolve) => {
@@ -173,6 +223,8 @@ interface Clip {
   /** `undefined` tant que le passage n'est pas arrivé ; `null` s'il a échoué. */
   blob?: Blob | null;
   duration?: number;
+  /** Fin de la voix dans le passage (s), silence final retiré ; inconnue si le décodage échoue. */
+  end?: number;
 }
 
 interface Sequence {
@@ -202,6 +254,8 @@ export function useVoiceEngine() {
   const currentRef = React.useRef<{ seq: Sequence; index: number; run: number } | null>(null);
   const runCounter = React.useRef(0);
   const settleClipRef = React.useRef<((outcome: PlayOutcome) => void) | null>(null);
+  /** Surveillance de la fin de la voix du passage en cours (`setInterval`). */
+  const clipWatchRef = React.useRef<number | null>(null);
   /** Où reprendre une réponse mise en pause (ou repositionnée). */
   const resumeRef = React.useRef<{ id: string; index: number; offset: number } | null>(null);
   const objectUrlRef = React.useRef<string | null>(null);
@@ -266,7 +320,15 @@ export function useVoiceEngine() {
     }
   }
 
+  function stopClipWatch() {
+    if (clipWatchRef.current !== null) {
+      window.clearInterval(clipWatchRef.current);
+      clipWatchRef.current = null;
+    }
+  }
+
   function settleClip(outcome: PlayOutcome) {
+    stopClipWatch();
     const settle = settleClipRef.current;
     settleClipRef.current = null;
     settle?.(outcome);
@@ -282,7 +344,9 @@ export function useVoiceEngine() {
       const current = currentRef.current;
       if (!current) return;
       const clip = current.seq.clips[current.index];
-      if (clip && Number.isFinite(audio.duration) && audio.duration > 0) clip.duration = audio.duration;
+      if (clip && clip.end === undefined && Number.isFinite(audio.duration) && audio.duration > 0) {
+        clip.duration = audio.duration;
+      }
       publish();
     });
     audio.addEventListener("ended", () => settleClip("ended"));
@@ -313,7 +377,7 @@ export function useVoiceEngine() {
     seq.clips.push(clip);
     void promise.then(async (blob) => {
       clip.blob = blob;
-      if (blob) clip.duration = await probeDuration(blob);
+      if (blob) Object.assign(clip, await measureClip(blob));
       if (currentRef.current?.seq === seq) publish(settleClipRef.current === null);
       recordDuration(seq);
     });
@@ -332,7 +396,17 @@ export function useVoiceEngine() {
     const url = URL.createObjectURL(blob);
     objectUrlRef.current = url;
     return new Promise<PlayOutcome>((resolve) => {
+      stopClipWatch();
       settleClipRef.current = resolve;
+      // Voix terminée : passage suivant tout de suite, sans jouer le silence final
+      // (`end` peut arriver un instant après le début de la lecture).
+      const clip = seq.clips[index];
+      clipWatchRef.current = window.setInterval(() => {
+        if (clip?.end !== undefined && audio.currentTime >= clip.end) {
+          audio.pause();
+          settleClip("ended");
+        }
+      }, CLIP_WATCH_MS);
       audio.src = url;
       audio.defaultPlaybackRate = rateRef.current;
       audio.playbackRate = rateRef.current;
@@ -864,9 +938,11 @@ export function useVoiceEngine() {
   React.useEffect(() => {
     const counter = sessionCounter;
     const runs = runCounter;
+    const clipWatch = clipWatchRef;
     return () => {
       counter.current++;
       runs.current++;
+      if (clipWatch.current !== null) window.clearInterval(clipWatch.current);
       const session = sessionRef.current;
       if (session) {
         if (session.timer !== null) window.clearInterval(session.timer);

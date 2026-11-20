@@ -642,6 +642,8 @@ export const en: Dictionary = {
     subtitle: "Talk out loud with your AI teacher about your course",
     documentLanguage: "Document language",
     replyLanguage: "Answer language",
+    documentLanguageShort: "Course",
+    replyLanguageShort: "Answer",
     panelsLabel: "Document and teacher",
     tabDocument: "Document",
     tabTeacher: "Teacher",
