@@ -121,7 +121,7 @@ export async function POST(request: Request) {
     }
 
     try {
-      question = await transcribeQuestion(audio, extension);
+      question = await transcribeQuestion(audio, extension, [data.replyLanguage, data.documentLanguage]);
     } catch (error) {
       console.error("[/api/ai/voice-tutor] échec de la transcription :", error);
       const { status, message } = describeAIError(error, dict);

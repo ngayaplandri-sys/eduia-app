@@ -72,17 +72,41 @@ export function audioExtension(mime: string): string | null {
 const SILENCE_HALLUCINATIONS =
   /amara\.org|sous-titr|sottotitoli|subtítulos|untertitel|thanks for watching|thank you for watching|merci d'avoir regardé|abonnez-vous/i;
 
-export async function transcribeQuestion(audio: Blob, extension: string): Promise<string> {
+/**
+ * Indications de langue pour la transcription, quand l'élève a choisi l'une
+ * de ces langues (cours ou réponse). Sans elle, l'ouzbek parlé ressort en
+ * cyrillique ou en écriture arabe ouïghoure ; avec elle, en ouzbek latin, sans
+ * changer une question posée en français ou en turc.
+ */
+const TRANSCRIPTION_HINTS: Partial<Record<VoiceTutorLanguage, string>> = {
+  uz: "Oʻzbek tilida, lotin yozuvida: savol.",
+};
+
+export async function transcribeQuestion(
+  audio: Blob,
+  extension: string,
+  languages: VoiceTutorLanguage[] = [],
+): Promise<string> {
   const file = await toFile(audio, `question.${extension}`, { type: audio.type });
   // Sans langue imposée : l'élève peut parler au professeur dans n'importe
   // quelle langue (la transcription reste dans la langue parlée).
+  const hint = languages.map((language) => TRANSCRIPTION_HINTS[language]).find(Boolean);
   const result = await getOpenAIClient().audio.transcriptions.create({
     file,
     model: TRANSCRIBE_MODEL,
+    ...(hint ? { prompt: hint } : {}),
   });
   const text = result.text.trim();
   if (text.length < 40 && SILENCE_HALLUCINATIONS.test(text)) return "";
+  // Sur un silence, le modèle peut recopier l'indication elle-même (un « ha »
+  // ou un « yoʻq » de l'élève, trop courts pour en être une copie, passent).
+  const heard = lettersOnly(text);
+  if (hint && heard.length >= 8 && lettersOnly(hint).includes(heard)) return "";
   return text;
+}
+
+function lettersOnly(text: string): string {
+  return text.toLowerCase().replace(/[^\p{L}]/gu, "");
 }
 
 // ───────────────────────────── 2. Réponse du professeur ─────────────────────────────

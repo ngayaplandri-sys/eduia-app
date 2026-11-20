@@ -16,10 +16,14 @@ const SCRIPTS: { language: VoiceTutorLanguage; pattern: RegExp }[] = [
   { language: "hi", pattern: /[ऀ-ॿ]/g },
 ];
 
+const UZBEK_CYRILLIC = /[ўқғҳЎҚҒҲ]/g;
+
 const STOPWORDS: Partial<Record<VoiceTutorLanguage, string[]>> = {
   fr: ["le", "les", "des", "est", "et", "une", "du", "que", "qui", "dans", "pour", "pas", "sur", "au", "avec", "cette", "sont", "aux", "ou", "par"],
   en: ["the", "and", "of", "to", "is", "in", "that", "it", "for", "are", "with", "as", "on", "this", "be", "by", "which", "from", "or", "an"],
   tr: ["ve", "bir", "bu", "için", "ile", "olarak", "olan", "gibi", "daha", "çok", "veya", "ise", "kadar", "sonra", "her", "olur", "ne", "değil", "şekilde", "tarafından"],
+  // Ouzbek en alphabet latin (mots sans apostrophe : « boʻlib » serait coupé en deux).
+  uz: ["va", "bilan", "uchun", "ham", "esa", "deb", "lekin", "yoki", "emas", "edi", "keyin", "kabi", "shu", "ular", "juda", "hamda", "orqali", "mumkin", "qilib", "hisoblanadi"],
   de: ["der", "die", "das", "und", "ist", "nicht", "mit", "den", "von", "zu", "ein", "eine", "im", "auf", "sich", "dem", "werden", "wird", "auch", "oder"],
   es: ["el", "los", "las", "y", "que", "en", "es", "por", "una", "para", "con", "del", "se", "al", "como", "más", "pero", "su", "lo", "son"],
   pt: ["os", "as", "e", "que", "em", "é", "um", "uma", "para", "com", "não", "do", "da", "dos", "das", "ao", "pelo", "pela", "são", "mais"],
@@ -48,6 +52,10 @@ export function detectLanguage(text: string): VoiceTutorLanguage | null {
     // Le japonais mêle kanji (chinois) et kana : quelques kana suffisent.
     if (bestScript.language === "zh" && (sample.match(SCRIPTS[1].pattern)?.length ?? 0) > bestScript.count * 0.05) {
       return "ja";
+    }
+    // L'ouzbek en cyrillique a ses lettres propres (ў, қ, ғ, ҳ), absentes du russe.
+    if (bestScript.language === "ru" && (sample.match(UZBEK_CYRILLIC)?.length ?? 0) > bestScript.count * 0.01) {
+      return "uz";
     }
     return bestScript.language;
   }

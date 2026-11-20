@@ -95,6 +95,26 @@ function FlagShapes({ code, id }: { code: VoiceTutorLanguage; id: string }) {
           />
         </>
       );
+    case "uz":
+      // Ouzbékistan : bleu, blanc et vert séparés de filets rouges, croissant et étoiles.
+      return (
+        <>
+          <Stripes colors={["#0099b5", "#fff", "#1eb53a"]} />
+          <rect y="6.42" width="30" height="0.5" fill="#ce1126" />
+          <rect y="13.08" width="30" height="0.5" fill="#ce1126" />
+          <circle cx="4.4" cy="3.2" r="2.3" fill="#fff" />
+          <circle cx="5.3" cy="3.2" r="2" fill="#0099b5" />
+          <g fill="#fff">
+            {[
+              [11, 1.3], [12.5, 1.3], [14, 1.3],
+              [9.5, 3.1], [11, 3.1], [12.5, 3.1], [14, 3.1],
+              [8, 4.9], [9.5, 4.9], [11, 4.9], [12.5, 4.9], [14, 4.9],
+            ].map(([cx, cy]) => (
+              <polygon key={`${cx}-${cy}`} points={starPoints(cx, cy, 0.55)} />
+            ))}
+          </g>
+        </>
+      );
     case "zh":
       return (
         <>
