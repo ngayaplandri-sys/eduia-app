@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Sparkles, CircleCheck, Cpu, Coins } from "lucide-react";
+import { Sparkles, CircleCheck, Cpu, Coins, AudioLines } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/feedback/empty-state";
 import { AdminStatCard } from "@/components/admin/admin-stat-card";
@@ -7,6 +7,7 @@ import { AdminSection } from "@/components/admin/admin-section";
 import { AdminTable, type AdminColumn } from "@/components/admin/admin-table";
 import { getAdminAiUsage } from "@/lib/data/admin";
 import { formatCompactNumber } from "@/lib/admin/constants";
+import { DAILY_AI_LIMITS } from "@/lib/config/credits";
 import { formatActivityDate } from "@/lib/utils/format";
 import type { AdminAiUsageUser } from "@/types";
 
@@ -18,7 +19,24 @@ const KIND_LABELS: Record<string, string> = {
   correction: "Corrections",
   assistant: "Assistant IA",
   ocr: "Lecture de photos",
+  speech: "Voix du professeur",
 };
+
+/** Durée de voix lisible : « 7,5 min », « 42 min », « 3 h 05 ». */
+function formatMinutes(minutes: number): string {
+  if (minutes < 60) {
+    return `${minutes.toLocaleString("fr-FR", { maximumFractionDigits: minutes < 10 ? 1 : 0 })} min`;
+  }
+  const hours = Math.floor(minutes / 60);
+  return `${hours} h ${String(Math.round(minutes - hours * 60)).padStart(2, "0")}`;
+}
+
+function formatUsd(value: number): string {
+  return `≈ ${value.toFixed(2)} $`;
+}
+
+/** Plafond quotidien de voix exprimé en minutes (≈ 900 caractères par minute). */
+const speechCapMinutes = (chars: number) => formatMinutes(chars / 900);
 
 const topUsersColumns: AdminColumn<AdminAiUsageUser>[] = [
   {
@@ -34,6 +52,8 @@ const topUsersColumns: AdminColumn<AdminAiUsageUser>[] = [
   },
   { key: "total", header: "Générations", cell: (r) => formatCompactNumber(r.total) },
   { key: "tokens", header: "Tokens", cell: (r) => formatCompactNumber(r.tokens) },
+  { key: "voice", header: "Voix", cell: (r) => formatMinutes(r.voiceMinutes) },
+  { key: "cost", header: "Coût estimé", cell: (r) => formatUsd(r.costUsd) },
 ];
 
 export default async function AdminAiPage() {
@@ -70,11 +90,55 @@ export default async function AdminAiPage() {
         <AdminStatCard
           icon={Coins}
           label="Coût estimé"
-          value={`≈ ${data.estimatedCostUsd.toFixed(2)} $`}
-          hint="Tarif indicatif — voir OpenAI"
+          value={formatUsd(data.estimatedCostUsd)}
+          hint={`Texte ${data.textCostUsd.toFixed(2)} $ · voix ${data.voice.costUsd.toFixed(2)} $ — indicatif, voir OpenAI`}
           tone="neutral"
         />
       </div>
+
+      <AdminSection
+        title="Voix du professeur"
+        description="Synthèse vocale (gpt-4o-mini-tts), comptée à la minute d'audio produite, réécoutes comprises."
+      >
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div className="rounded-xl border border-line-soft p-4">
+            <p className="flex items-center gap-1.5 text-[0.75rem] font-semibold uppercase tracking-wide text-ink-400">
+              <AudioLines className="size-3.5" aria-hidden />
+              Total
+            </p>
+            <p className="mt-2 text-xl font-extrabold text-ink-900">
+              {formatMinutes(data.voice.minutes)}
+            </p>
+            <p className="mt-1 text-fine text-ink-500">
+              {formatUsd(data.voice.costUsd)} · {formatCompactNumber(data.voice.chars)} caractères
+            </p>
+          </div>
+          <div className="rounded-xl border border-line-soft p-4">
+            <p className="text-[0.75rem] font-semibold uppercase tracking-wide text-ink-400">
+              Aujourd&apos;hui (UTC)
+            </p>
+            <p className="mt-2 text-xl font-extrabold text-ink-900">
+              {formatMinutes(data.voice.minutesToday)}
+            </p>
+            <p className="mt-1 text-fine text-ink-500">
+              Tous comptes confondus
+            </p>
+          </div>
+          <div className="rounded-xl border border-line-soft p-4">
+            <p className="text-[0.75rem] font-semibold uppercase tracking-wide text-ink-400">
+              Plafonds par élève et par jour
+            </p>
+            <p className="mt-2 text-fine text-ink-700">
+              Voix : {speechCapMinutes(DAILY_AI_LIMITS.speechChars.free)} (Gratuit) ·{" "}
+              {speechCapMinutes(DAILY_AI_LIMITS.speechChars.paid)} (Premium)
+            </p>
+            <p className="mt-1 text-fine text-ink-700">
+              Photos et pages scannées : {DAILY_AI_LIMITS.ocrImages.free} (Gratuit) ·{" "}
+              {DAILY_AI_LIMITS.ocrImages.paid} (Premium)
+            </p>
+          </div>
+        </div>
+      </AdminSection>
 
       <AdminSection
         title="Par type de génération"
@@ -111,7 +175,7 @@ export default async function AdminAiPage() {
 
       <AdminSection
         title="Utilisateurs les plus actifs"
-        description="Top 10 par nombre de générations."
+        description="Top 10 par coût estimé (texte + voix)."
       >
         <AdminTable
           columns={topUsersColumns}
@@ -144,12 +208,26 @@ export default async function AdminAiPage() {
                 </span>
                 <span className="flex items-center gap-2">
                   <Badge
-                    tone={call.status === "success" ? "success" : "danger"}
+                    tone={
+                      call.status === "success"
+                        ? "success"
+                        : call.status === "pending"
+                          ? "info"
+                          : "danger"
+                    }
                     size="sm"
                   >
-                    {call.status === "success" ? "OK" : "Erreur"}
+                    {call.status === "success"
+                      ? "OK"
+                      : call.status === "pending"
+                        ? "En cours"
+                        : "Erreur"}
                   </Badge>
-                  {call.tokens !== null ? (
+                  {call.voiceMinutes !== null ? (
+                    <span className="text-ink-400">
+                      {formatMinutes(call.voiceMinutes)} ce jour-là
+                    </span>
+                  ) : call.tokens !== null ? (
                     <span className="text-ink-400">{call.tokens} tk</span>
                   ) : null}
                   <span className="text-ink-400">

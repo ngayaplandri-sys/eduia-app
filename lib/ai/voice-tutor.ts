@@ -32,6 +32,8 @@ import type { Dictionary } from "@/lib/i18n/dictionaries";
 const TRANSCRIBE_MODEL =
   process.env.OPENAI_TRANSCRIBE_MODEL?.trim() || "gpt-4o-mini-transcribe";
 const TTS_MODEL = process.env.OPENAI_TTS_MODEL?.trim() || "gpt-4o-mini-tts";
+/** Modèle de la voix, pour le journal d'usage. */
+export const VOICE_TUTOR_TTS_MODEL = TTS_MODEL;
 const TTS_VOICE = process.env.OPENAI_TTS_VOICE?.trim() || "marin";
 const TUTOR_REASONING = (process.env.VOICE_TUTOR_REASONING_EFFORT?.trim() || "low") as
   | "none"
@@ -790,7 +792,14 @@ export async function synthesizeSpeech(
  * produits par le professeur pour CE compte (ou le message d'accueil fixe),
  * jamais un texte arbitraire — sinon elle servirait de synthèse vocale
  * gratuite. Signature HMAC avec le secret de session déjà configuré.
+ *
+ * Le jeton porte sa date d'expiration (`<expiration>.<signature>`) : passé
+ * `SPEECH_TOKEN_TTL_SECONDS`, la même réponse ne peut plus être rejouée.
+ * C'est large pour une séance (« Réécouter » redemande la voix au serveur) ;
+ * le plafond quotidien de voix borne le reste.
  */
+const SPEECH_TOKEN_TTL_SECONDS = 12 * 60 * 60;
+
 function speechSecret(): string {
   const secret = process.env.BETTER_AUTH_SECRET;
   if (!secret) {
@@ -799,10 +808,15 @@ function speechSecret(): string {
   return secret;
 }
 
-export function signSpeechText(userId: string, text: string): string {
+function speechSignature(userId: string, expires: number, text: string): string {
   return createHmac("sha256", speechSecret())
-    .update(`voice-tutor-speech:${userId}:${text}`)
+    .update(`voice-tutor-speech:${userId}:${expires}:${text}`)
     .digest("base64url");
+}
+
+export function signSpeechText(userId: string, text: string): string {
+  const expires = Math.floor(Date.now() / 1000) + SPEECH_TOKEN_TTL_SECONDS;
+  return `${expires}.${speechSignature(userId, expires, text)}`;
 }
 
 export function isSpeakableText(
@@ -813,7 +827,15 @@ export function isSpeakableText(
   if (Object.values(VOICE_TUTOR_WELCOME).includes(text)) return true;
   if (Object.values(VOICE_TUTOR_GREETING).includes(text)) return true;
   if (!token) return false;
-  const expected = Buffer.from(signSpeechText(userId, text));
-  const received = Buffer.from(token);
+  const separator = token.indexOf(".");
+  if (separator <= 0) return false;
+  const expires = Number(token.slice(0, separator));
+  const now = Math.floor(Date.now() / 1000);
+  // Une minute de marge pour l'écart d'horloge entre deux serveurs.
+  if (!Number.isInteger(expires) || expires < now || expires > now + SPEECH_TOKEN_TTL_SECONDS + 60) {
+    return false;
+  }
+  const expected = Buffer.from(speechSignature(userId, expires, text));
+  const received = Buffer.from(token.slice(separator + 1));
   return expected.length === received.length && timingSafeEqual(expected, received);
 }

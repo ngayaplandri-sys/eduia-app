@@ -130,20 +130,23 @@ async function renderPageImage(page: PDFPageProxy): Promise<Blob> {
 /**
  * Lit le texte des pages scannées (au plus `VOICE_TUTOR_MAX_OCR_PAGES`), deux
  * à la fois. Une page illisible reste vide plutôt que de bloquer le cours.
+ * Si la limite de pages lues du jour est atteinte, la lecture s'arrête et
+ * `limitMessage` porte le message du serveur, à montrer à l'élève.
  */
 export async function readScannedPages(
   doc: PDFDocumentProxy,
   pageNumbers: number[],
   onProgress: (done: number, total: number) => void,
   signal: AbortSignal,
-): Promise<Map<number, string>> {
+): Promise<{ texts: Map<number, string>; limitMessage: string | null }> {
   const targets = pageNumbers.slice(0, VOICE_TUTOR_MAX_OCR_PAGES);
   const results = new Map<number, string>();
+  let limitMessage: string | null = null;
   let next = 0;
   let done = 0;
 
   async function worker() {
-    while (next < targets.length) {
+    while (next < targets.length && limitMessage === null) {
       if (signal.aborted) return;
       const number = targets[next++];
       try {
@@ -153,9 +156,14 @@ export async function readScannedPages(
         const form = new FormData();
         form.append("image", image, `page-${number}.jpg`);
         const response = await fetch("/api/ai/ocr", { method: "POST", body: form, signal });
-        const data: { text?: string } | null = await response.json().catch(() => null);
+        const data: { text?: string; code?: string; error?: string } | null = await response
+          .json()
+          .catch(() => null);
         if (response.ok && data?.text) {
           results.set(number, data.text.slice(0, VOICE_TUTOR_MAX_PAGE_CHARS));
+        } else if (response.status === 429 && data?.code === "DAILY_LIMIT") {
+          limitMessage = data.error ?? "";
+          return;
         }
       } catch {
         // Page ignorée (réseau, rendu) : le reste du cours reste utilisable.
@@ -166,5 +174,5 @@ export async function readScannedPages(
 
   await Promise.all([worker(), worker()]);
   if (signal.aborted) throw new DOMException("Aborted", "AbortError");
-  return results;
+  return { texts: results, limitMessage };
 }

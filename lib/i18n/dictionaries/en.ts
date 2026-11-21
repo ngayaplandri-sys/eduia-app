@@ -753,6 +753,8 @@ export const en: Dictionary = {
       "Your browser doesn't support voice recording. Try an up-to-date Chrome, Edge or Safari.",
     errorSpeech: "The answer can't be read out loud. You can read it above.",
     autoplayBlocked: "Your browser blocked playback: tap ▶ to listen to the answer.",
+    speechDailyLimit:
+      "You have reached today's voice limit: the teacher's answers are shown as text until tomorrow.",
     errorGeneric: "The teacher couldn't answer. Try again in a moment.",
     errorConnection: "Connection lost. Check your internet connection, then try again.",
     timeout: "The teacher is taking too long to answer. Try again.",
@@ -1547,6 +1549,8 @@ export const en: Dictionary = {
       "The AI service is temporarily unavailable. Try again later; if the problem persists, report it from “Help & support”.",
     rateLimited:
       "Too many requests sent to the AI right now. Try again in a few moments.",
+    dailyOcrLimit: (limit: number) =>
+      `You have reached today's limit: ${limit} photos or scanned pages read. Try again tomorrow.`,
     timeout:
       "The AI is taking too long to respond. Try again, or shorten your course if the document is very long.",
     connectionFailed:

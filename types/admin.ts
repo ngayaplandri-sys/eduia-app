@@ -4,7 +4,7 @@ import type { UserPlan } from "./user";
 
 export type ReportStatus = "new" | "in_progress" | "resolved";
 export type ReportType = "bug" | "suggestion" | "question" | "autre";
-export type AiUsageKind = "summary" | "exam" | "correction" | "assistant" | "ocr";
+export type AiUsageKind = "summary" | "exam" | "correction" | "assistant" | "ocr" | "speech";
 
 export interface AdminOverviewStats {
   totalUsers: number;
@@ -112,14 +112,27 @@ export interface AdminAiUsageUser {
   email: string;
   total: number;
   tokens: number;
+  /** Minutes de voix du professeur produites pour ce compte. */
+  voiceMinutes: number;
+  /** Coût estimé (texte + voix), en USD. */
+  costUsd: number;
 }
 
 export interface AdminAiUsageData {
+  /** Appels IA hors voix (la voix est comptée à part, dans `voice`). */
   totalRequests: number;
   totalSuccess: number;
   totalErrors: number;
   totalTokens: number;
+  /** Coût estimé total (texte + voix), en USD. */
   estimatedCostUsd: number;
+  textCostUsd: number;
+  voice: {
+    minutes: number;
+    minutesToday: number;
+    chars: number;
+    costUsd: number;
+  };
   byKind: AdminAiUsageByKind[];
   topUsers: AdminAiUsageUser[];
   recent: {
@@ -130,6 +143,8 @@ export interface AdminAiUsageData {
     model: string;
     status: string;
     tokens: number | null;
+    /** Voix seulement : minutes produites ce jour-là (une ligne par compte et par jour). */
+    voiceMinutes: number | null;
     createdAt: string;
   }[];
 }

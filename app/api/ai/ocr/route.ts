@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/data/user";
+import { getCurrentUser, hasUnlimitedAccess } from "@/lib/data/user";
 import { describeAIError } from "@/lib/ai/errors";
 import { OPENAI_MODEL } from "@/lib/ai/openai-client";
-import { logAiUsage } from "@/lib/ai/usage";
+import { finishAiCall, reserveAiCall } from "@/lib/ai/usage";
+import { dailyAiLimit } from "@/lib/config/credits";
 import { MAX_UPLOAD_BYTES } from "@/lib/ai/extract";
 import { detectImageMime, transcribeCourseImage } from "@/lib/ai/ocr";
 import { getDictionary } from "@/lib/i18n/server";
@@ -18,7 +19,9 @@ const MIN_USEFUL_CHARS = 8;
  * transcrit, ou un motif précis quand la photo n'est pas lisible.
  *
  * Ne prélève aucun crédit : c'est une étape préparatoire, le coût est porté
- * par la génération (résumé, épreuve, correction) lancée ensuite.
+ * par la génération (résumé, épreuve, correction) lancée ensuite. En échange,
+ * un plafond d'images par jour (`DAILY_AI_LIMITS.ocrImages`, selon l'offre)
+ * empêche un compte d'appeler la vision OpenAI en boucle.
  */
 export async function POST(request: Request) {
   const [user, dict] = await Promise.all([getCurrentUser(), getDictionary()]);
@@ -47,16 +50,26 @@ export async function POST(request: Request) {
     return NextResponse.json({ code: "UNSUPPORTED_IMAGE" }, { status: 415 });
   }
 
+  // Place réservée AVANT l'appel OpenAI : des envois en rafale ne passent pas le plafond.
+  const limit = hasUnlimitedAccess(user) ? null : dailyAiLimit("ocrImages", user.plan);
+  let callId: string | null;
+  try {
+    callId = await reserveAiCall({ userId: user.id, kind: "ocr", model: OPENAI_MODEL, limit });
+  } catch (error) {
+    console.error("[/api/ai/ocr] échec de la réservation :", error);
+    return NextResponse.json({ error: dict.ai.unexpected }, { status: 500 });
+  }
+  if (!callId) {
+    return NextResponse.json(
+      { error: dict.ai.dailyOcrLimit(limit ?? 0), code: "DAILY_LIMIT" },
+      { status: 429 },
+    );
+  }
+
   try {
     const { transcription, usage } = await transcribeCourseImage(bytes, mime);
 
-    await logAiUsage({
-      userId: user.id,
-      kind: "ocr",
-      model: OPENAI_MODEL,
-      status: "success",
-      tokens: usage,
-    });
+    await finishAiCall(callId, "success", usage);
 
     const meaningfulChars = transcription.text.replace(/[^\p{L}\p{N}]/gu, "").length;
     if (transcription.quality === "unreadable" || meaningfulChars < MIN_USEFUL_CHARS) {
@@ -72,12 +85,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error("[/api/ai/ocr] échec de la lecture de l'image :", error);
-    await logAiUsage({
-      userId: user.id,
-      kind: "ocr",
-      model: OPENAI_MODEL,
-      status: "error",
-    });
+    await finishAiCall(callId, "error");
     const { status, message } = describeAIError(error, dict);
     return NextResponse.json({ error: message }, { status });
   }

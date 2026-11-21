@@ -59,3 +59,24 @@ export function planMonthlyCredits(plan: UserPlan): number {
   if (plan === "premium_plus") return RETIRED_PLAN_CREDITS.premium_plus.monthly;
   return 0;
 }
+
+/**
+ * Plafonds quotidiens (journée UTC) des appels IA qui ne prélèvent aucun
+ * crédit : la lecture des photos de cours et des pages scannées (préparation
+ * d'un cours) et la voix du professeur (qu'on peut réécouter). Sans eux, un
+ * seul compte, même gratuit, pourrait vider le solde OpenAI en boucle. Les
+ * comptes admin aux crédits illimités n'ont pas de plafond.
+ */
+export const DAILY_AI_LIMITS = {
+  /** Images lues par la vision OpenAI (1 photo ou 1 page scannée = 1). */
+  ocrImages: { free: 60, paid: 400 },
+  /** Caractères prononcés par la voix du professeur (≈ 900 par minute). */
+  speechChars: { free: 40_000, paid: 300_000 },
+} as const;
+
+export function dailyAiLimit(
+  kind: keyof typeof DAILY_AI_LIMITS,
+  plan: UserPlan,
+): number {
+  return plan === "free" ? DAILY_AI_LIMITS[kind].free : DAILY_AI_LIMITS[kind].paid;
+}

@@ -775,6 +775,8 @@ export const fr = {
     errorSpeech: "Impossible de lire la réponse à voix haute. Tu peux la lire ci-dessus.",
     autoplayBlocked:
       "Ton navigateur a bloqué la lecture : appuie sur ▶ pour écouter la réponse.",
+    speechDailyLimit:
+      "Tu as atteint la limite de voix du jour : les réponses du professeur s'affichent en texte jusqu'à demain.",
     errorGeneric: "Le professeur n'a pas pu répondre. Réessaie dans un instant.",
     errorConnection: "Connexion interrompue. Vérifie ta connexion internet, puis réessaie.",
     timeout: "Le professeur met trop de temps à répondre. Réessaie.",
@@ -1578,6 +1580,8 @@ export const fr = {
       "Le service IA est momentanément indisponible. Réessaie plus tard ; si le problème persiste, signale-le depuis « Aide & support ».",
     rateLimited:
       "Trop de demandes envoyées à l'IA pour le moment. Réessaie dans quelques instants.",
+    dailyOcrLimit: (limit: number) =>
+      `Tu as atteint la limite du jour : ${limit} photos ou pages scannées lues. Réessaie demain.`,
     timeout:
       "L'IA met trop de temps à répondre. Réessaie, ou raccourcis ton cours si le document est très long.",
     connectionFailed:

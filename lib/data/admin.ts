@@ -16,7 +16,12 @@ import { getCurrentUser } from "./user";
 import { DEMO_EMAIL } from "@/lib/admin/constants";
 import { purchasableItemKeys } from "@/lib/maketou/config";
 import { PLAN_CREDITS, RETIRED_PLAN_CREDITS } from "@/lib/config/credits";
-import { estimateOpenAiCostUsd } from "@/lib/ai/pricing";
+import {
+  OPENAI_INDICATIVE_RATE_USD,
+  OPENAI_TTS_INDICATIVE_USD_PER_MINUTE,
+  estimateOpenAiCostUsd,
+  estimateSpeechCostUsd,
+} from "@/lib/ai/pricing";
 import type {
   AdminActivityFeedData,
   AdminActivityItem,
@@ -60,7 +65,19 @@ async function assertAdmin(): Promise<void> {
 
 const NOT_DEMO = ne(schema.user.email, DEMO_EMAIL);
 const PAGE_SIZE = 20;
-const TOKENS_SUM = sql<number>`coalesce(sum(coalesce(${schema.aiUsage.inputTokens}, 0) + coalesce(${schema.aiUsage.outputTokens}, 0)), 0)`;
+/**
+ * Les lignes `speech` (voix du professeur) ne sont pas des appels comme les
+ * autres : une par compte et par jour, avec des caractères et des
+ * millisecondes d'audio à la place des tokens. Elles sont comptées à part.
+ */
+const IS_SPEECH = sql`${schema.aiUsage.kind} = 'speech'`;
+const NOT_SPEECH = ne(schema.aiUsage.kind, "speech");
+const TOKENS_SUM = sql<number>`coalesce(sum(coalesce(${schema.aiUsage.inputTokens}, 0) + coalesce(${schema.aiUsage.outputTokens}, 0)) filter (where not (${IS_SPEECH})), 0)`;
+const INPUT_SUM = sql<number>`coalesce(sum(${schema.aiUsage.inputTokens}) filter (where not (${IS_SPEECH})), 0)`;
+const OUTPUT_SUM = sql<number>`coalesce(sum(${schema.aiUsage.outputTokens}) filter (where not (${IS_SPEECH})), 0)`;
+const CALLS_COUNT = sql<number>`count(*) filter (where not (${IS_SPEECH}))`;
+const SPEECH_MS_SUM = sql<number>`coalesce(sum(${schema.aiUsage.outputTokens}) filter (where ${IS_SPEECH}), 0)`;
+const SPEECH_CHARS_SUM = sql<number>`coalesce(sum(${schema.aiUsage.inputTokens}) filter (where ${IS_SPEECH}), 0)`;
 
 function n(value: unknown): number {
   return Number(value ?? 0);
@@ -103,7 +120,7 @@ export async function getAdminOverviewStats(): Promise<AdminOverviewStats> {
       .select({ v: count() })
       .from(schema.aiUsage)
       .innerJoin(schema.user, eq(schema.aiUsage.userId, schema.user.id))
-      .where(and(NOT_DEMO, eq(schema.aiUsage.status, "success"))),
+      .where(and(NOT_DEMO, NOT_SPEECH, eq(schema.aiUsage.status, "success"))),
     db
       .select({ v: TOKENS_SUM })
       .from(schema.aiUsage)
@@ -272,7 +289,7 @@ export async function getAdminUserDetail(
       db
         .select({ v: count() })
         .from(schema.aiUsage)
-        .where(eq(schema.aiUsage.userId, userId)),
+        .where(and(eq(schema.aiUsage.userId, userId), NOT_SPEECH)),
       db
         .select({
           id: schema.activities.id,
@@ -432,7 +449,10 @@ export async function getAdminSubscriptions(): Promise<AdminSubscriptionsData> {
 export async function getAdminAiUsage(): Promise<AdminAiUsageData> {
   await assertAdmin();
 
-  const [byKindRows, topUsersRows, recentRows] = await Promise.all([
+  // Coût estimé par compte (texte + voix), pour classer les plus gros consommateurs.
+  const costSql = sql<number>`(${INPUT_SUM} * ${sql.raw(String(OPENAI_INDICATIVE_RATE_USD.inputPerMillion))} + ${OUTPUT_SUM} * ${sql.raw(String(OPENAI_INDICATIVE_RATE_USD.outputPerMillion))}) / 1000000.0 + ${SPEECH_MS_SUM} / 60000.0 * ${sql.raw(String(OPENAI_TTS_INDICATIVE_USD_PER_MINUTE))}`;
+
+  const [byKindRows, topUsersRows, recentRows, totalsRows] = await Promise.all([
     db
       .select({
         kind: schema.aiUsage.kind,
@@ -442,21 +462,23 @@ export async function getAdminAiUsage(): Promise<AdminAiUsageData> {
       })
       .from(schema.aiUsage)
       .innerJoin(schema.user, eq(schema.aiUsage.userId, schema.user.id))
-      .where(NOT_DEMO)
+      .where(and(NOT_DEMO, NOT_SPEECH))
       .groupBy(schema.aiUsage.kind),
     db
       .select({
         userId: schema.user.id,
         name: schema.user.name,
         email: schema.user.email,
-        total: count(),
+        total: CALLS_COUNT,
         tokens: TOKENS_SUM,
+        speechMs: SPEECH_MS_SUM,
+        cost: costSql,
       })
       .from(schema.aiUsage)
       .innerJoin(schema.user, eq(schema.aiUsage.userId, schema.user.id))
       .where(NOT_DEMO)
       .groupBy(schema.user.id, schema.user.name, schema.user.email)
-      .orderBy(desc(count()))
+      .orderBy(desc(costSql))
       .limit(10),
     db
       .select({
@@ -475,6 +497,17 @@ export async function getAdminAiUsage(): Promise<AdminAiUsageData> {
       .where(NOT_DEMO)
       .orderBy(desc(schema.aiUsage.createdAt))
       .limit(20),
+    db
+      .select({
+        input: INPUT_SUM,
+        output: OUTPUT_SUM,
+        speechMs: SPEECH_MS_SUM,
+        speechChars: SPEECH_CHARS_SUM,
+        speechToday: sql<number>`coalesce(sum(${schema.aiUsage.outputTokens}) filter (where ${IS_SPEECH} and ${schema.aiUsage.createdAt} >= date_trunc('day', now(), 'UTC')), 0)`,
+      })
+      .from(schema.aiUsage)
+      .innerJoin(schema.user, eq(schema.aiUsage.userId, schema.user.id))
+      .where(NOT_DEMO),
   ]);
 
   const kinds: AiUsageKind[] = ["summary", "exam", "correction", "assistant", "ocr"];
@@ -495,18 +528,23 @@ export async function getAdminAiUsage(): Promise<AdminAiUsageData> {
   const totalSuccess = byKind.reduce((sum, k) => sum + k.success, 0);
   const totalTokens = byKind.reduce((sum, k) => sum + k.tokens, 0);
 
-  // Répartition input/output inconnue à l'agrégat → hypothèse 40 % / 60 %.
-  const estimatedCostUsd = estimateOpenAiCostUsd(
-    Math.round(totalTokens * 0.4),
-    Math.round(totalTokens * 0.6),
-  );
+  const totals = totalsRows[0];
+  const textCostUsd = estimateOpenAiCostUsd(n(totals?.input), n(totals?.output));
+  const voiceCostUsd = estimateSpeechCostUsd(n(totals?.speechMs));
 
   return {
     totalRequests,
     totalSuccess,
     totalErrors: totalRequests - totalSuccess,
     totalTokens,
-    estimatedCostUsd,
+    estimatedCostUsd: textCostUsd + voiceCostUsd,
+    textCostUsd,
+    voice: {
+      minutes: n(totals?.speechMs) / 60_000,
+      minutesToday: n(totals?.speechToday) / 60_000,
+      chars: n(totals?.speechChars),
+      costUsd: voiceCostUsd,
+    },
     byKind,
     topUsers: topUsersRows.map((row) => ({
       userId: row.userId,
@@ -514,20 +552,26 @@ export async function getAdminAiUsage(): Promise<AdminAiUsageData> {
       email: row.email,
       total: n(row.total),
       tokens: n(row.tokens),
+      voiceMinutes: n(row.speechMs) / 60_000,
+      costUsd: n(row.cost),
     })),
-    recent: recentRows.map((row) => ({
-      id: row.id,
-      userName: row.userName,
-      userEmail: row.userEmail,
-      kind: (row.kind as AiUsageKind) ?? "summary",
-      model: row.model,
-      status: row.status,
-      tokens:
-        row.inputTokens === null && row.outputTokens === null
-          ? null
-          : (row.inputTokens ?? 0) + (row.outputTokens ?? 0),
-      createdAt: row.createdAt.toISOString(),
-    })),
+    recent: recentRows.map((row) => {
+      const speech = row.kind === "speech";
+      return {
+        id: row.id,
+        userName: row.userName,
+        userEmail: row.userEmail,
+        kind: (row.kind as AiUsageKind) ?? "summary",
+        model: row.model,
+        status: row.status,
+        tokens:
+          speech || (row.inputTokens === null && row.outputTokens === null)
+            ? null
+            : (row.inputTokens ?? 0) + (row.outputTokens ?? 0),
+        voiceMinutes: speech ? (row.outputTokens ?? 0) / 60_000 : null,
+        createdAt: row.createdAt.toISOString(),
+      };
+    }),
   };
 }
 
@@ -841,6 +885,7 @@ export async function getAdminStats(): Promise<AdminStatsData> {
     correction: "Corrections",
     assistant: "Assistant IA",
     ocr: "Lecture de photos",
+    speech: "Voix du professeur",
   };
   const aiByKind = aiKinds.map((kind) => ({
     label: aiKindLabel[kind],
@@ -928,7 +973,7 @@ export async function getAdminActivityFeed(params: {
       })
       .from(schema.aiUsage)
       .innerJoin(schema.user, eq(schema.aiUsage.userId, schema.user.id))
-      .where(NOT_DEMO)
+      .where(and(NOT_DEMO, NOT_SPEECH))
       .orderBy(desc(schema.aiUsage.createdAt))
       .limit(take),
     db

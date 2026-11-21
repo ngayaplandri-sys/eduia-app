@@ -297,7 +297,7 @@ export const aiUsage = pgTable("ai_usage", {
   userId: text()
     .notNull()
     .references(() => user.id, { onDelete: "cascade" }),
-  /** summary | exam | correction */
+  /** summary | exam | correction | assistant | ocr | speech (voix : `inputTokens` = caractères, `outputTokens` = millisecondes d'audio, une ligne par jour) */
   kind: text().notNull(),
   model: text().notNull(),
   /** success | error */

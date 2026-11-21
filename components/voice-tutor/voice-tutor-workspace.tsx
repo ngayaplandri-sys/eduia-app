@@ -275,11 +275,16 @@ async function gzipJson(json: string): Promise<Blob | null> {
   }
 }
 
-/** Voix d'un texte du professeur (jeton : texte signé par le serveur). */
+/**
+ * Voix d'un texte du professeur (jeton : texte signé par le serveur).
+ * `onDailyLimit` reçoit le message du serveur quand la limite de voix du jour
+ * est atteinte (les réponses restent alors lisibles en texte).
+ */
 async function requestSpeech(
   text: string,
   language: VoiceTutorLanguage,
   token?: string,
+  onDailyLimit?: (message: string) => void,
 ): Promise<Blob | null> {
   try {
     const response = await fetch("/api/ai/voice-tutor/speech", {
@@ -287,6 +292,13 @@ async function requestSpeech(
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ text, language, token }),
     });
+    if (response.status === 429) {
+      const data: { code?: string; error?: string } | null = await response
+        .json()
+        .catch(() => null);
+      if (data?.code === "DAILY_LIMIT" && data.error) onDailyLimit?.(data.error);
+      return null;
+    }
     if (!response.ok) return null;
     const blob = await response.blob();
     return blob.size > 0 ? blob : null;
@@ -413,6 +425,8 @@ export function VoiceTutorWorkspace({
   });
   // Voix des salutations, préparées dès que le cours est prêt.
   const greetingAudioRef = React.useRef(new Map<string, Promise<Blob | null>>());
+  // Limite de voix du jour atteinte : plus de demande de voix jusqu'au rechargement.
+  const speechLimitedRef = React.useRef(false);
 
   // Dernières valeurs, lues par les rappels asynchrones (fin de phrase, audio).
   const phaseRef = React.useRef<VoicePhase>("idle");
@@ -636,6 +650,8 @@ export function VoiceTutorWorkspace({
       const scannedPages = texts.flatMap((text, index) =>
         isScannedPageText(text) ? [index + 1] : [],
       );
+      // Limite de pages lues du jour atteinte : message du serveur, montré à l'élève.
+      let ocrLimitMessage: string | null = null;
       if (scannedPages.length > 0) {
         progress(0, scannedPages.length, true);
         const read = await readScannedPages(
@@ -644,9 +660,11 @@ export function VoiceTutorWorkspace({
           (done, total) => progress(done, total, true),
           controller.signal,
         );
-        for (const [number, text] of read) texts[number - 1] = text;
+        for (const [number, text] of read.texts) texts[number - 1] = text;
+        ocrLimitMessage = read.limitMessage;
       }
       if (controller.signal.aborted) return;
+      if (ocrLimitMessage) setDocError(ocrLimitMessage);
 
       const hasText = texts.some((text) => !isScannedPageText(text));
       setDocState({ status: "ready", doc, meta, pageTexts: texts, hasText });
@@ -669,7 +687,7 @@ export function VoiceTutorWorkspace({
           savedAt: currentTime(),
         });
       } else {
-        setDocError(t.errorPdfNoText);
+        setDocError(ocrLimitMessage || t.errorPdfNoText);
       }
     } catch {
       if (controller.signal.aborted) return;
@@ -697,8 +715,12 @@ export function VoiceTutorWorkspace({
   React.useEffect(() => {
     if (!greetingText) return;
     const cache = greetingAudioRef.current;
-    if (cache.has(greetingText)) return;
-    const request = requestSpeech(greetingText, replyLanguage).then((blob) => {
+    if (cache.has(greetingText) || speechLimitedRef.current) return;
+    const onDailyLimit = (message: string) => {
+      speechLimitedRef.current = true;
+      setNotice(message);
+    };
+    const request = requestSpeech(greetingText, replyLanguage, undefined, onDailyLimit).then((blob) => {
       if (!blob) cache.delete(greetingText);
       return blob;
     });
@@ -718,13 +740,20 @@ export function VoiceTutorWorkspace({
   ): Promise<Blob | null> {
     const prepared = segment.token ? undefined : greetingAudioRef.current.get(segment.text);
     if (prepared) return prepared;
+    if (speechLimitedRef.current) {
+      setNotice(t.speechDailyLimit);
+      return null;
+    }
     const queue = speechQueueRef.current;
     if (queue.active >= SPEECH_CONCURRENCY) {
       await new Promise<void>((resolve) => queue.waiting.push(resolve));
     }
     queue.active += 1;
     try {
-      return await requestSpeech(segment.text, language, segment.token);
+      return await requestSpeech(segment.text, language, segment.token, (message) => {
+        speechLimitedRef.current = true;
+        setNotice(message);
+      });
     } finally {
       queue.active -= 1;
       queue.waiting.shift()?.();
@@ -1147,7 +1176,7 @@ export function VoiceTutorWorkspace({
       } else if (outcome === "ended" && !voiceStarted) {
         // Aucun passage n'a pu être prononcé : la réponse reste lisible.
         conversationRef.current = false;
-        setNotice(t.errorSpeech);
+        setNotice(speechLimitedRef.current ? t.speechDailyLimit : t.errorSpeech);
       }
       if (outcome === "ended") {
         afterAnswer({ focus: answerFocus, continues: answerContinues, lesson: continuation });
