@@ -1100,10 +1100,35 @@
   }
 }
 
+/* Repère de la phrase en cours : il glisse d'une phrase à la suivante. */
+.voice-marker {
+  transition:
+    top 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.voice-marker-dot--reading {
+  animation: voice-marker-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes voice-marker-pulse {
+  50% {
+    box-shadow: 0 0 0 4px rgb(124 79 190 / 0.28);
+  }
+}
+
+/* Phrase déjà lue et expliquée : elle reste marquée, discrètement. */
+.voice-passage-done {
+  animation: voice-passage-in 0.5s ease-out both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .voice-orb *,
   .voice-mic-live,
-  .voice-passage {
+  .voice-passage,
+  .voice-passage-done,
+  .voice-marker,
+  .voice-marker-dot--reading {
     animation: none !important;
     transition: none !important;
   }

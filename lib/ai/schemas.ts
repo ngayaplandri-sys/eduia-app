@@ -502,6 +502,17 @@ export const voiceTutorRequestSchema = z
     lessonPage: z.number().int().min(1).max(MAX_PAGE_NUMBER).nullable().optional(),
     /** Suite automatique de l'explication (sans question) : page `lessonPage + 1`. */
     continueLesson: z.boolean().optional(),
+    /**
+     * Page de l'explication que l'élève a interrompue, et la phrase du cours
+     * qui était lue ou expliquée à ce moment-là : pour reprendre à cet endroit.
+     */
+    lessonResume: z
+      .object({
+        page: z.number().int().min(1).max(MAX_PAGE_NUMBER),
+        after: z.string().trim().max(600).nullable(),
+      })
+      .nullable()
+      .optional(),
   })
   .refine(
     ({ pages }) =>

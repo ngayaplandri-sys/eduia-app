@@ -24,8 +24,11 @@ import { VOICE_TUTOR_MAX_AUDIO_BYTES, isChargedLessonPage } from "@/lib/config/v
 import { getDictionary } from "@/lib/i18n/server";
 import type { CreditDebitResult } from "@/types";
 
-/** Transcription + réponse en flux : laisse la fonction respirer en serverless. */
-export const maxDuration = 60;
+/**
+ * Transcription + réponse en flux. Une page entière lue, traduite et
+ * expliquée s'écrit en une minute ou plus : on laisse 5 minutes.
+ */
+export const maxDuration = 300;
 
 /**
  * `payload` compressé (gzip) par le navigateur : taille maximale reçue, et
@@ -186,6 +189,7 @@ export async function POST(request: Request) {
               text: event.text,
               token: signSpeechText(user.id, event.text),
               ...(event.original ? { original: true, language: event.language } : {}),
+              ...(event.translation ? { translation: true } : {}),
             });
           } else {
             await logAiUsage({

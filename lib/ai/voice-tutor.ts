@@ -141,7 +141,7 @@ function buildInstructions(
 
     [
       "COMMENT TU ENSEIGNES :",
-      "- Tu as lu et compris tout le cours. Quand l'élève pose une question, explique la notion AVEC TES PROPRES MOTS : d'abord l'idée essentielle en une ou deux phrases simples, puis le pourquoi et le comment. En dehors des lectures du texte original (voir LIRE PUIS EXPLIQUER), ne récite pas le document : explique avec tes mots.",
+      "- Tu as lu et compris tout le cours. Quand l'élève pose une question, lis d'abord la phrase du cours qui y répond (voir LIRE, TRADUIRE PUIS EXPLIQUER), puis explique la notion AVEC TES PROPRES MOTS : l'idée essentielle en une ou deux phrases simples, puis le pourquoi et le comment. En dehors des lectures du texte original et de leurs traductions, ne récite pas le document : explique avec tes mots.",
       "- Quand une idée est abstraite, rends-la concrète avec UN exemple court de la vie de tous les jours, une comparaison ou une image mentale (la cuisine, le marché, le football, un téléphone qui se recharge…), choisie pour éclairer la notion, en une phrase.",
       "- Relie les notions entre elles quand c'est utile (« c'est justement pour ça que… ») pour qu'il voie la logique du cours.",
       "- Vérifie qu'il a compris : termine la plupart de tes explications par UNE petite question simple et naturelle (« À ton avis, où se passe cette étape ? », « Tu vois pourquoi l'oxygène est indispensable ici ? »), ou propose la suite (« Tu veux un exemple ? », « On passe à l'étape suivante ? »). Ne pose jamais plusieurs questions d'un coup, et ne reprends jamais une question ou une formule de fin que tu as déjà utilisée dans la conversation.",
@@ -167,23 +167,24 @@ function buildInstructions(
     ].join("\n"),
 
     [
-      "LIRE PUIS EXPLIQUER (pour que l'élève sache toujours de quoi tu parles) :",
-      "- Quand tu expliques le cours, lis seulement les phrases IMPORTANTES du passage (celles qui portent une définition, un fait, une étape ou un chiffre clé), une à une : lis d'abord à voix haute la phrase du document telle qu'elle est écrite, dans sa langue d'origine (même si elle diffère de ta langue de réponse, sans la traduire), puis explique-la dans ta langue de réponse, avec tes mots, en une ou deux phrases ; passe ensuite à la phrase importante suivante. Ne lis pas les titres, les numéros de page, les transitions ni les phrases qui répètent une idée déjà lue.",
-      "- Entoure chaque lecture du texte original des balises <lire> et </lire>, et recopie ce texte EXACTEMENT comme dans le document : mêmes mots, même langue, même ponctuation. Exemple avec un document en turc et une réponse en français : <lire>Glikoliz sitoplazmada gerçekleşir.</lire> Ici, on nous dit que la glycolyse se passe dans le cytoplasme, c'est-à-dire dans le liquide qui remplit la cellule.",
-      "- Le texte entre les balises n'est jamais traduit ni modifié ; ce qui est hors des balises (ton explication) est toujours dans ta langue de réponse.",
-      "- Chaque lecture passe par ces balises, dans TOUTES les réponses (question, page demandée, explication page par page) : jamais de guillemets « » ou \"\" à la place, sinon la phrase serait prononcée avec la mauvaise voix. Dans l'historique de la conversation, tes lectures passées apparaissent entre « » : c'est seulement leur affichage pour l'élève, ne recopie pas ce format.",
-      "- Pour une question précise, lis seulement la ou les phrases du cours qui y répondent, puis explique. Quand il ne comprend pas et demande une autre explication, tu peux relire la phrase puis expliquer autrement. Pour une salutation, une question hors du cours ou la réponse à ta question de vérification, pas de lecture.",
-      "- S'il te demande seulement de lire un passage (« lis-moi la page 3 »), lis-le en entier entre balises, puis, s'il est dans une autre langue que ta langue de réponse, donne sa traduction fidèle ; ensuite, propose-lui de l'expliquer.",
+      "LIRE, TRADUIRE PUIS EXPLIQUER (pour que l'élève sache toujours de quoi tu parles) :",
+      "- Quand tu expliques le cours, avance phrase par phrase, en trois temps : 1) lis à voix haute la phrase du document telle qu'elle est écrite, dans sa langue d'origine, sans la traduire ; 2) SI elle est dans une autre langue que ta langue de réponse, dis sa traduction fidèle et complète dans ta langue de réponse (la traduction seule, sans commentaire) ; 3) explique-la avec tes mots. Une phrase déjà écrite dans ta langue de réponse n'est pas traduite : explique-la directement.",
+      "- Balises : la lecture entre <lire> et </lire>, recopiée EXACTEMENT comme dans le document (mêmes mots, même langue, même ponctuation) ; la traduction entre <trad> et </trad> ; ton explication, hors des balises, toujours dans ta langue de réponse. Exemple avec un document en turc et une réponse en français : <lire>Glikoliz sitoplazmada gerçekleşir.</lire><trad>La glycolyse se déroule dans le cytoplasme.</trad> Autrement dit, cette étape se passe dans le liquide qui remplit la cellule, un peu comme une cuisine où l'on prépare le repas avant de le servir.",
+      "- Chaque lecture et chaque traduction passent par ces balises, dans TOUTES les réponses (question, page demandée, explication page par page) : jamais de guillemets « » ou \"\" ni de flèche à la place, sinon la phrase serait prononcée avec la mauvaise voix. Dans l'historique de la conversation, tes lectures passées apparaissent entre « » et tes traductions après « → » : c'est seulement leur affichage pour l'élève, ne recopie pas ce format.",
+      "- Pour une question précise, lis seulement la ou les phrases du cours qui y répondent (chacune suivie de sa traduction si besoin), puis explique. La lecture vient TOUJOURS en premier : après au plus une courte réaction (« Ah, d'accord ! ») et, si tu veux, l'indication de la page, commence directement par <lire> ; jamais d'explication ni de résumé avant la lecture. Quand il ne comprend pas et demande une autre explication, tu peux relire la phrase puis expliquer autrement. Pour une salutation, une question hors du cours ou la réponse à ta question de vérification, pas de lecture.",
+      "- S'il te demande seulement de lire un passage (« lis-moi la page 3 »), lis-le en entier, phrase par phrase, chacune entre <lire> et </lire> et suivie de sa traduction entre <trad> et </trad> s'il est dans une autre langue que ta langue de réponse ; ensuite, propose-lui de l'expliquer.",
     ].join("\n"),
 
     "PAGES : chaque page du document est précédée du repère « === Page N === ». Quand tu expliques une notion pour la première fois (ou que tu lis un passage), dis en passant à quelle page du cours elle se trouve (« c'est à la page 3 de ton cours »), une seule fois par réponse, sans jamais inventer de numéro.",
 
     [
       "EXPLICATION PAGE PAR PAGE :",
-      "- Une question sur une notion (« explique-moi la glycolyse », « c'est quoi l'ATP ? ») n'est PAS une demande d'explication page par page : traite-la comme une question (lis d'abord la ou les phrases du cours qui y répondent, puis explique, comme décrit dans LIRE PUIS EXPLIQUER), avec suite:non. L'explication page par page ne démarre que dans les deux cas ci-dessous.",
-      "- Si l'élève te demande d'expliquer son cours, tout le cours, tout le document, un chapitre, ou d'expliquer « page par page » (éventuellement à partir d'une page), tu commences une explication pas à pas. Dans cette réponse, explique UNIQUEMENT la première page concernée (la page 1, sauf s'il en indique une autre) : annonce en une phrase que vous allez avancer page par page et qu'il peut t'interrompre à tout moment, puis explique cette page comme toutes les autres (ses phrases clés lues dans la langue du document, chacune suivie de ton explication). Mets suite:oui dans le repère : le système fera défiler son PDF et te demandera automatiquement la page suivante, sans qu'il ait à parler.",
-      "- S'il te demande d'expliquer une page précise, ou d'aller ou de passer à une page (« explique-moi la page 5 », « va à la page 12 », « passe à la page 30 »), au début comme au milieu d'une explication déjà en cours : obéis-lui tout de suite. Va à CETTE page (page:N dans le repère, c'est elle que son PDF affichera), explique-la comme une page de l'explication page par page, et mets suite:oui pour que l'explication continue d'elle-même avec la page suivante (suite:non seulement si c'est la dernière page du cours). Désormais, l'explication avance à partir de cette page : ne propose jamais de revenir à l'ancienne, ne lui demande pas s'il veut continuer, et ne termine pas par une question. (Pour une simple lecture, « lis-moi la page 3 », suis LIRE PUIS EXPLIQUER.)",
-      "- Pendant cette explication, chaque réponse explique UNE seule page, en allant à l'essentiel : lis au maximum 2 ou 3 phrases clés de la page (une seule si la page est courte), chacune suivie d'une explication d'une ou deux phrases, comme décrit dans LIRE PUIS EXPLIQUER. Ajoute une comparaison seulement pour une notion vraiment difficile. Vise environ 80 à 120 mots en tout, lectures comprises. Ne termine pas par une question (il ne peut pas répondre pendant l'enchaînement) : termine par une transition de quelques mots vers la suite. Une page presque vide (titre, sommaire, image) : une phrase suffit.",
+      "- Une question sur une notion (« explique-moi la glycolyse », « c'est quoi l'ATP ? ») n'est PAS une demande d'explication page par page : traite-la comme une question (lis d'abord la ou les phrases du cours qui y répondent, puis explique, comme décrit dans LIRE, TRADUIRE PUIS EXPLIQUER), avec suite:non. L'explication page par page ne démarre que dans les deux cas ci-dessous.",
+      "- Si l'élève te demande d'expliquer son cours, tout le cours, tout le document, un chapitre, ou d'expliquer « page par page » (éventuellement à partir d'une page), tu commences une explication pas à pas. Dans cette réponse, explique UNIQUEMENT la première page concernée (la page 1, sauf s'il en indique une autre) : annonce en une phrase que vous allez avancer page par page et qu'il peut t'interrompre à tout moment, puis explique cette page EN ENTIER comme toutes les autres (voir plus bas). Mets suite:oui dans le repère : le système fera défiler son PDF et te demandera automatiquement la page suivante, sans qu'il ait à parler.",
+      "- S'il te demande d'expliquer une page précise, ou d'aller ou de passer à une page (« explique-moi la page 5 », « va à la page 12 », « passe à la page 30 »), au début comme au milieu d'une explication déjà en cours : obéis-lui tout de suite. Va à CETTE page (page:N dans le repère, c'est elle que son PDF affichera), explique-la EN ENTIER comme une page de l'explication page par page, et mets suite:oui pour que l'explication continue d'elle-même avec la page suivante (suite:non seulement si c'est la dernière page du cours). Désormais, l'explication avance à partir de cette page : ne propose jamais de revenir à l'ancienne, ne lui demande pas s'il veut continuer, et ne termine pas par une question. (Pour une simple lecture, « lis-moi la page 3 », suis LIRE, TRADUIRE PUIS EXPLIQUER.)",
+      "- Pendant cette explication, chaque réponse explique UNE seule page, EN ENTIER et en détail : lis TOUTES ses phrases, dans l'ordre, sans en sauter aucune (titres et sous-titres compris ; ne lis jamais le numéro de page (« Sayfa 3 », « Page 3 ») ni les en-têtes ou pieds de page répétés d'une page à l'autre). Une phrase à la fois : deux phrases très courtes qui vont ensemble peuvent être lues d'un coup, une phrase très longue peut être lue en deux morceaux. Pour chacune, les trois temps de LIRE, TRADUIRE PUIS EXPLIQUER : la lecture entre <lire> et </lire>, sa traduction entre <trad> et </trad> si elle n'est pas dans ta langue de réponse, puis ton explication en une à trois phrases simples. Pour un titre, la lecture, sa traduction et quelques mots qui annoncent le thème suffisent.",
+      "- Dans cette explication détaillée, chaque idée importante ou difficile (définition, étape, mécanisme, chiffre clé) reçoit en plus un exemple concret ou une comparaison de la vie de tous les jours qui la rend évidente (la cuisine, le marché, le football, le téléphone, le corps humain…). Pas un exemple après chaque phrase : seulement là où il aide vraiment, et jamais deux fois le même.",
+      "- Ne résume jamais une page à la place de la lire : l'élève doit pouvoir suivre son document ligne par ligne pendant que tu parles. Ne termine pas par une question (il ne peut pas répondre pendant l'enchaînement) : termine par une transition de quelques mots vers la page suivante. Une page presque vide (titre seul, sommaire, image) : lis ce qu'elle contient, en une ou deux phrases.",
       "- Mets suite:oui tant qu'il reste des pages à expliquer. Pour la dernière page, mets suite:non et conclus : résume l'essentiel en une ou deux phrases courtes et demande-lui s'il a des questions.",
       "- S'il t'interrompt pour autre chose qu'une page à expliquer (question, « explique autrement », « plus simplement »…), réponds à ce qu'il demande avec suite:non, puis propose de reprendre là où vous en étiez. S'il veut reprendre (« oui », « continue »), explique la page suivante de l'explication avec suite:oui.",
     ].join("\n"),
@@ -207,7 +208,7 @@ function buildInstructions(
         ? `- Appelle-le par son prénom (${profile.firstName}) de temps en temps, sans excès.`
         : "- Tutoie l'élève, avec bienveillance.",
       "- Ta réponse est lue à voix haute : AUCUN Markdown, aucune liste à puces, aucun tableau, aucun emoji, aucune autre balise que <lire>. Écris les formules de façon prononçable (« x au carré », « H deux O »). Pour des étapes, dis « d'abord », « ensuite », « enfin ».",
-      "- Sois BREF : chaque mot que tu écris est prononcé. Une réponse fait en général 2 à 4 phrases (environ 40 à 90 mots, lectures comprises) : l'essentiel, clairement, sans phrases de remplissage (« C'est une excellente question », « Comme je te l'ai dit ») et sans répéter ce que tu viens de dire. Va jusqu'à environ 150 mots seulement s'il demande un résumé, plus de détails ou une explication d'enfant. Seule la lecture d'un passage qu'il demande expressément (« lis-moi la page 3 ») peut être plus longue.",
+      "- Sois BREF : chaque mot que tu écris est prononcé. Une réponse à une question fait en général 2 à 4 phrases d'explication (environ 40 à 90 mots, sans compter les lectures et leurs traductions) : l'essentiel, clairement, sans phrases de remplissage (« C'est une excellente question », « Comme je te l'ai dit ») et sans répéter ce que tu viens de dire. Va jusqu'à environ 150 mots seulement s'il demande un résumé, plus de détails ou une explication d'enfant. Seules la lecture d'un passage qu'il demande expressément (« lis-moi la page 3 ») et l'explication d'une page entière (EXPLICATION PAGE PAR PAGE) sont plus longues : là, tout est lu et expliqué, mais chaque explication reste simple et sans remplissage.",
       "- La question vient d'une reconnaissance vocale : s'il manque des mots ou qu'elle est ambiguë, comprends le sens le plus probable d'après le contexte ; si elle est vraiment incompréhensible, demande-lui gentiment de répéter.",
     ].join("\n"),
   ].join("\n\n");
@@ -281,7 +282,7 @@ function buildDocumentMessage(
 function toSpokenText(text: string): string {
   return text
     .replace(/\[\[[^\]]*\]\]/g, "")
-    .replace(/<\/?lire>/gi, "")
+    .replace(/<\/?(?:lire|trad)>/gi, "")
     .replace(/\*\*|__|`/g, "")
     .replace(/^#{1,6}\s+/gm, "")
     .replace(/^\s*[-*•]\s+/gm, "")
@@ -353,46 +354,72 @@ class SpeechChunker {
   }
 }
 
-const READ_OPEN = "<lire>";
-const READ_CLOSE = "</lire>";
+/**
+ * Partie de la réponse : explication (`text`), lecture du texte original du
+ * cours (`read`, prononcée dans la langue du document) ou traduction de cette
+ * lecture (`trad`, dans la langue de réponse).
+ */
+type ReadingMode = "text" | "read" | "trad";
 
-type ReadingPiece = { kind: "text"; text: string; original: boolean } | { kind: "open" } | { kind: "close" };
+type ReadingPiece =
+  | { kind: "text"; text: string; mode: ReadingMode }
+  | { kind: "open"; mode: "read" | "trad" }
+  | { kind: "close"; mode: "read" | "trad" };
 
-/** Longueur du plus long suffixe de `text` qui commence la balise `tag` (balise coupée en deux). */
-function partialTag(text: string, tag: string): number {
+const TAGS: { tag: string; mode: "read" | "trad"; open: boolean }[] = [
+  { tag: "<lire>", mode: "read", open: true },
+  { tag: "</lire>", mode: "read", open: false },
+  { tag: "<trad>", mode: "trad", open: true },
+  { tag: "</trad>", mode: "trad", open: false },
+];
+
+/** Longueur du plus long suffixe de `text` qui commence l'une des balises (balise coupée en deux). */
+function partialTag(text: string): number {
   const lower = text.toLowerCase();
-  for (let length = Math.min(tag.length - 1, lower.length); length > 0; length--) {
-    if (tag.startsWith(lower.slice(-length))) return length;
+  for (let length = Math.min(6, lower.length); length > 0; length--) {
+    const end = lower.slice(-length);
+    if (TAGS.some(({ tag }) => tag.startsWith(end))) return length;
   }
   return 0;
 }
 
 /**
  * Sépare, au fil de l'écriture, les lectures du texte original du cours
- * (`<lire>…</lire>`, dans la langue du document) des explications du
- * professeur (dans la langue de réponse). Une balise coupée entre deux
- * morceaux du flux est retenue jusqu'au morceau suivant.
+ * (`<lire>…</lire>`), leurs traductions (`<trad>…</trad>`) et les explications
+ * du professeur. Une balise coupée entre deux morceaux du flux est retenue
+ * jusqu'au morceau suivant ; une balise ouvrante ferme la partie en cours si
+ * le modèle a oublié de la fermer, et une balise fermante isolée est ignorée.
  */
 class ReadingSplitter {
   private buffer = "";
-  private reading = false;
+  private mode: ReadingMode = "text";
 
   push(text: string): ReadingPiece[] {
     this.buffer += text;
     const pieces: ReadingPiece[] = [];
     while (this.buffer) {
-      const tag = this.reading ? READ_CLOSE : READ_OPEN;
-      const at = this.buffer.toLowerCase().indexOf(tag);
-      if (at >= 0) {
-        if (at > 0) pieces.push({ kind: "text", text: this.buffer.slice(0, at), original: this.reading });
-        this.buffer = this.buffer.slice(at + tag.length);
-        pieces.push({ kind: this.reading ? "close" : "open" });
-        this.reading = !this.reading;
+      const lower = this.buffer.toLowerCase();
+      let found: { at: number; tag: (typeof TAGS)[number] } | null = null;
+      for (const tag of TAGS) {
+        const at = lower.indexOf(tag.tag);
+        if (at >= 0 && (!found || at < found.at)) found = { at, tag };
+      }
+      if (found) {
+        if (found.at > 0) pieces.push({ kind: "text", text: this.buffer.slice(0, found.at), mode: this.mode });
+        this.buffer = this.buffer.slice(found.at + found.tag.tag.length);
+        if (found.tag.open) {
+          if (this.mode !== "text") pieces.push({ kind: "close", mode: this.mode });
+          pieces.push({ kind: "open", mode: found.tag.mode });
+          this.mode = found.tag.mode;
+        } else if (this.mode === found.tag.mode) {
+          pieces.push({ kind: "close", mode: this.mode });
+          this.mode = "text";
+        }
         continue;
       }
-      const keep = partialTag(this.buffer, tag);
+      const keep = partialTag(this.buffer);
       const ready = this.buffer.slice(0, this.buffer.length - keep);
-      if (ready) pieces.push({ kind: "text", text: ready, original: this.reading });
+      if (ready) pieces.push({ kind: "text", text: ready, mode: this.mode });
       this.buffer = this.buffer.slice(this.buffer.length - keep);
       break;
     }
@@ -401,13 +428,21 @@ class ReadingSplitter {
 
   flush(): ReadingPiece[] {
     const pieces: ReadingPiece[] = [];
-    if (this.buffer) pieces.push({ kind: "text", text: this.buffer, original: this.reading });
-    if (this.reading) pieces.push({ kind: "close" });
+    if (this.buffer) pieces.push({ kind: "text", text: this.buffer, mode: this.mode });
+    if (this.mode !== "text") pieces.push({ kind: "close", mode: this.mode });
     this.buffer = "";
-    this.reading = false;
+    this.mode = "text";
     return pieces;
   }
 }
+
+/**
+ * Simple numéro de page (« Sayfa 3 », « Page 3 », « Seite 3 », « 3-sahifa »,
+ * « 3 »…) : jamais lu à voix haute, même si le professeur le recopie dans une
+ * lecture.
+ */
+const PAGE_LABEL =
+  /^(?:(?:(?:sayfa|page|seite|página|pagina|pagine|strona|страница|صفحة|الصفحة|bet|sahifa|ukurasa|trang|p\.)\s*)?[-–—]?\s*\d{1,4}\s*[-–—]?\.?|\d{1,4}\s*-\s*(?:sahifa|bet))$/iu;
 
 /** Lecture du texte original découpée en passages prononçables (≤ 420 caractères, aux fins de phrase). */
 function splitReading(text: string): string[] {
@@ -509,6 +544,8 @@ export type TutorStreamEvent =
       /** Lecture du texte original : prononcée dans la langue du document. */
       original?: boolean;
       language?: VoiceTutorLanguage;
+      /** Traduction de la lecture qui précède, dans la langue de réponse. */
+      translation?: boolean;
     }
   | { type: "done"; answer: string; pages: number[]; usage: AiUsageTokens };
 
@@ -544,11 +581,25 @@ export async function* streamVoiceTutor(
     lessonNext ?? request.currentPage,
   );
   const replyName = voiceTutorLanguage(request.replyLanguage).english;
-  const lessonContext = request.lessonPage
-    ? ` Une explication page par page est en cours : la dernière page expliquée est la page ${request.lessonPage} sur ${request.pageCount}. S'il te demande une page précise (« explique-moi la page 12 », « va à la page 30 »), va à CETTE page et explique-la comme les autres (ses phrases clés lues entre <lire> et </lire>, chacune suivie de ton explication), avec suite:oui : l'explication repart de cette page (pas de question à la fin, pas de retour à l'ancienne page). S'il demande de continuer, explique la page ${Math.min(request.lessonPage + 1, request.pageCount)} avec suite:oui. Sinon, réponds à ce qu'il dit, puis termine OBLIGATOIREMENT par une question qui lui propose de reprendre, par exemple « C'est plus clair ? On reprend à la page ${Math.min(request.lessonPage + 1, request.pageCount)} ? ».`
-    : " S'il te demande d'expliquer tout son cours, ou une page précise par son numéro, commence l'explication page par page à cette page (la page 1 pour tout le cours) avec suite:oui, sans question à la fin. Pour une question sur une notion, lis d'abord la ou les phrases du cours qui y répondent (entre <lire> et </lire>), explique-les, puis termine par UNE courte question pour vérifier qu'il a compris, ou pour lui proposer la suite.";
+  // Une phrase de la page lue, traduite (si besoin) puis expliquée : le rappel
+  // donné à chaque page de l'explication page par page.
+  const translated = request.documentLanguage !== request.replyLanguage;
+  const pageSteps = `lis TOUTES ses phrases dans l'ordre, sans en sauter, chacune entre <lire> et </lire>${translated ? `, suivie de sa traduction en ${replyName} entre <trad> et </trad>` : ""} puis de ton explication, avec un exemple concret de la vie de tous les jours pour les idées importantes`;
+  const resume = request.lessonResume ?? null;
+  const nextPage = request.lessonPage ? Math.min(request.lessonPage + 1, request.pageCount) : 1;
+  const lessonContext =
+    request.lessonPage || resume
+      ? [
+          ` Une explication page par page est en cours${request.lessonPage ? ` : la dernière page expliquée en entier est la page ${request.lessonPage} sur ${request.pageCount}` : ""}.`,
+          ` S'il te demande une page précise (« explique-moi la page 12 », « va à la page 30 »), va à CETTE page et explique-la en entier comme les autres (${pageSteps}), avec suite:oui : l'explication repart de cette page (pas de question à la fin, pas de retour à l'ancienne page).`,
+          resume
+            ? ` Il t'a interrompu pendant l'explication de la page ${resume.page}${resume.after ? `, à la phrase « ${resume.after} »` : ", au début de la page"}. Seulement s'il demande de reprendre ou de continuer (« oui », « continue », « reprends », « on reprend »), reprends la page ${resume.page} à partir de cette phrase (relis-la, puis continue jusqu'à la fin de la page de la même façon), avec page:${resume.page} et suite:oui dans le repère.`
+            : ` S'il demande de continuer, explique la page ${nextPage} en entier avec suite:oui.`,
+          ` Pour toute autre demande (une question, « explique autrement », « plus simplement », « je n'ai pas compris »…), réponds seulement à ce qu'il demande, sur le passage où il t'a arrêté (relis sa phrase si c'est utile), avec suite:non, sans enchaîner sur la suite de la page, puis termine OBLIGATOIREMENT par une question qui lui propose de reprendre, par exemple « C'est plus clair ? On reprend à la page ${resume ? resume.page : nextPage} ? ».`,
+        ].join("")
+      : ` S'il te demande d'expliquer tout son cours, ou une page précise par son numéro, commence l'explication page par page à cette page (la page 1 pour tout le cours) avec suite:oui, en expliquant cette page en entier (${pageSteps}), sans question à la fin. Pour une question sur une notion, lis d'abord la ou les phrases du cours qui y répondent (entre <lire> et </lire>${translated ? ", chacune suivie de sa traduction entre <trad> et </trad>" : ""}), explique-les, puis termine par UNE courte question pour vérifier qu'il a compris, ou pour lui proposer la suite.`;
   const turn = lessonNext
-    ? `[EXPLICATION PAGE PAR PAGE — suite automatique : l'élève écoute sans rien dire. Explique maintenant la page ${lessonNext} sur ${request.pageCount} de son cours, comme la suite naturelle de ta dernière explication : lis seulement ses 2 ou 3 phrases clés, chacune entre <lire> et </lire> et suivie d'une explication courte (environ 80 à 120 mots en tout).${lessonNext < request.pageCount ? " Termine par une transition de quelques mots vers la page suivante, sans question." : " C'est la DERNIÈRE page du cours : explique-la, puis résume l'essentiel du cours en une ou deux phrases courtes et termine en lui demandant s'il a des questions."} Réponds en ${replyName}. Commence ta réponse par la ligne de repère [[page:${lessonNext} lang:… quote:"…" suite:${lessonNext < request.pageCount ? "oui" : "non"}]].]`
+    ? `[EXPLICATION PAGE PAR PAGE — suite automatique : l'élève écoute sans rien dire. Explique maintenant la page ${lessonNext} sur ${request.pageCount} de son cours EN ENTIER, comme la suite naturelle de ta dernière explication : ${pageSteps}.${lessonNext < request.pageCount ? " Termine par une transition de quelques mots vers la page suivante, sans question." : " C'est la DERNIÈRE page du cours : explique-la en entier, puis résume l'essentiel du cours en une ou deux phrases courtes et termine OBLIGATOIREMENT en lui demandant s'il a des questions (pas d'autre proposition à la place)."} Réponds en ${replyName}. Commence ta réponse par la ligne de repère [[page:${lessonNext} lang:… quote:"…" suite:${lessonNext < request.pageCount ? "oui" : "non"}]].]`
     : `[L'élève regarde actuellement la page ${request.currentPage} : « cette page », « ce passage » ou « ici » y renvoient.${lessonContext} Réponds en ${replyName}, sauf s'il te demande explicitement une autre langue. Commence ta réponse par la ligne de repère [[page:… lang:… quote:"…" suite:…]]. Sa question, transcrite depuis sa voix :]\n\n${question}`;
 
   // Ordre pensé pour la mise en cache automatique des prompts côté OpenAI :
@@ -576,7 +627,8 @@ export async function* streamVoiceTutor(
       instructions: buildInstructions(request.documentLanguage, request.replyLanguage, profile),
       input,
       reasoning: { effort: TUTOR_REASONING },
-      max_output_tokens: 3000,
+      // Une page entière lue, traduite et expliquée : plusieurs milliers de tokens.
+      max_output_tokens: 8000,
       prompt_cache_key: cacheKey,
       // Le cours reste en cache jusqu'à 24 h (au lieu de quelques minutes) :
       // une question posée plus tard le paie environ 10 fois moins cher.
@@ -615,29 +667,56 @@ export async function* streamVoiceTutor(
   }
 
   /**
-   * Lectures du texte original : affichées entre guillemets et prononcées à
-   * part, dans la langue du document ; explications : découpées comme avant.
+   * Lectures du texte original : affichées entre guillemets (un paragraphe
+   * chacune) et prononcées à part, dans la langue du document ; traductions :
+   * affichées à la ligne après « → » et prononcées à part, dans la langue de
+   * réponse ; explications : découpées comme avant, à la ligne.
    */
   function* emit(text: string): Generator<TutorStreamEvent> {
     for (const piece of splitter.push(text)) yield* handle(piece);
   }
 
+  // Après une lecture ou une traduction, l'explication repart à la ligne.
+  let lineStart = false;
+  // Lecture d'un simple numéro de page écartée : sa traduction l'est aussi.
+  let skipTranslation = false;
+
   function* handle(piece: ReadingPiece): Generator<TutorStreamEvent> {
     if (piece.kind === "open") {
       for (const chunk of chunker.flush()) yield { type: "speech", text: chunk };
       reading = "";
-      yield* show("« ");
+      lineStart = false;
     } else if (piece.kind === "close") {
-      yield* show(" »");
-      for (const part of splitReading(toSpokenText(reading))) {
-        yield { type: "speech", text: part, original: true, language: request.documentLanguage };
-      }
+      // Lecture et traduction s'affichent entières, une fois fermées.
+      const text = toSpokenText(reading).replace(/\s+/g, " ");
       reading = "";
-    } else if (piece.original) {
+      if (piece.mode === "read") {
+        skipTranslation = PAGE_LABEL.test(text);
+        if (!text || skipTranslation) return;
+        yield* show(`${raw.trim() && !/\n\s*$/.test(raw) ? "\n\n" : ""}« ${text} »`);
+        for (const part of splitReading(text)) {
+          yield { type: "speech", text: part, original: true, language: request.documentLanguage };
+        }
+      } else {
+        const skip = skipTranslation;
+        skipTranslation = false;
+        if (!text || skip) return;
+        yield* show(`\n→ ${text}`);
+        for (const part of splitReading(text)) yield { type: "speech", text: part, translation: true };
+      }
+      lineStart = true;
+    } else if (piece.mode !== "text") {
       reading += piece.text;
-      yield* show(piece.text.replace(/^\s+/, reading === piece.text ? "" : " "));
     } else {
-      yield* show(piece.text);
+      if (piece.text.trim()) skipTranslation = false;
+      if (lineStart) {
+        const text = piece.text.replace(/^\s+/, "");
+        if (!text) return;
+        lineStart = false;
+        yield* show(`\n${text}`);
+      } else {
+        yield* show(piece.text);
+      }
       for (const chunk of chunker.push(piece.text)) yield { type: "speech", text: chunk };
     }
   }

@@ -70,9 +70,13 @@ import {
   type SpeechSegment,
   type TutorMessage,
 } from "./tutor-message";
+import { ReadingIndicator, type ReadingProgress } from "./reading-indicator";
 
-/** Réponse du professeur : au-delà, la requête est abandonnée. */
-const REQUEST_TIMEOUT_MS = 75_000;
+/**
+ * Réponse du professeur : au-delà, la requête est abandonnée. Une page
+ * entière lue, traduite et expliquée s'écrit en une minute ou plus.
+ */
+const REQUEST_TIMEOUT_MS = 280_000;
 
 /** Passages audio demandés en même temps (dans l'ordre de la réponse). */
 const SPEECH_CONCURRENCY = 2;
@@ -129,12 +133,91 @@ type TutorEvent =
       token: string;
       original?: boolean;
       language?: VoiceTutorLanguage;
+      translation?: boolean;
     }
   | { type: "done"; answer: string; pages: number[] }
   | { type: "error"; message: string };
 
+/** Page de l'explication interrompue par l'élève, et la phrase lue à ce moment-là. */
+interface LessonResume {
+  page: number;
+  after: string | null;
+}
+
 /** Ce que l'élève a coupé en prenant la parole (repris si ce n'était qu'un bruit). */
-type Interrupted = { kind: "answer"; messageId: string } | { kind: "lesson" };
+type Interrupted =
+  | { kind: "answer"; messageId: string; previousResume: LessonResume | null }
+  | { kind: "lesson" };
+
+/**
+ * Langues mémorisées un an sur cet appareil (cookie relu par la page serveur,
+ * donc affichées dès le premier rendu).
+ */
+function saveLanguages(documentLanguage: VoiceTutorLanguage, replyLanguage: VoiceTutorLanguage) {
+  window.document.cookie = `${VOICE_TUTOR_LANGUAGES_COOKIE}=${documentLanguage}.${replyLanguage}; path=/; max-age=31536000; samesite=lax`;
+}
+
+/** Heure de l'enregistrement d'un cours sur l'appareil. */
+function currentTime(): number {
+  return Date.now();
+}
+
+/** Texte comparable : lettres et chiffres seulement, sans accents ni casse. */
+function compactText(text: string): string {
+  return text
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]/gu, "");
+}
+
+/** Numéro de la phrase lue au passage `index` (passages lus consécutifs = une seule phrase). */
+function readingStep(segments: SpeechSegment[], index: number): number {
+  let step = 0;
+  for (let position = 0; position <= index && position < segments.length; position++) {
+    if (segments[position].original && !segments[position - 1]?.original) step += 1;
+  }
+  return step;
+}
+
+/**
+ * Phrase lue retrouvée dans le texte d'une page (à partir de `from`, la
+ * position de la phrase précédente) : position et part de la page lue jusque-là.
+ */
+function locateInPage(
+  pageText: string | undefined,
+  quote: string,
+  from: number,
+): { at: number; progress: number } | null {
+  if (!pageText) return null;
+  const page = compactText(pageText);
+  const needle = compactText(quote).slice(0, 40);
+  if (!page || needle.length < 6) return null;
+  let at = page.indexOf(needle, from);
+  if (at < 0) at = page.indexOf(needle);
+  if (at < 0) return null;
+  return { at, progress: Math.min(1, (at + compactText(quote).length) / page.length) };
+}
+
+/**
+ * Message du professeur tel qu'il est renvoyé dans l'historique : s'il a été
+ * coupé, seulement ce qui a été prononcé, et l'endroit de la coupure.
+ */
+function historyContent(message: TutorMessage): string {
+  const limit = VOICE_TUTOR_HISTORY_MESSAGE_CHARS;
+  if (message.role !== "assistant" || message.interruptedAt === undefined || !message.segments?.length) {
+    return message.content.slice(0, limit);
+  }
+  const spoken = message.segments
+    .slice(0, message.interruptedAt + 1)
+    .map((segment) =>
+      segment.original ? `« ${segment.text} »` : segment.translation ? `→ ${segment.text}` : segment.text,
+    )
+    .join(" ");
+  const note = " [— l'élève m'a interrompu ici]";
+  const room = limit - note.length;
+  return (spoken.length > room ? `… ${spoken.slice(-(room - 2))}` : spoken) + note;
+}
 
 let messageCounter = 0;
 function nextMessageId(): string {
@@ -292,6 +375,8 @@ export function VoiceTutorWorkspace({
   const [mobileTab, setMobileTab] = React.useState<"document" | "teacher">("document");
   /** Explication page par page : page que le professeur prépare (il « tourne la page »). */
   const [preparingPage, setPreparingPage] = React.useState<number | null>(null);
+  /** Phrase que le professeur lit, traduit ou explique (indicateur sous le document). */
+  const [reading, setReading] = React.useState<ReadingProgress | null>(null);
 
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const viewerRef = React.useRef<PdfViewerHandle>(null);
@@ -310,6 +395,12 @@ export function VoiceTutorWorkspace({
   const continuationRef = React.useRef(false);
   // Explication page par page : dernière page entièrement expliquée.
   const lessonPageRef = React.useRef<number | null>(null);
+  // Page de l'explication que l'élève a coupée, pour la reprendre à cet endroit.
+  const lessonResumeRef = React.useRef<LessonResume | null>(null);
+  // Dernier passage dont la lecture a commencé (message et indice).
+  const lastClipRef = React.useRef<{ messageId: string; index: number } | null>(null);
+  // Position de la dernière phrase lue dans le texte de sa page (pour la suivante).
+  const readingAtRef = React.useRef<{ messageId: string; page: number; at: number } | null>(null);
   // Salutation déjà prononcée dans cette conversation.
   const greetedRef = React.useRef(false);
   const interruptedRef = React.useRef<Interrupted | null>(null);
@@ -345,12 +436,6 @@ export function VoiceTutorWorkspace({
     },
     [engine],
   );
-
-  // Langues mémorisées un an sur cet appareil (cookie relu par la page serveur,
-  // donc affichées dès le premier rendu).
-  function saveLanguages(document: VoiceTutorLanguage, reply: VoiceTutorLanguage) {
-    window.document.cookie = `${VOICE_TUTOR_LANGUAGES_COOKIE}=${document}.${reply}; path=/; max-age=31536000; samesite=lax`;
-  }
 
   function changeDocumentLanguage(next: VoiceTutorLanguage) {
     setDocumentLanguage(next);
@@ -450,6 +535,8 @@ export function VoiceTutorWorkspace({
     turnRef.current += 1;
     conversationRef.current = false;
     liveAnswerRef.current = null;
+    // Arrêté au milieu d'une page : on retient où, pour reprendre là.
+    if (speakingRef.current) markInterrupted(speakingRef.current);
     speakingRef.current = null;
     interruptedRef.current = null;
     if (continuationRef.current) {
@@ -471,6 +558,8 @@ export function VoiceTutorWorkspace({
     void deleteSavedDocument(userId);
     engine.reset();
     lessonPageRef.current = null;
+    lessonResumeRef.current = null;
+    setReading(null);
     greetedRef.current = false;
     setDocState({ status: "empty" });
     setMessages([]);
@@ -577,7 +666,7 @@ export function VoiceTutorWorkspace({
           file,
           pageTexts: texts,
           page: 1,
-          savedAt: Date.now(),
+          savedAt: currentTime(),
         });
       } else {
         setDocError(t.errorPdfNoText);
@@ -642,10 +731,87 @@ export function VoiceTutorWorkspace({
     }
   }
 
-  /** Phrase du cours lue à voix haute : surlignée dans le PDF pendant sa lecture. */
-  function highlightReading(segment: SpeechSegment | undefined, page: number | undefined) {
-    if (!segment?.original || !page) return;
-    viewerRef.current?.highlightPassage(segment.text, [page, page + 1, page - 1]);
+  /**
+   * Un passage commence à être prononcé : la phrase du cours lue est surlignée
+   * dans le PDF (repère numéroté dans la marge, phrases déjà lues marquées) et
+   * l'indicateur suit les trois temps de chaque phrase — lecture dans la
+   * langue du cours, traduction, explication.
+   */
+  function trackClip(
+    messageId: string,
+    segments: SpeechSegment[],
+    index: number,
+    focusPage: number | undefined,
+  ) {
+    lastClipRef.current = { messageId, index };
+    const segment = segments[index];
+    if (!segment || !focusPage) return;
+    const step = readingStep(segments, index);
+    if (segment.original) {
+      const pages = [focusPage, focusPage + 1, focusPage - 1];
+      viewerRef.current?.highlightPassage(segment.text, pages, step);
+      const current = docRef.current;
+      const texts = current.status === "ready" ? current.pageTexts : null;
+      const previous = readingAtRef.current?.messageId === messageId ? readingAtRef.current : null;
+      let found: { page: number; at: number; progress: number } | null = null;
+      for (const candidate of pages) {
+        const located = locateInPage(
+          texts?.[candidate - 1],
+          segment.text,
+          previous?.page === candidate ? previous.at : 0,
+        );
+        if (located) {
+          found = { page: candidate, ...located };
+          break;
+        }
+      }
+      if (found) readingAtRef.current = { messageId, page: found.page, at: found.at };
+      setReading((last) => {
+        const same = last?.messageId === messageId ? last : null;
+        const page = found?.page ?? same?.page ?? focusPage;
+        return {
+          messageId,
+          page,
+          step,
+          phase: "reading",
+          progress: found?.progress ?? (same?.page === page ? same.progress : null),
+        };
+      });
+    } else if (step > 0) {
+      viewerRef.current?.setPassageMode(segment.translation ? "translating" : "explaining");
+      setReading((last) =>
+        last?.messageId === messageId
+          ? { ...last, step, phase: segment.translation ? "translation" : "explaining" }
+          : last,
+      );
+    }
+  }
+
+  /**
+   * L'élève coupe la parole (ou arrête) pendant une réponse : on retient le
+   * passage interrompu (l'historique renvoyé s'arrête là) et, pour une page de
+   * l'explication page par page, la phrase où reprendre.
+   */
+  function markInterrupted(messageId: string) {
+    const clip = lastClipRef.current;
+    if (clip?.messageId !== messageId) return;
+    const message = messagesRef.current.find((item) => item.id === messageId);
+    updateMessage(messageId, (item) => ({ ...item, interruptedAt: clip.index }));
+    if (!message?.focus || !(message.lesson || message.continues)) return;
+    const segments = message.segments ?? [];
+    let after: string | null = null;
+    for (let end = Math.min(clip.index, segments.length - 1); end >= 0; end--) {
+      if (!segments[end].original) continue;
+      let start = end;
+      while (start > 0 && segments[start - 1].original) start--;
+      after = segments
+        .slice(start, end + 1)
+        .map((segment) => segment.text)
+        .join(" ")
+        .slice(0, 500);
+      break;
+    }
+    lessonResumeRef.current = { page: message.focus.page, after };
   }
 
   function updateMessage(id: string, update: (message: TutorMessage) => TutorMessage) {
@@ -660,6 +826,8 @@ export function VoiceTutorWorkspace({
     const pageCount = docRef.current.status === "ready" ? docRef.current.meta.pageCount : 0;
     if (message?.focus && (message.continues || message.lesson)) {
       lessonPageRef.current = message.focus.page >= pageCount ? null : message.focus.page;
+      // Page expliquée jusqu'au bout : plus rien à reprendre.
+      lessonResumeRef.current = null;
     }
     if (!conversationRef.current) {
       setPhase("idle");
@@ -687,11 +855,13 @@ export function VoiceTutorWorkspace({
   /** Le professeur se tait : l'élève a la parole. */
   function interrupt() {
     turnRef.current += 1;
-    interruptedRef.current = speakingRef.current
-      ? { kind: "answer", messageId: speakingRef.current }
+    const speaking = speakingRef.current;
+    interruptedRef.current = speaking
+      ? { kind: "answer", messageId: speaking, previousResume: lessonResumeRef.current }
       : continuationRef.current
         ? { kind: "lesson" }
         : null;
+    if (speaking) markInterrupted(speaking);
     if (continuationRef.current) {
       continuationRef.current = false;
       requestAbortRef.current?.abort();
@@ -710,6 +880,11 @@ export function VoiceTutorWorkspace({
   function recoverFromFalseStart() {
     const interrupted = interruptedRef.current;
     interruptedRef.current = null;
+    // Pas de vraie coupure : la réponse n'est plus marquée comme interrompue.
+    if (interrupted?.kind === "answer") {
+      lessonResumeRef.current = interrupted.previousResume;
+      updateMessage(interrupted.messageId, (item) => ({ ...item, interruptedAt: undefined }));
+    }
     if (!conversationRef.current) {
       setPhase("idle");
       return;
@@ -770,7 +945,7 @@ export function VoiceTutorWorkspace({
       .slice(-VOICE_TUTOR_MAX_HISTORY)
       .map((message) => ({
         role: message.role,
-        content: message.content.slice(0, VOICE_TUTOR_HISTORY_MESSAGE_CHARS),
+        content: historyContent(message),
       }));
 
     const payload = {
@@ -783,6 +958,8 @@ export function VoiceTutorWorkspace({
       history,
       lessonPage,
       continueLesson: continuation,
+      // Une suite automatique part de la page suivante : rien à reprendre.
+      lessonResume: continuation ? null : lessonResumeRef.current,
     };
     const json = JSON.stringify(payload);
     const compressed = await gzipJson(json);
@@ -899,6 +1076,7 @@ export function VoiceTutorWorkspace({
             text: event.text,
             token: event.token,
             ...(event.original ? { original: true, language: event.language } : {}),
+            ...(event.translation ? { translation: true } : {}),
           };
           updateMessage(answerId, (message) => ({
             ...message,
@@ -906,7 +1084,7 @@ export function VoiceTutorWorkspace({
           }));
           if (liveAnswerRef.current === answerId) {
             live ??= engine.startLiveSpeech(answerId, (index) =>
-              highlightReading(liveSegments[index], answerFocus?.page),
+              trackClip(answerId, liveSegments, index, answerFocus?.page),
             );
             liveSegments.push(segment);
             const clip = fetchSpeech(segment, segment.language ?? answerLanguage);
@@ -1099,7 +1277,7 @@ export function VoiceTutorWorkspace({
     const segments = segmentsOf(message);
     const load = (index: number) =>
       fetchSpeech(segments[index], segments[index].language ?? message.language);
-    const onClipStart = (index: number) => highlightReading(segments[index], message.focus?.page);
+    const onClipStart = (index: number) => trackClip(message.id, segments, index, message.focus?.page);
     const resumed = options.fromStart
       ? null
       : engine.resumeMessage(message.id, segments.length, load, onClipStart);
@@ -1151,6 +1329,8 @@ export function VoiceTutorWorkspace({
     requestAbortRef.current?.abort();
     engine.reset();
     lessonPageRef.current = null;
+    lessonResumeRef.current = null;
+    setReading(null);
     greetedRef.current = false;
     setError(null);
     setNotice(null);
@@ -1174,6 +1354,9 @@ export function VoiceTutorWorkspace({
       ? spokenMessage.focus.page
       : null;
   const interruptible = phase === "speaking" || (phase === "thinking" && preparingPage !== null);
+  // Indicateur de lecture : seulement pendant que cette réponse est prononcée.
+  const readingShown =
+    reading && phase === "speaking" && playback?.id === reading.messageId && ready ? reading : null;
 
   const statusLabel = !ready
     ? docState.status === "reading" || docState.status === "opening"
@@ -1188,9 +1371,15 @@ export function VoiceTutorWorkspace({
           ? t.statusNextPage(preparingPage)
           : t.statusThinking
         : phase === "speaking"
-          ? lessonPageShown !== null && ready
-            ? t.statusLesson(lessonPageShown, ready.meta.pageCount)
-            : t.statusSpeaking
+          ? readingShown
+            ? readingShown.phase === "reading"
+              ? t.statusStepReading(readingShown.step, readingShown.page)
+              : readingShown.phase === "translation"
+                ? t.statusStepTranslating(readingShown.step)
+                : t.statusStepExplaining(readingShown.step)
+            : lessonPageShown !== null && ready
+              ? t.statusLesson(lessonPageShown, ready.meta.pageCount)
+              : t.statusSpeaking
           : t.statusIdle;
 
   const micLabel =
@@ -1385,6 +1574,18 @@ export function VoiceTutorWorkspace({
               )}
             </div>
           )}
+
+          {/* Où en est le professeur : phrase en cours et ses trois temps. */}
+          {readingShown ? (
+            <div className="pointer-events-none absolute inset-x-4 bottom-[4.5rem] z-10 flex justify-center lg:bottom-5">
+              <ReadingIndicator
+                state={readingShown}
+                documentLanguage={documentLanguage}
+                replyLanguage={spokenMessage?.language ?? replyLanguage}
+                className="pointer-events-auto"
+              />
+            </div>
+          ) : null}
 
           {/* Mobile : poser une question sans quitter le document. */}
           {canTalk ? (

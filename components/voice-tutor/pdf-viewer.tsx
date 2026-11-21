@@ -72,6 +72,9 @@ interface PageText {
   transform: number[];
 }
 
+/** Ce que fait le professeur avec la phrase surlignée. */
+export type PassageMode = "reading" | "translating" | "explaining";
+
 export interface PdfViewerHandle {
   /** Fait défiler jusqu'à une page et y surligne le passage cité (s'il est retrouvé). */
   showPassage: (page: number, quote?: string | null) => void;
@@ -79,9 +82,21 @@ export interface PdfViewerHandle {
   goToPage: (page: number) => void;
   /**
    * Surligne une phrase lue par le professeur, cherchée dans ces pages (dans
-   * l'ordre) ; rien ne bouge si elle n'y est pas retrouvée.
+   * l'ordre) ; rien ne bouge si elle n'y est pas retrouvée. Avec `step`
+   * (numéro de la phrase dans la réponse), un repère numéroté la suit dans la
+   * marge et les phrases déjà lues de la page restent marquées.
    */
-  highlightPassage: (quote: string, pages: number[]) => void;
+  highlightPassage: (quote: string, pages: number[], step?: number) => void;
+  /** La phrase surlignée est en train d'être lue, traduite ou expliquée. */
+  setPassageMode: (mode: PassageMode) => void;
+}
+
+interface PassageFocus {
+  key: number;
+  page: number;
+  rects: PageRect[];
+  /** Numéro de la phrase lue dans la réponse (repère dans la marge). */
+  step?: number;
 }
 
 function normalizeForSearch(text: string): string {
@@ -196,6 +211,8 @@ const PdfPageView = React.memo(function PdfPageView({
   findTerm,
   focusRects,
   focusKey,
+  trailRects,
+  marker,
   label,
   errorLabel,
 }: {
@@ -207,6 +224,10 @@ const PdfPageView = React.memo(function PdfPageView({
   findTerm: (page: number, term: string) => Promise<PageRect[]>;
   focusRects: PageRect[] | null;
   focusKey: number;
+  /** Phrases de cette page déjà lues et expliquées dans la réponse en cours. */
+  trailRects: PageRect[] | null;
+  /** Repère de la phrase en cours (numéro et ce que fait le professeur). */
+  marker: { step: number; mode: PassageMode } | null;
   label: string;
   errorLabel: string;
 }) {
@@ -341,17 +362,70 @@ const PdfPageView = React.memo(function PdfPageView({
           style={scaled(rect)}
         />
       ))}
+      {trailRects?.map((rect, index) => (
+        <span
+          key={`t${index}`}
+          aria-hidden
+          className="voice-passage-done pointer-events-none absolute rounded-sm bg-success-200/45 mix-blend-multiply"
+          style={scaled(rect)}
+        />
+      ))}
       {focusRects?.map((rect, index) => (
         <span
           key={`f${focusKey}-${index}`}
           aria-hidden
-          className="voice-passage pointer-events-none absolute rounded-sm bg-primary-300/45 mix-blend-multiply"
+          className={cn(
+            "voice-passage pointer-events-none absolute rounded-sm mix-blend-multiply transition-colors duration-300",
+            marker && marker.mode !== "reading" ? "bg-primary-200/55" : "bg-primary-300/50",
+          )}
           style={scaled(rect)}
         />
       ))}
+      {marker && focusRects?.length ? (
+        <PassageMarker rects={focusRects} scale={scale} step={marker.step} mode={marker.mode} />
+      ) : null}
     </div>
   );
 });
+
+/**
+ * Repère de la phrase en cours, dans la marge gauche de la page : son numéro
+ * dans la réponse et un trait sur toute sa hauteur. Il glisse d'une phrase à
+ * l'autre ; il pulse pendant la lecture, reste fixe pendant l'explication.
+ */
+function PassageMarker({
+  rects,
+  scale,
+  step,
+  mode,
+}: {
+  rects: PageRect[];
+  scale: number;
+  step: number;
+  mode: PassageMode;
+}) {
+  const top = Math.min(...rects.map((rect) => rect.top));
+  const bottom = Math.max(...rects.map((rect) => rect.top + rect.height));
+  return (
+    <div
+      aria-hidden
+      data-passage-step={step}
+      data-passage-mode={mode}
+      className="voice-marker pointer-events-none absolute left-1 flex w-5 flex-col items-center"
+      style={{ top: top * scale - 3, height: Math.max(22, (bottom - top) * scale + 6) }}
+    >
+      <span
+        className={cn(
+          "flex size-5 shrink-0 items-center justify-center rounded-full bg-primary-600 text-[0.62rem] font-bold leading-none text-white shadow-sm tabular-nums",
+          mode === "reading" && "voice-marker-dot--reading",
+        )}
+      >
+        {step}
+      </span>
+      <span className="mt-0.5 w-[3px] flex-1 rounded-full bg-primary-500/60" />
+    </div>
+  );
+}
 
 /**
  * Lecteur PDF du Professeur vocal (PDF.js) : tout le cours, page après page,
@@ -393,7 +467,15 @@ export function PdfViewer({
   const [query, setQuery] = React.useState("");
   const [searchTerm, setSearchTerm] = React.useState("");
 
-  const [focus, setFocus] = React.useState<{ key: number; page: number; rects: PageRect[] } | null>(null);
+  const [focus, setFocusState] = React.useState<PassageFocus | null>(null);
+  // Phrases déjà lues de la page en cours de lecture (réponse en cours).
+  const [trail, setTrail] = React.useState<{ page: number; rects: PageRect[] } | null>(null);
+  const [passageMode, setPassageModeState] = React.useState<PassageMode>("reading");
+  const focusRef = React.useRef<PassageFocus | null>(null);
+  const setFocus = React.useCallback((next: PassageFocus | null) => {
+    focusRef.current = next;
+    setFocusState(next);
+  }, []);
 
   const [nativeFullscreen, setNativeFullscreen] = React.useState(false);
   const [fallbackFullscreen, setFallbackFullscreen] = React.useState(false);
@@ -639,6 +721,8 @@ export function PdfViewer({
       if (!Number.isInteger(target) || target < 1 || target > pageCount) return;
       focusCounterRef.current += 1;
       const key = focusCounterRef.current;
+      // Nouvelle réponse : les phrases lues de la précédente ne sont plus marquées.
+      setTrail(null);
       const cited = quote?.trim();
       if (!cited) {
         setFocus({ key, page: target, rects: [] });
@@ -659,11 +743,11 @@ export function PdfViewer({
           else scrollToPage(target, Math.min(...rects.map((rect) => rect.top)), PASSAGE_LINE);
         });
     },
-    [pageCount, pageText, scrollToPage],
+    [pageCount, pageText, scrollToPage, setFocus],
   );
 
   const highlightPassage = React.useCallback(
-    (quote: string, pages: number[]) => {
+    (quote: string, pages: number[], step?: number) => {
       const cited = quote.trim();
       if (!cited) return;
       focusCounterRef.current += 1;
@@ -680,18 +764,31 @@ export function PdfViewer({
         .catch(() => null)
         .then((found) => {
           if (!found || focusCounterRef.current !== key) return;
-          setFocus({ key, page: found.target, rects: found.rects });
+          // La phrase précédente de la même page rejoint les phrases déjà lues.
+          const previous = focusRef.current;
+          if (step && step > 1 && previous?.step && previous.page === found.target && previous.rects.length) {
+            setTrail((current) => ({
+              page: found.target,
+              rects: [...(current?.page === found.target ? current.rects : []), ...previous.rects],
+            }));
+          } else {
+            setTrail(null);
+          }
+          setFocus({ key, page: found.target, rects: found.rects, step });
+          setPassageModeState("reading");
           scrollToPage(found.target, Math.min(...found.rects.map((rect) => rect.top)), PASSAGE_LINE);
         });
     },
-    [pageCount, pageText, scrollToPage],
+    [pageCount, pageText, scrollToPage, setFocus],
   );
 
-  React.useImperativeHandle(ref, () => ({ showPassage, goToPage, highlightPassage }), [
-    showPassage,
-    goToPage,
-    highlightPassage,
-  ]);
+  const setPassageMode = React.useCallback((mode: PassageMode) => setPassageModeState(mode), []);
+
+  React.useImperativeHandle(
+    ref,
+    () => ({ showPassage, goToPage, highlightPassage, setPassageMode }),
+    [showPassage, goToPage, highlightPassage, setPassageMode],
+  );
 
   // Pages contenant le terme recherché (texte déjà extrait du document).
   const matches = React.useMemo(() => {
@@ -1000,6 +1097,12 @@ export function PdfViewer({
                   findTerm={findTerm}
                   focusRects={focus?.page === number ? focus.rects : null}
                   focusKey={focus?.page === number ? focus.key : 0}
+                  trailRects={trail?.page === number ? trail.rects : null}
+                  marker={
+                    focus?.page === number && focus.step
+                      ? { step: focus.step, mode: passageMode }
+                      : null
+                  }
                   label={t.pageAria(number, pageCount)}
                   errorLabel={t.renderError}
                 />

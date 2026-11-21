@@ -16,6 +16,8 @@ export interface SpeechSegment {
   original?: boolean;
   /** Langue de prononciation, si elle diffère de celle de la réponse (texte original). */
   language?: VoiceTutorLanguage;
+  /** Traduction de la lecture qui précède, dans la langue de réponse. */
+  translation?: boolean;
 }
 
 export interface TutorMessage {
@@ -32,6 +34,11 @@ export interface TutorMessage {
   lesson?: boolean;
   /** Passages à prononcer (réponse lue phrase par phrase). */
   segments?: SpeechSegment[];
+  /**
+   * L'élève a coupé la parole pendant ce passage (indice dans `segments`) :
+   * l'historique renvoyé au professeur s'arrête là.
+   */
+  interruptedAt?: number;
   /** Réponse encore en cours d'écriture. */
   streaming?: boolean;
   /** Langue de la réponse (voix de la synthèse vocale). */
