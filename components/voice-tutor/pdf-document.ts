@@ -17,9 +17,57 @@ import {
  */
 type PdfJs = typeof import("pdfjs-dist/legacy/build/pdf.mjs");
 
+/**
+ * PDF.js lit le texte des pages avec `for await` sur un `ReadableStream`
+ * (`getTextContent`), que son build « legacy » ne complète pas. Safari
+ * (iPhone, iPad) jusqu'à la version 18 et les navigateurs Android basés sur
+ * un Chromium antérieur à 124 (Samsung Internet, anciens Chrome) n'ont pas
+ * cette fonction : la lecture du texte échouait aussitôt (« PDF illisible »)
+ * et le micro restait grisé. On l'ajoute ici quand elle manque, comme le
+ * prévoit la norme (lecteur verrouillé, libéré à la fin ou à l'abandon).
+ */
+function ensureReadableStreamIteration(): void {
+  if (typeof ReadableStream === "undefined") return;
+  const proto = ReadableStream.prototype as ReadableStream<unknown> & {
+    [Symbol.asyncIterator]?: unknown;
+    values?: unknown;
+  };
+  if (typeof proto[Symbol.asyncIterator] === "function") return;
+
+  async function* values(
+    this: ReadableStream<unknown>,
+    options?: { preventCancel?: boolean },
+  ): AsyncGenerator<unknown, void, undefined> {
+    const reader = this.getReader();
+    let finished = false;
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          finished = true;
+          return;
+        }
+        yield value;
+      }
+    } finally {
+      // Boucle quittée avant la fin (`break`, erreur) : le flux est annulé.
+      if (!finished && !options?.preventCancel) await reader.cancel().catch(() => {});
+      reader.releaseLock();
+    }
+  }
+
+  Object.defineProperty(proto, "values", { value: values, writable: true, configurable: true });
+  Object.defineProperty(proto, Symbol.asyncIterator, {
+    value: values,
+    writable: true,
+    configurable: true,
+  });
+}
+
 let pdfjsPromise: Promise<PdfJs> | null = null;
 
 export function loadPdfJs(): Promise<PdfJs> {
+  ensureReadableStreamIteration();
   pdfjsPromise ??= import("pdfjs-dist/legacy/build/pdf.mjs").then((pdfjs) => {
     if (!pdfjs.GlobalWorkerOptions.workerPort) {
       pdfjs.GlobalWorkerOptions.workerPort = new Worker(
