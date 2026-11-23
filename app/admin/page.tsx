@@ -14,6 +14,7 @@ import { AdminStatCard } from "@/components/admin/admin-stat-card";
 import { PaymentNotice } from "@/components/admin/payment-notice";
 import { getAdminOverviewStats } from "@/lib/data/admin";
 import { formatFcfa, formatCompactNumber, DEMO_EMAIL } from "@/lib/admin/constants";
+import { formatShortDate } from "@/lib/utils/format";
 
 export const metadata: Metadata = { title: "Vue d'ensemble" };
 
@@ -76,14 +77,22 @@ export default async function AdminOverviewPage() {
             icon={Sparkles}
             label="Générations IA"
             value={formatCompactNumber(stats.aiGenerations)}
-            hint="Appels OpenAI réussis"
+            hint={
+              stats.aiCountingSince
+                ? `Appels réussis depuis le ${formatShortDate(stats.aiCountingSince)}`
+                : "Appels OpenAI réussis"
+            }
             tone="primary"
           />
           <AdminStatCard
             icon={Cpu}
             label="Tokens OpenAI"
             value={formatCompactNumber(stats.openAiTokens)}
-            hint="Cumul input + output"
+            hint={
+              stats.aiCountingSince
+                ? `Input + output depuis le ${formatShortDate(stats.aiCountingSince)}`
+                : "Cumul input + output"
+            }
             tone="info"
           />
           <AdminStatCard

@@ -16,6 +16,8 @@ export interface AdminOverviewStats {
   estimatedMonthlyRevenueFcfa: number;
   aiGenerations: number;
   openAiTokens: number;
+  /** Date de la dernière remise à zéro des compteurs IA (`null` = depuis le début). */
+  aiCountingSince: string | null;
   pendingReports: number;
 }
 
@@ -119,6 +121,8 @@ export interface AdminAiUsageUser {
 }
 
 export interface AdminAiUsageData {
+  /** Date de la dernière remise à zéro des compteurs (`null` = depuis le début). */
+  countingSince: string | null;
   /** Appels IA hors voix (la voix est comptée à part, dans `voice`). */
   totalRequests: number;
   totalSuccess: number;

@@ -13,6 +13,7 @@ import {
 } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
 import { getCurrentUser } from "./user";
+import { getAiUsageResetAt } from "./admin-settings";
 import { DEMO_EMAIL } from "@/lib/admin/constants";
 import { purchasableItemKeys } from "@/lib/maketou/config";
 import { PLAN_CREDITS, RETIRED_PLAN_CREDITS } from "@/lib/config/credits";
@@ -83,11 +84,17 @@ function n(value: unknown): number {
   return Number(value ?? 0);
 }
 
+/** Appels comptés depuis la dernière remise à zéro des compteurs IA (tous sinon). */
+function sinceReset(resetAt: Date | null) {
+  return resetAt ? gte(schema.aiUsage.createdAt, resetAt) : undefined;
+}
+
 // ───────────────────────────── Vue d'ensemble ─────────────────────────────
 
 export async function getAdminOverviewStats(): Promise<AdminOverviewStats> {
   await assertAdmin();
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const resetAt = await getAiUsageResetAt();
 
   const [
     totalRows,
@@ -120,12 +127,12 @@ export async function getAdminOverviewStats(): Promise<AdminOverviewStats> {
       .select({ v: count() })
       .from(schema.aiUsage)
       .innerJoin(schema.user, eq(schema.aiUsage.userId, schema.user.id))
-      .where(and(NOT_DEMO, NOT_SPEECH, eq(schema.aiUsage.status, "success"))),
+      .where(and(NOT_DEMO, NOT_SPEECH, eq(schema.aiUsage.status, "success"), sinceReset(resetAt))),
     db
       .select({ v: TOKENS_SUM })
       .from(schema.aiUsage)
       .innerJoin(schema.user, eq(schema.aiUsage.userId, schema.user.id))
-      .where(NOT_DEMO),
+      .where(and(NOT_DEMO, sinceReset(resetAt))),
     db
       .select({ v: count() })
       .from(schema.reports)
@@ -145,6 +152,7 @@ export async function getAdminOverviewStats(): Promise<AdminOverviewStats> {
       premiumPlusCount * planPriceFcfa("premium_plus"),
     aiGenerations: n(generationRows[0]?.v),
     openAiTokens: n(tokenRows[0]?.v),
+    aiCountingSince: resetAt ? resetAt.toISOString() : null,
     pendingReports: n(pendingRows[0]?.v),
   };
 }
@@ -448,6 +456,9 @@ export async function getAdminSubscriptions(): Promise<AdminSubscriptionsData> {
 
 export async function getAdminAiUsage(): Promise<AdminAiUsageData> {
   await assertAdmin();
+  // Tout ce que montre la page part de la dernière remise à zéro des compteurs.
+  const resetAt = await getAiUsageResetAt();
+  const counted = and(NOT_DEMO, sinceReset(resetAt));
 
   // Coût estimé par compte (texte + voix), pour classer les plus gros consommateurs.
   const costSql = sql<number>`(${INPUT_SUM} * ${sql.raw(String(OPENAI_INDICATIVE_RATE_USD.inputPerMillion))} + ${OUTPUT_SUM} * ${sql.raw(String(OPENAI_INDICATIVE_RATE_USD.outputPerMillion))}) / 1000000.0 + ${SPEECH_MS_SUM} / 60000.0 * ${sql.raw(String(OPENAI_TTS_INDICATIVE_USD_PER_MINUTE))}`;
@@ -462,7 +473,7 @@ export async function getAdminAiUsage(): Promise<AdminAiUsageData> {
       })
       .from(schema.aiUsage)
       .innerJoin(schema.user, eq(schema.aiUsage.userId, schema.user.id))
-      .where(and(NOT_DEMO, NOT_SPEECH))
+      .where(and(counted, NOT_SPEECH))
       .groupBy(schema.aiUsage.kind),
     db
       .select({
@@ -476,7 +487,7 @@ export async function getAdminAiUsage(): Promise<AdminAiUsageData> {
       })
       .from(schema.aiUsage)
       .innerJoin(schema.user, eq(schema.aiUsage.userId, schema.user.id))
-      .where(NOT_DEMO)
+      .where(counted)
       .groupBy(schema.user.id, schema.user.name, schema.user.email)
       .orderBy(desc(costSql))
       .limit(10),
@@ -494,7 +505,7 @@ export async function getAdminAiUsage(): Promise<AdminAiUsageData> {
       })
       .from(schema.aiUsage)
       .innerJoin(schema.user, eq(schema.aiUsage.userId, schema.user.id))
-      .where(NOT_DEMO)
+      .where(counted)
       .orderBy(desc(schema.aiUsage.createdAt))
       .limit(20),
     db
@@ -507,7 +518,7 @@ export async function getAdminAiUsage(): Promise<AdminAiUsageData> {
       })
       .from(schema.aiUsage)
       .innerJoin(schema.user, eq(schema.aiUsage.userId, schema.user.id))
-      .where(NOT_DEMO),
+      .where(counted),
   ]);
 
   const kinds: AiUsageKind[] = ["summary", "exam", "correction", "assistant", "ocr"];
@@ -537,6 +548,7 @@ export async function getAdminAiUsage(): Promise<AdminAiUsageData> {
     totalSuccess,
     totalErrors: totalRequests - totalSuccess,
     totalTokens,
+    countingSince: resetAt ? resetAt.toISOString() : null,
     estimatedCostUsd: textCostUsd + voiceCostUsd,
     textCostUsd,
     voice: {

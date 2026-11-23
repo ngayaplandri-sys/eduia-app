@@ -5,6 +5,7 @@ import { EmptyState } from "@/components/feedback/empty-state";
 import { AdminStatCard } from "@/components/admin/admin-stat-card";
 import { AdminSection } from "@/components/admin/admin-section";
 import { AdminTable, type AdminColumn } from "@/components/admin/admin-table";
+import { ResetAiUsageButton } from "@/components/admin/reset-ai-usage-button";
 import { getAdminAiUsage } from "@/lib/data/admin";
 import { formatCompactNumber } from "@/lib/admin/constants";
 import { DAILY_AI_LIMITS } from "@/lib/config/credits";
@@ -61,10 +62,20 @@ export default async function AdminAiPage() {
 
   return (
     <div className="space-y-6">
-      <p className="text-sm text-ink-500">
-        Suivi des appels aux routes <code>/api/ai/*</code> (OpenAI). Aucune clé
-        ni aucun contenu n&apos;est stocké — uniquement des compteurs.
-      </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 space-y-1">
+          <p className="text-sm text-ink-500">
+            Suivi des appels aux routes <code>/api/ai/*</code> (OpenAI). Aucune clé
+            ni aucun contenu n&apos;est stocké — uniquement des compteurs.
+          </p>
+          <p className="text-fine font-medium text-ink-700" data-counting-since={data.countingSince ?? ""}>
+            {data.countingSince
+              ? `Compteurs remis à zéro le ${formatActivityDate(data.countingSince)} : seuls les appels suivants sont comptés.`
+              : "Compteurs depuis le lancement d'EduIA."}
+          </p>
+        </div>
+        <ResetAiUsageButton />
+      </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <AdminStatCard

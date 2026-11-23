@@ -1,6 +1,7 @@
 import "server-only";
-import { and, count, eq, gte, sql } from "drizzle-orm";
+import { and, count, desc, eq, gte, sql } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
+import { getAiUsageResetAt } from "@/lib/data/admin-settings";
 import type { AiUsageKind } from "@/types";
 
 export interface AiUsageTokens {
@@ -107,14 +108,15 @@ export async function finishAiCall(
 }
 
 /**
- * Voix du professeur : UNE ligne `speech` par compte et par journée UTC,
+ * Voix du professeur : UNE ligne `speech` par compte et par journée UTC
+ * (une nouvelle après une remise à zéro des compteurs de `/admin/ai`),
  * cumulée à chaque passage prononcé (une réponse en compte des dizaines).
  * Pour ce type, `inputTokens` = caractères prononcés et `outputTokens` =
  * millisecondes d'audio produites (le coût de la voix se compte à la minute).
  *
  * Réserve `chars` caractères dans le plafond du jour (`limit`, `null` =
- * illimité) avant la synthèse. Renvoie l'id de la ligne du jour, ou `null` si
- * le plafond serait dépassé.
+ * illimité ; toutes les lignes du jour comptent) avant la synthèse. Renvoie
+ * l'id de la ligne en cours, ou `null` si le plafond serait dépassé.
  */
 export async function reserveSpeech(entry: {
   userId: string;
@@ -124,8 +126,12 @@ export async function reserveSpeech(entry: {
 }): Promise<string | null> {
   return db.transaction(async (tx) => {
     await tx.execute(lockFor(entry.userId, "speech"));
-    const [today] = await tx
-      .select({ id: schema.aiUsage.id, chars: schema.aiUsage.inputTokens })
+    const today = await tx
+      .select({
+        id: schema.aiUsage.id,
+        chars: schema.aiUsage.inputTokens,
+        createdAt: schema.aiUsage.createdAt,
+      })
       .from(schema.aiUsage)
       .where(
         and(
@@ -134,16 +140,17 @@ export async function reserveSpeech(entry: {
           gte(schema.aiUsage.createdAt, TODAY),
         ),
       )
-      .orderBy(schema.aiUsage.createdAt)
-      .limit(1);
-    const used = today?.chars ?? 0;
+      .orderBy(desc(schema.aiUsage.createdAt));
+    const used = today.reduce((sum, row) => sum + (row.chars ?? 0), 0);
     if (entry.limit !== null && used + entry.chars > entry.limit) return null;
-    if (today) {
+    const resetAt = await getAiUsageResetAt(tx);
+    const current = today[0] && (!resetAt || today[0].createdAt >= resetAt) ? today[0] : null;
+    if (current) {
       await tx
         .update(schema.aiUsage)
         .set({ inputTokens: sql`coalesce(${schema.aiUsage.inputTokens}, 0) + ${entry.chars}` })
-        .where(eq(schema.aiUsage.id, today.id));
-      return today.id;
+        .where(eq(schema.aiUsage.id, current.id));
+      return current.id;
     }
     const [inserted] = await tx
       .insert(schema.aiUsage)

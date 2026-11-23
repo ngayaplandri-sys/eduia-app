@@ -406,6 +406,17 @@ export const jobLeases = pgTable("job_leases", {
   lastStopReason: text(),
 });
 
+/**
+ * Réglages de l'espace admin, une ligne par clé. `ai_usage_reset` : date de
+ * remise à zéro des compteurs de `/admin/ai` (`{ at, by }`) — les compteurs
+ * ne comptent que les appels suivants, le journal `ai_usage` reste intact.
+ */
+export const adminSettings = pgTable("admin_settings", {
+  key: text().primaryKey(),
+  value: jsonb().notNull(),
+  updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+});
+
 export type DocumentRow = typeof documents.$inferSelect;
 export type ActivityRow = typeof activities.$inferSelect;
 export type SummaryRow = typeof summaries.$inferSelect;
