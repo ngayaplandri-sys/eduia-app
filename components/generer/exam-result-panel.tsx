@@ -1,6 +1,7 @@
 "use client";
 
 import { FileQuestion } from "lucide-react";
+import { frOrEn } from "@/lib/i18n/config";
 import { EmptyState } from "@/components/feedback/empty-state";
 import { ResultActions } from "@/components/common/result-actions";
 import { ResultHeader, DocumentSheet } from "@/components/common/result-document";
@@ -274,7 +275,7 @@ export function ExamResultPanel({ exam }: { exam: GeneratedExam | null }) {
     );
   }
 
-  const labels = examDocLabels(examLanguage(exam, locale));
+  const labels = examDocLabels(examLanguage(exam, frOrEn(locale)));
   // Épreuves anciennes (sans langue enregistrée) : valeurs localisées comme avant.
   const legacy = !exam.language;
   const subject = legacy ? localizeSubject(exam.subject, dict) : exam.subject;
@@ -304,14 +305,14 @@ export function ExamResultPanel({ exam }: { exam: GeneratedExam | null }) {
         statusTone={exam.status === "Prête" ? "success" : "warning"}
         actions={
           <ResultActions
-            plainText={examToPlainText(exam, dict, locale)}
+            plainText={examToPlainText(exam, dict, frOrEn(locale))}
             fileName={`epreuve-${fileBase}.txt`}
             shareTitle={t.shareTitle(subject, level)}
             onDownloadPdf={() =>
-              downloadExamPdf(exam, dict, locale, `epreuve-${fileBase}.pdf`)
+              downloadExamPdf(exam, dict, frOrEn(locale), `epreuve-${fileBase}.pdf`)
             }
             sharePdf={() =>
-              examPdfFile(exam, dict, locale, `epreuve-${fileBase}.pdf`)
+              examPdfFile(exam, dict, frOrEn(locale), `epreuve-${fileBase}.pdf`)
             }
           />
         }

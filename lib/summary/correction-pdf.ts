@@ -17,8 +17,10 @@ import {
   pdfFile,
   type PdfBlock as Block,
 } from "./pdf-kit";
+import { LOCALE_INTL, frOrEn, isLocale } from "@/lib/i18n/config";
 
-type PdfLocale = "fr" | "en";
+/** Langue de l'interface ; symboles et ponctuation : français, sinon anglais. */
+type PdfLocale = string;
 
 /**
  * Génère un **vrai fichier PDF** structuré (pagination automatique) de la
@@ -97,7 +99,7 @@ const PDF_SETS: [RegExp, string][] = [
 
 function makeSafe(locale: PdfLocale) {
   return (text: string) =>
-    [...PDF_SYMBOLS[locale], ...PDF_SETS]
+    [...PDF_SYMBOLS[frOrEn(locale)], ...PDF_SETS]
       .reduce((value, [pattern, replacement]) => value.replace(pattern, replacement), text)
       .replace(/ {2,}/g, " ");
 }
@@ -266,9 +268,9 @@ function buildContent(correction: ExamCorrection, dict: Dictionary, locale: PdfL
   const c = dict.corriger;
   const isAnswerKey = correction.mode === "answer-key";
   const safe = makeSafe(locale);
-  const sep = locale === "en" ? ": " : " : ";
+  const sep = locale === "fr" ? " : " : ": ";
   const number = (value: number) =>
-    value.toLocaleString(locale === "en" ? "en-GB" : "fr-FR", { maximumFractionDigits: 2 });
+    value.toLocaleString(LOCALE_INTL[isLocale(locale) ? locale : "fr"], { maximumFractionDigits: 2 });
   const ctx: Ctx = { dict, isAnswerKey, safe, sep };
 
   const content: Block[] = [

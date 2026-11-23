@@ -20,7 +20,12 @@ import {
   cleanSubQuestion,
 } from "@/lib/summary/exam-layout";
 import type { AiUsageTokens } from "./usage";
-import type { Locale } from "@/lib/i18n/config";
+import {
+  LOCALE_ENGLISH_NAMES,
+  LOCALE_INTL,
+  frOrEn,
+  type Locale,
+} from "@/lib/i18n/config";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
 import type {
   CorrectionQuestion,
@@ -34,21 +39,29 @@ import type {
 } from "@/types";
 
 /**
- * Consigne de langue ajoutée aux `instructions` : en anglais, on impose la
- * langue de sortie quelle que soit la langue du cours source ; en français, le
- * prompt de base (francophone) suffit.
+ * Consigne de langue ajoutée aux `instructions` : hors français, on impose la
+ * langue de l'interface pour toute la sortie, quelle que soit la langue du
+ * cours source ; en français, le prompt de base (francophone) suffit.
  */
 function languageDirective(locale: Locale): string {
-  return locale === "en"
-    ? " Write the ENTIRE structured output in English (every field: title, headings, paragraphs, bullets, definitions, questions, feedback, advice…), regardless of the language of the source course."
-    : "";
+  if (locale === "fr") return "";
+  const language = LOCALE_ENGLISH_NAMES[locale] ?? "English";
+  return ` Write the ENTIRE structured output in ${language} (every field: title, headings, paragraphs, bullets, definitions, questions, feedback, advice…), regardless of the language of the source course.`;
 }
 
 /**
  * Les étapes de démarche sont nommées en français dans les consignes : en
- * anglais, on fixe leurs équivalents naturels (pas de calque « On replaces »).
+ * anglais, on fixe leurs équivalents naturels (pas de calque « On replaces ») ;
+ * dans les autres langues, on demande des termes naturels de cette langue.
  */
 function correctionLanguageDirective(locale: Locale): string {
+  if (locale !== "fr" && locale !== "en") {
+    const language = LOCALE_ENGLISH_NAMES[locale] ?? "English";
+    return (
+      languageDirective(locale) +
+      ` Name the steps (\`steps.label\`) with natural ${language} terms: translate « Formule », « Méthode », « Données », « On cherche », « On remplace », « Calcul », « Résultat », « Analyse du document », « Réponse rédigée », « Conclusion »… idiomatically, never word for word.`
+    );
+  }
   return locale === "en"
     ? languageDirective(locale) +
         " Name the steps (`steps.label`) with natural English terms: « Formule » → Formula, « Méthode » → Method, « Données » → Given data, « On cherche » → Unknown, « On remplace » → Substitution, « Calcul » → Calculation, « Simplification » → Simplification, « Résultat » → Result, « Conversion des unités » → Unit conversion, « Analyse du document » → Document analysis, « Informations relevées » → Key information, « Mise en relation » → Linking the evidence, « Réponse rédigée » → Written answer, « Plan proposé » → Suggested outline, « Conclusion » → Conclusion."
@@ -56,7 +69,7 @@ function correctionLanguageDirective(locale: Locale): string {
 }
 
 function localizedDateLabel(date: Date, locale: Locale): string {
-  return new Intl.DateTimeFormat(locale === "en" ? "en-GB" : "fr-FR", {
+  return new Intl.DateTimeFormat(LOCALE_INTL[locale] ?? "fr-FR", {
     day: "numeric",
     month: "long",
     year: "numeric",
@@ -301,7 +314,7 @@ function activeOptionLabels(
 ): string[] {
   return Object.entries(options)
     .filter(([, enabled]) => enabled)
-    .map(([key]) => OPTION_LABELS[key]?.[locale] ?? key);
+    .map(([key]) => OPTION_LABELS[key]?.[frOrEn(locale)] ?? key);
 }
 
 function estimatePageCount(sourceText: string | null): number {
@@ -339,10 +352,21 @@ export interface SummarizeSourceFile {
   dataUrl: string;
 }
 
+/**
+ * Ce que l'élève a dit de lui à l'onboarding (objectif, façon d'apprendre),
+ * en libellés français pour le prompt. Indicatif : ne change ni le format ni
+ * le contenu demandés.
+ */
+export interface StudentContext {
+  goal: string | null;
+  learningStyle: string | null;
+}
+
 function buildSummaryPrompt(
   request: SummaryRequest,
   attachmentCount: number,
   locale: Locale,
+  student?: StudentContext | null,
 ): string {
   const chapter = request.chapter?.trim();
   const theme = request.theme?.trim();
@@ -362,6 +386,17 @@ function buildSummaryPrompt(
   const activeOptions = activeOptionLabels(request.options, locale);
   if (activeOptions.length > 0) {
     lines.push(`Éléments à inclure : ${activeOptions.join(", ")}.`);
+  }
+
+  // Profil donné à l'onboarding : oriente le ton et les exemples, rien d'autre.
+  if (student?.goal || student?.learningStyle) {
+    const profile = [
+      student.goal ? `objectif « ${student.goal} »` : null,
+      student.learningStyle ? `apprend le mieux avec « ${student.learningStyle} »` : null,
+    ].filter(Boolean);
+    lines.push(
+      `Profil de l'élève : ${profile.join(", ")}. Tiens-en compte dans le ton, les explications et les exemples, sans changer le style, la longueur ni les éléments demandés, et sans rien ajouter qui ne soit dans le cours.`,
+    );
   }
 
   const source = truncate(request.sourceText, MAX_SOURCE_CHARS);
@@ -406,9 +441,10 @@ export async function summarizeCourse(
   dict: Dictionary,
   locale: Locale,
   sourceFiles?: SummarizeSourceFile[],
+  student?: StudentContext | null,
 ): Promise<{ summary: CourseSummary; usage: AiUsageTokens }> {
   const attachments = sourceFiles ?? [];
-  const prompt = buildSummaryPrompt(request, attachments.length, locale);
+  const prompt = buildSummaryPrompt(request, attachments.length, locale, student);
 
   // Plusieurs fichiers joints (jusqu'à 5) dans le MÊME message utilisateur :
   // l'IA les lit tous ensemble comme un seul document, pas page par page.
@@ -577,7 +613,7 @@ export async function generateExam(
 }> {
   // Langue de l'ÉPREUVE (choisie dans le formulaire, par défaut celle de
   // l'interface) — distincte de `locale`, qui ne sert qu'aux messages d'erreur.
-  const language: Locale = request.language ?? locale;
+  const language: Locale = request.language ?? frOrEn(locale);
   const attachments = sourceFiles ?? [];
   const prompt = buildExamPrompt(request, attachments.length, language);
 

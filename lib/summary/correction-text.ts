@@ -1,5 +1,6 @@
 import type { ExamCorrection } from "@/types";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
+import { LOCALE_INTL, isLocale } from "@/lib/i18n/config";
 import {
   localizeLevel,
   localizePageCount,
@@ -17,14 +18,14 @@ import {
 export function correctionToPlainText(
   correction: ExamCorrection,
   dict: Dictionary,
-  locale: "fr" | "en" = "fr",
+  locale: string = "fr",
 ): string {
   const c = dict.corriger;
   const verdicts = dict.activity.verdicts;
   const isAnswerKey = correction.mode === "answer-key";
-  const sep = locale === "en" ? ": " : " : ";
+  const sep = locale === "fr" ? " : " : ": ";
   const number = (value: number) =>
-    value.toLocaleString(locale === "en" ? "en-GB" : "fr-FR", {
+    value.toLocaleString(LOCALE_INTL[isLocale(locale) ? locale : "fr"], {
       maximumFractionDigits: 2,
     });
 

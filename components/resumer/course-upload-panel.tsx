@@ -20,6 +20,7 @@ import {
   PAGE_COUNTS,
 } from "@/lib/config/tool-options";
 import { useI18n } from "@/lib/i18n/client";
+import { SubjectSuggestions, useStudentDefaults } from "@/components/user/student-profile";
 import {
   localizePageCount,
   localizeSummaryDetail,
@@ -59,8 +60,10 @@ export function CourseUploadPanel({
 
   const [files, setFiles] = React.useState<DropzoneFile[]>([]);
   const [extracting, setExtracting] = React.useState(false);
+  // Niveau et matières déclarés à l'onboarding : niveau prérempli, matières proposées.
+  const defaults = useStudentDefaults();
   const [subject, setSubject] = React.useState(courseDocument.subject);
-  const [level, setLevel] = React.useState(courseDocument.level);
+  const [level, setLevel] = React.useState(courseDocument.level || defaults.level);
   const [chapter, setChapter] = React.useState(courseDocument.chapter);
   const [theme, setTheme] = React.useState(courseDocument.theme);
   const [style, setStyle] = React.useState<string>(SUMMARY_STYLES[0]);
@@ -156,6 +159,7 @@ export function CourseUploadPanel({
           <Field label={t.subject} htmlFor="summary-subject">
             <Input
               id="summary-subject"
+              list="summary-subject-suggestions"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               placeholder={t.subjectPlaceholder}
@@ -163,6 +167,7 @@ export function CourseUploadPanel({
               autoComplete="off"
               required
             />
+            <SubjectSuggestions id="summary-subject-suggestions" subjects={defaults.subjects} />
           </Field>
 
           <Field label={t.chapter} htmlFor="summary-chapter">

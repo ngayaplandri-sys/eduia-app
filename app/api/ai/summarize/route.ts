@@ -7,6 +7,13 @@ import {
   refundCredits,
 } from "@/lib/data/credits";
 import { summarizeCourse, type SummarizeSourceFile } from "@/lib/ai/generate";
+import { getStudentProfile } from "@/lib/data/onboarding";
+import {
+  LEARNING_STYLE_LABELS_FR,
+  ONBOARDING_GOAL_LABELS_FR,
+  type LearningStyleId,
+  type OnboardingGoalId,
+} from "@/lib/config/onboarding";
 import {
   saveCourseSummary,
   type SummarySourceKind,
@@ -237,11 +244,22 @@ export async function POST(request: Request) {
       }
     }
 
+    // Objectif et façon d'apprendre déclarés à l'onboarding (libellés français).
+    const profile = await getStudentProfile(user.id).catch(() => null);
+    const student = profile
+      ? {
+          goal: profile.goal ? (ONBOARDING_GOAL_LABELS_FR[profile.goal as OnboardingGoalId] ?? null) : null,
+          learningStyle: profile.learningStyle
+            ? (LEARNING_STYLE_LABELS_FR[profile.learningStyle as LearningStyleId] ?? null)
+            : null,
+        }
+      : null;
     const { summary, usage } = await summarizeCourse(
       summaryRequest,
       dict,
       locale,
       sourceFiles,
+      student,
     );
 
     const { documentId } = await saveCourseSummary({

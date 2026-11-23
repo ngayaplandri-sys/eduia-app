@@ -10,22 +10,20 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Avatar } from "@/components/ui/avatar";
-import { authClient } from "@/lib/auth-client";
+import { useConfirmedSignOut } from "@/components/user/use-sign-out";
 import { roleLabel } from "@/lib/roles";
 import type { User } from "@/types";
 
 export function AdminUserMenu({ user }: { user: User }) {
-
-  async function signOut() {
-    await authClient.signOut();
-    // Chargement complet (pas `router.push` + `router.refresh`, qui se
-    // concurrencent) : repart sans session et vide le cache du routeur, qui
-    // contient encore les pages du compte qu'on vient de quitter.
-    // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- rechargement voulu : la session vient de changer
-    window.location.assign("/");
-  }
+  const { askSignOut, signOutDialog } = useConfirmedSignOut({
+    title: "Êtes-vous sûr de vouloir vous déconnecter ?",
+    description: "Vous devrez vous reconnecter pour revenir à l'espace admin.",
+    confirm: "Se déconnecter",
+    cancel: "Annuler",
+  });
 
   return (
+    <>
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
@@ -65,9 +63,7 @@ export function AdminUserMenu({ user }: { user: User }) {
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
-          onSelect={() => {
-            signOut();
-          }}
+          onSelect={askSignOut}
           className="text-danger-600 focus:bg-danger-50 focus:text-danger-600 [&_svg]:text-danger-600"
         >
           <LogOut />
@@ -75,5 +71,7 @@ export function AdminUserMenu({ user }: { user: User }) {
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+    {signOutDialog}
+    </>
   );
 }

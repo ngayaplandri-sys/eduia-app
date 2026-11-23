@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { eq } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
 
@@ -52,3 +53,45 @@ export async function getTutorProfile(
     schoolLevel: row?.schoolLevel ?? null,
   };
 }
+
+export interface StudentProfile {
+  firstName: string | null;
+  /** Niveau scolaire déclaré (valeur canonique française, ex. « Terminale »). */
+  schoolLevel: string | null;
+  /** Matières suivies puis matières à améliorer, sans doublon. */
+  subjects: string[];
+  goal: string | null;
+  learningStyle: string | null;
+}
+
+/**
+ * Tout ce que l'élève a répondu à l'onboarding, pour que l'application s'en
+ * serve tout de suite : prénom de l'accueil, niveau prérempli et matières
+ * proposées dans Résumer / Générer / Corriger, objectif et façon d'apprendre
+ * transmis à l'IA. Mis en cache pour la requête (layout + page).
+ */
+export const getStudentProfile = cache(async (userId: string): Promise<StudentProfile | null> => {
+  const [row] = await db
+    .select({
+      firstName: schema.onboarding.firstName,
+      schoolLevel: schema.onboarding.schoolLevel,
+      subjects: schema.onboarding.subjects,
+      improveSubjects: schema.onboarding.improveSubjects,
+      goal: schema.onboarding.goal,
+      learningStyle: schema.onboarding.learningStyle,
+    })
+    .from(schema.onboarding)
+    .where(eq(schema.onboarding.userId, userId))
+    .limit(1);
+  if (!row) return null;
+  const subjects = [...(row.subjects ?? []), ...(row.improveSubjects ?? [])]
+    .map((subject) => subject.trim())
+    .filter(Boolean);
+  return {
+    firstName: row.firstName.trim() || null,
+    schoolLevel: row.schoolLevel.trim() || null,
+    subjects: [...new Set(subjects)],
+    goal: row.goal || null,
+    learningStyle: row.learningStyle || null,
+  };
+});

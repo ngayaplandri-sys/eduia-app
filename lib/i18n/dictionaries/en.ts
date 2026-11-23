@@ -86,6 +86,8 @@ export const en: Dictionary = {
     settings: "Settings",
     goPremium: "Upgrade to Premium",
     signOut: "Sign out",
+    signOutConfirmTitle: "Are you sure you want to sign out?",
+    signOutConfirmBody: "You'll need to sign in again to get back to your courses and summaries.",
     premiumCardTitle: "Go Premium",
     premiumCardBody: "Fewer limits, more AI power and advanced features.",
     premiumCardCta: "Discover Premium",
@@ -978,7 +980,6 @@ export const en: Dictionary = {
     responseTime: "We usually reply within 24 h, 7 days a week.",
     supportDays: "Monday - Sunday",
     supportHours: "8:00 am - 7:00 pm",
-    timezoneLabel: "Africa time (GMT+1)",
     prefilledMessage: "Hello, I need help with EduIA.",
     contactSubject: "EduIA Help Request",
     faq: {

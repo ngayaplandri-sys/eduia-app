@@ -43,12 +43,13 @@ export function resetPasswordEmail({
   url: string;
   locale: string | null | undefined;
 }): OutgoingEmail {
-  const copy = locale === "en" ? COPY.en : COPY.fr;
+  // E-mail rédigé en français et en anglais : anglais pour les autres langues.
+  const copy = locale === "fr" || !locale ? COPY.fr : COPY.en;
   const firstName = name.trim().split(/\s+/)[0] ?? "";
   const safeUrl = escapeHtml(url);
 
   const html = `<!doctype html>
-<html lang="${locale === "en" ? "en" : "fr"}">
+<html lang="${locale === "fr" || !locale ? "fr" : "en"}">
 <body style="margin:0;padding:24px;background:#f5f4f8;font-family:Arial,Helvetica,sans-serif;color:#1f1b2d">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:16px;padding:32px">
     <tr><td>

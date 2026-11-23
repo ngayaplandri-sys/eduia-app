@@ -85,9 +85,6 @@ export async function ContactMethods() {
             <br />
             {t.supportHours}
           </p>
-          <span className="mt-4 inline-flex w-fit items-center rounded-full bg-info-50 px-2.5 py-1 text-[0.6875rem] font-semibold text-info-700">
-            {t.timezoneLabel}
-          </span>
         </div>
       </div>
     </Card>

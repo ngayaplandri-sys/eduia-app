@@ -1,4 +1,4 @@
-import { Folder, Sparkles, Activity, type LucideIcon } from "lucide-react";
+import { Folder, FileText, Activity, type LucideIcon } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { getDictionary } from "@/lib/i18n/server";
 import { cn } from "@/lib/utils/cn";
@@ -31,7 +31,7 @@ export async function StatsStrip({
 
   const tiles: { icon: LucideIcon; tone: StatTone; value: number; label: string }[] = [
     { icon: Folder, tone: "primary", value: stats.totalCount, label: t.statsDocumentsLabel },
-    { icon: Sparkles, tone: "success", value: stats.summariesGenerated, label: t.statsSummariesLabel },
+    { icon: FileText, tone: "success", value: stats.summariesGenerated, label: t.statsSummariesLabel },
     { icon: Activity, tone: "info", value: activityCount, label: t.statsActivityLabel },
   ];
 

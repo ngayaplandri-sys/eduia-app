@@ -3,7 +3,7 @@ import { hasUnlimitedAccess, requireUser } from "@/lib/data/user";
 import { getRecentActivity, getActivityHistory } from "@/lib/data/activity";
 import { getDocuments } from "@/lib/data/documents";
 import { getCreditWallet, getUsageSummary } from "@/lib/data/credits";
-import { needsCountryAnswer } from "@/lib/data/onboarding";
+import { getStudentProfile, needsCountryAnswer } from "@/lib/data/onboarding";
 import { getDictionary } from "@/lib/i18n/server";
 import { HeroBanner } from "@/components/dashboard/hero-banner";
 import { StatsStrip } from "@/components/dashboard/stats-strip";
@@ -22,18 +22,20 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function DashboardPage() {
   const user = await requireUser();
-  const [activity, { stats }, fullHistory, wallet, usage, askCountry] = await Promise.all([
+  const [activity, { stats }, fullHistory, wallet, usage, askCountry, profile] = await Promise.all([
     getRecentActivity(),
     getDocuments(),
     getActivityHistory(),
     getCreditWallet(user.id),
     getUsageSummary(user.id),
     needsCountryAnswer(user.id),
+    getStudentProfile(user.id).catch(() => null),
   ]);
 
   return (
     <div className="space-y-6">
-      <HeroBanner userName={user.name} />
+      {/* Prénom donné à l'onboarding (sinon celui du compte). */}
+      <HeroBanner userName={profile?.firstName ?? user.name} />
       {askCountry ? <CountryPrompt /> : null}
       <StatsStrip stats={stats} activityCount={fullHistory.length} />
       <CreditsSection wallet={wallet} usage={usage} unlimited={hasUnlimitedAccess(user)} />

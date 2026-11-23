@@ -22,6 +22,7 @@ import {
   type GradingStrictness,
 } from "@/lib/config/tool-options";
 import { useI18n } from "@/lib/i18n/client";
+import { useStudentDefaults } from "@/components/user/student-profile";
 import {
   localizeGradingScale,
   localizeGradingStrictness,
@@ -83,7 +84,9 @@ export function AnswerSubmissionPanel({
   );
   const [copyFiles, setCopyFiles] = React.useState<DropzoneFile[]>([]);
   const [answers, setAnswers] = React.useState("");
-  const [level, setLevel] = React.useState("");
+  // Niveau déclaré à l'onboarding, prérempli (l'élève peut le changer ou l'effacer).
+  const defaults = useStudentDefaults();
+  const [level, setLevel] = React.useState(defaults.level);
   const [scale, setScale] = React.useState<string>(GRADING_SCALES[0]);
   const [strictness, setStrictness] =
     React.useState<GradingStrictness>("Standard");

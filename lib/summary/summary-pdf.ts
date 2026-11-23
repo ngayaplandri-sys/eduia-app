@@ -19,7 +19,8 @@ import {
   type PdfRun as Run,
 } from "./pdf-kit";
 
-type PdfLocale = "fr" | "en";
+/** Langue de l'interface (dates). */
+type PdfLocale = string;
 
 /**
  * Génère et télécharge un **vrai fichier PDF** (structuré, pagination automatique)

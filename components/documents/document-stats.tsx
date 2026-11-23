@@ -1,6 +1,6 @@
 "use client";
 
-import { FileStack, HardDrive, Sparkles, type LucideIcon } from "lucide-react";
+import { FileStack, HardDrive, FileText, type LucideIcon } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { useI18n } from "@/lib/i18n/client";
 import type { DocumentStats } from "@/types";
@@ -63,7 +63,7 @@ export function DocumentStatsGrid({ stats }: { stats: DocumentStats }) {
         </div>
       </StatShell>
 
-      <StatShell icon={Sparkles} label={t.statSummaries}>
+      <StatShell icon={FileText} label={t.statSummaries}>
         <p className="mt-2 text-lg font-bold text-ink-900">
           {stats.summariesGenerated}
         </p>

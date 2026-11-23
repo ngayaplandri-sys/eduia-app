@@ -93,6 +93,8 @@ export const fr = {
     settings: "Paramètres",
     goPremium: "Passer à Premium",
     signOut: "Se déconnecter",
+    signOutConfirmTitle: "Êtes-vous sûr de vouloir vous déconnecter ?",
+    signOutConfirmBody: "Tu devras te reconnecter pour retrouver tes cours et tes résumés.",
     premiumCardTitle: "Passez à Premium",
     premiumCardBody:
       "Plus de limites, plus de puissance IA et des fonctionnalités avancées.",
@@ -166,7 +168,7 @@ export const fr = {
       "Ouvrir": "Ouvrir",
     } as Record<string, string>,
     /** Unité « page(s) » pour recomposer une méta d'activité localisée. */
-    pageUnit: (count: number) => (count > 1 ? "pages" : "page"),
+    pageUnit: (count: number): string => (count > 1 ? "pages" : "page"),
     verdicts: {
       correct: "Correct",
       partial: "Partiel",
@@ -1003,7 +1005,6 @@ export const fr = {
     responseTime: "Nous répondons généralement sous 24 h, 7 jours sur 7.",
     supportDays: "Lundi - Dimanche",
     supportHours: "08h00 - 19h00",
-    timezoneLabel: "Heure de l'Afrique (GMT+1)",
     prefilledMessage: "Bonjour, j'ai besoin d'aide avec EduIA.",
     contactSubject: "Demande d'aide EduIA",
     faq: {

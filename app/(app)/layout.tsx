@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { requireUser } from "@/lib/data/user";
-import { hasCompletedOnboarding } from "@/lib/data/onboarding";
+import { getStudentProfile, hasCompletedOnboarding } from "@/lib/data/onboarding";
+import { StudentProfileProvider } from "@/components/user/student-profile";
 import { pendingCartIdsToConfirm } from "@/lib/data/maketou";
 import { PendingPaymentSync } from "@/components/billing/pending-payment-sync";
 
@@ -18,11 +19,23 @@ export default async function AppLayout({
   }
 
   // Paiements Maketou restés en attente : confirmés dès le retour de l'élève.
-  const pendingCartIds = await pendingCartIdsToConfirm(user.id).catch(() => []);
+  // Réponses de l'onboarding : utilisées tout de suite par les formulaires.
+  const [pendingCartIds, profile] = await Promise.all([
+    pendingCartIdsToConfirm(user.id).catch(() => []),
+    getStudentProfile(user.id).catch(() => null),
+  ]);
 
   return (
     <DashboardShell>
-      {children}
+      <StudentProfileProvider
+        profile={
+          profile
+            ? { firstName: profile.firstName, schoolLevel: profile.schoolLevel, subjects: profile.subjects }
+            : null
+        }
+      >
+        {children}
+      </StudentProfileProvider>
       {pendingCartIds.length > 0 ? <PendingPaymentSync cartIds={pendingCartIds} /> : null}
     </DashboardShell>
   );

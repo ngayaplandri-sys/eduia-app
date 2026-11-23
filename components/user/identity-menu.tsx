@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Avatar } from "@/components/ui/avatar";
-import { authClient } from "@/lib/auth-client";
+import { useConfirmedSignOut } from "@/components/user/use-sign-out";
 import { firstName } from "@/lib/utils/format";
 import { useI18n } from "@/lib/i18n/client";
 import { localizeRole } from "@/lib/i18n/labels";
@@ -46,17 +46,10 @@ export function IdentityMenu({
 }) {
   const { dict } = useI18n();
   const t = dict.layout;
-
-  async function signOut() {
-    await authClient.signOut();
-    // Chargement complet (pas `router.push` + `router.refresh`, qui se
-    // concurrencent) : repart sans session et vide le cache du routeur, qui
-    // contient encore les pages du compte qu'on vient de quitter.
-    // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- rechargement voulu : la session vient de changer
-    window.location.assign("/");
-  }
+  const { askSignOut, signOutDialog } = useConfirmedSignOut();
 
   return (
+    <>
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         {variant === "full" ? (
@@ -133,9 +126,7 @@ export function IdentityMenu({
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
-          onSelect={() => {
-            signOut();
-          }}
+          onSelect={askSignOut}
           className="text-danger-600 focus:bg-danger-50 focus:text-danger-600 [&_svg]:text-danger-600"
         >
           <LogOut />
@@ -143,5 +134,7 @@ export function IdentityMenu({
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+    {signOutDialog}
+    </>
   );
 }

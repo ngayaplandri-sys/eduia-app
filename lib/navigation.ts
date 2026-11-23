@@ -41,9 +41,9 @@ export interface NavLink {
 export const primaryNav: NavLink[] = [
   { key: "dashboard", href: "/dashboard", icon: House, tone: "primary" },
   { key: "resumer", href: "/resumer", icon: FileText, tone: "success" },
+  { key: "professeurVocal", href: "/professeur-vocal", icon: Mic, tone: "primary" },
   { key: "generer", href: "/generer", icon: FilePenLine, tone: "primary" },
   { key: "corriger", href: "/corriger", icon: ClipboardCheck, tone: "warning" },
-  { key: "professeurVocal", href: "/professeur-vocal", icon: Mic, tone: "primary" },
 ];
 
 /** Groupe secondaire — icônes neutres. */

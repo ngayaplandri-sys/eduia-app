@@ -24,7 +24,8 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function VoiceTutorPage() {
   const [locale, cookieStore, user] = await Promise.all([getLocale(), cookies(), getCurrentUser()]);
   const saved = parseVoiceTutorLanguages(cookieStore.get(VOICE_TUTOR_LANGUAGES_COOKIE)?.value);
-  const fallback = locale === "en" ? "en" : "fr";
+  // Toutes les langues de l'interface sont aussi des langues du professeur.
+  const fallback = locale;
 
   return (
     <VoiceTutorWorkspace

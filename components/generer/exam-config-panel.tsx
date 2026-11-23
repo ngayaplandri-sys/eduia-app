@@ -1,5 +1,6 @@
 "use client";
 
+import { frOrEn } from "@/lib/i18n/config";
 import * as React from "react";
 import { LoaderCircle, Sparkles } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -25,6 +26,7 @@ import {
   PAGE_COUNTS,
 } from "@/lib/config/tool-options";
 import { useI18n } from "@/lib/i18n/client";
+import { SubjectSuggestions, useStudentDefaults } from "@/components/user/student-profile";
 import {
   localizeExamDifficulty,
   localizeExamMix,
@@ -64,8 +66,10 @@ export function ExamConfigPanel({
 
   const [files, setFiles] = React.useState<DropzoneFile[]>([]);
   const [extracting, setExtracting] = React.useState(false);
+  // Niveau et matières déclarés à l'onboarding : niveau prérempli, matières proposées.
+  const defaults = useStudentDefaults();
   const [subject, setSubject] = React.useState(config.subject);
-  const [level, setLevel] = React.useState(config.level);
+  const [level, setLevel] = React.useState(config.level || defaults.level);
   const [theme, setTheme] = React.useState(config.theme);
   const [examType, setExamType] = React.useState(config.examType);
   const [count, setCount] = React.useState(config.questionCount);
@@ -76,8 +80,9 @@ export function ExamConfigPanel({
     config.totalPoints ?? EXAM_DEFAULT_TOTAL_POINTS,
   );
   const [difficulty, setDifficulty] = React.useState<string>(EXAM_DIFFICULTIES[0]);
-  // Par défaut, l'épreuve est rédigée dans la langue de l'application.
-  const [language, setLanguage] = React.useState<ExamLanguage>(locale);
+  // Par défaut, l'épreuve est rédigée dans la langue de l'application (les modèles
+  // d'épreuve n'existent qu'en français et en anglais : anglais pour les autres langues).
+  const [language, setLanguage] = React.useState<ExamLanguage>(frOrEn(locale));
   const [institution, setInstitution] = React.useState(config.institution ?? "");
   // Aucune option cochée par défaut : c'est à l'élève de choisir ce qu'il veut
   // inclure avant de lancer la génération, pas à l'application de décider à
@@ -184,6 +189,7 @@ export function ExamConfigPanel({
           <Field label={t.subject} htmlFor="exam-subject">
             <Input
               id="exam-subject"
+              list="exam-subject-suggestions"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               placeholder={t.subjectPlaceholder}
@@ -191,6 +197,7 @@ export function ExamConfigPanel({
               autoComplete="off"
               required
             />
+            <SubjectSuggestions id="exam-subject-suggestions" subjects={defaults.subjects} />
           </Field>
 
           <Field label={t.theme} htmlFor="exam-theme">

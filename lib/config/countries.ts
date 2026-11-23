@@ -128,8 +128,10 @@ export function countryName(
 ): string {
   if (!code) return labels.unknown;
   if (code === OTHER_COUNTRY) return labels.other;
+  // Noms soignés en français et en anglais ; les autres langues passent par Intl.
   const known = COUNTRY_NAMES[code];
-  if (known) return locale.startsWith("en") ? known.en : known.fr;
+  if (known && locale.startsWith("fr")) return known.fr;
+  if (known && locale.startsWith("en")) return known.en;
   try {
     return new Intl.DisplayNames([locale], { type: "region" }).of(code) ?? code;
   } catch {
