@@ -17,9 +17,11 @@ import { VOICE_TUTOR_MAX_RECORDING_MS } from "@/lib/config/voice-tutor";
  * la conversation ne s'arrête pas pendant que l'élève réfléchit.
  *
  * Le micro reste ouvert pendant toute la conversation (jusqu'à `releaseMic`),
- * sauf sur iPhone et iPad : micro ouvert, la voix du professeur y devient très
- * faible. Il y est relâché après chaque question, et l'élève interrompt le
- * professeur en appuyant sur le micro.
+ * sur tous les appareils, iPhone et iPad compris : l'élève coupe la parole au
+ * professeur simplement en parlant. Sur iPhone et iPad, Safari baisse un peu
+ * la voix tant que le micro est ouvert (limite d'iOS) ; le micro y est ouvert
+ * avant la première phrase du professeur (`prepareMic`), car l'ouvrir pendant
+ * qu'il parle peut couper sa voix.
  */
 
 export type MicFailure = "denied" | "missing" | "unsupported";
@@ -121,15 +123,6 @@ function toMicError(error: unknown): MicError {
   return new MicError("unsupported");
 }
 
-/** iPhone, iPad (y compris iPadOS qui se présente comme un Mac). */
-function isAppleMobile(): boolean {
-  if (typeof navigator === "undefined") return false;
-  return (
-    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
-  );
-}
-
 function canRecord(): boolean {
   return (
     typeof window !== "undefined" &&
@@ -138,9 +131,9 @@ function canRecord(): boolean {
   );
 }
 
-/** L'élève peut-il couper la parole au professeur en parlant ? */
+/** L'élève peut-il couper la parole au professeur en parlant ? (partout où le micro enregistre) */
 function voiceInterruptSupported(): boolean {
-  return canRecord() && !isAppleMobile();
+  return canRecord();
 }
 
 const noSubscription = () => () => {};
@@ -373,6 +366,17 @@ export function useVoiceEngine() {
       publish();
     });
     audio.addEventListener("ended", () => settleClip("ended"));
+    // Voix mise en pause par le système et non par nous (iPhone, iPad : micro
+    // qui se rouvre, notification) : on la relance, sinon la réponse resterait
+    // bloquée. Nos propres pauses libèrent d'abord le passage (`settleClip`).
+    audio.addEventListener("pause", () => {
+      if (!settleClipRef.current || audio.ended) return;
+      window.setTimeout(() => {
+        if (settleClipRef.current && audio.paused && !audio.ended) {
+          audio.play().catch(() => settleClip("blocked"));
+        }
+      }, 300);
+    });
     // Passage illisible : on passe au suivant plutôt que de bloquer la réponse.
     audio.addEventListener("error", () => {
       if (currentRef.current) settleClip("ended");
@@ -685,6 +689,16 @@ export function useVoiceEngine() {
     return micPromiseRef.current;
   }
 
+  /**
+   * Ouvre le micro dès le début de la conversation, avant que le professeur
+   * parle (l'autorisation est demandée tout de suite). Sur iPhone et iPad,
+   * l'ouvrir pendant qu'il parle peut couper sa voix.
+   */
+  async function prepareMic(): Promise<void> {
+    if (!canRecord()) throw new MicError("unsupported");
+    await openMic();
+  }
+
   function closeMic() {
     const input = micRef.current;
     micRef.current = null;
@@ -748,8 +762,6 @@ export function useVoiceEngine() {
     const deliver = () => {
       if (sessionRef.current === session) sessionRef.current = null;
       levelRef.current = 0;
-      // iPhone : micro relâché dès la question enregistrée (volume de la voix).
-      if (!voiceInterruptSupported()) closeMic();
       if (session.id !== sessionCounter.current) return;
       if (submit) {
         const type = recorder?.mimeType || session.chunks[0]?.type || "audio/webm";
@@ -894,7 +906,7 @@ export function useVoiceEngine() {
    * l'élève avait commencée et prenait sa voix pour l'écho du professeur —
    * justement au moment, entre deux pages, où il prend la parole.
    *
-   * Renvoie `false` si ce n'est pas possible (iPhone, micro indisponible).
+   * Renvoie `false` si ce n'est pas possible (micro indisponible).
    */
   async function startWatching(handlers: ListenHandlers): Promise<boolean> {
     if (!voiceInterruptSupported()) return false;
@@ -1046,6 +1058,7 @@ export function useVoiceEngine() {
 
   return {
     unlock,
+    prepareMic,
     startListening,
     startWatching,
     submitListening,

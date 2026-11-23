@@ -371,9 +371,9 @@ async function* readEvents(body: ReadableStream<Uint8Array>): AsyncGenerator<Tut
  * puis le micro se rouvre après chaque réponse. La séance reste ouverte : ni
  * un silence de quelques minutes, ni un bruit sans parole, ni un simple « oui »
  * glissé pendant qu'il parle (sa voix reprend alors là où elle s'était
- * arrêtée) ne l'arrêtent. Pendant qu'il parle, l'élève
- * peut lui couper la parole en parlant (ou en appuyant sur le micro sur
- * iPhone). Explication page par page : le professeur enchaîne seul les pages
+ * arrêtée) ne l'arrêtent. Pendant qu'il parle, l'élève lui coupe la parole
+ * simplement en parlant, sur tous les appareils (appuyer sur le micro marche
+ * aussi) : il s'arrête, l'écoute et lui répond. Explication page par page : le professeur enchaîne seul les pages
  * (le PDF défile avec lui) jusqu'à la fin du cours ou jusqu'à ce que l'élève
  * l'interrompe.
  */
@@ -891,7 +891,7 @@ export function VoiceTutorWorkspace({
     void listen();
   }
 
-  /** L'élève peut couper la parole au professeur en parlant (sauf iPhone). */
+  /** L'élève peut couper la parole au professeur en parlant (iPhone et iPad compris). */
   function watchForInterruption(turn: number) {
     if (!engine.canInterruptByVoice || !conversationRef.current) return;
     void engine.startWatching({
@@ -1297,8 +1297,36 @@ export function VoiceTutorWorkspace({
     }
   }
 
-  /** Premier appui de la conversation : le professeur salue l'élève, puis l'écoute. */
-  function greet() {
+  /**
+   * Premier appui de la conversation : le micro s'ouvre (autorisation
+   * demandée tout de suite), puis le professeur salue l'élève et l'écoute.
+   * Micro ouvert avant qu'il parle : l'élève peut lui couper la parole dès sa
+   * première phrase, et sur iPhone ou iPad sa voix n'est pas interrompue par
+   * l'ouverture du micro.
+   */
+  async function greet() {
+    turnRef.current += 1;
+    const turn = turnRef.current;
+    setError(null);
+    setNotice(null);
+    setPhase("thinking");
+    try {
+      await engine.prepareMic();
+    } catch (caught) {
+      if (turnRef.current !== turn) return;
+      conversationRef.current = false;
+      greetedRef.current = false;
+      setPhase("idle");
+      setError({
+        message: micErrorMessage(caught instanceof MicError ? caught.reason : "unsupported"),
+      });
+      return;
+    }
+    // Arrêtée pendant la demande d'autorisation : rien à dire, micro refermé.
+    if (turnRef.current !== turn || !conversationRef.current) {
+      if (phaseRef.current === "idle") engine.releaseMic();
+      return;
+    }
     const language = languagesRef.current.replyLanguage;
     const greeting: TutorMessage = {
       id: nextMessageId(),
@@ -1320,7 +1348,7 @@ export function VoiceTutorWorkspace({
         emptyTurnsRef.current = 0;
         if (!greetedRef.current) {
           greetedRef.current = true;
-          greet();
+          void greet();
         } else {
           void listen();
         }
