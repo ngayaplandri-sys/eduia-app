@@ -108,6 +108,10 @@ dashboard: {
     actionResumerBody:
       "Ingiza kozi zako (PDF, Word, maandishi) na upate muhtasari ulio wazi, wenye mpangilio, na rahisi kuelewa.",
     actionResumerCta: "Ingiza kozi",
+    actionProfesseurTitle: "Mwalimu wa sauti",
+    actionProfesseurBody:
+      "Fungua kozi yako ya PDF: mwalimu anaisoma kwa sauti, anaieleza ukurasa kwa ukurasa na anajibu maswali yako kwa sauti.",
+    actionProfesseurCta: "Anzisha mwalimu",
     actionGenererTitle: "Tengeneza jaribio",
     actionGenererBody:
       "Chagua sura zako, kiwango chako na aina za maswali. AI hutengeneza jaribio linalolingana na mahitaji yako.",

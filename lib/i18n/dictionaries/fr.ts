@@ -118,6 +118,10 @@ export const fr = {
     actionResumerBody:
       "Importe tes cours (PDF, Word, texte) et obtiens un résumé clair, structuré et facile à comprendre.",
     actionResumerCta: "Importer un cours",
+    actionProfesseurTitle: "Professeur vocal",
+    actionProfesseurBody:
+      "Ouvre ton cours en PDF : le professeur le lit à voix haute, l'explique page par page et répond à tes questions à l'oral.",
+    actionProfesseurCta: "Lancer le professeur",
     actionGenererTitle: "Générer une épreuve",
     actionGenererBody:
       "Choisis tes chapitres, ton niveau et le type de questions. L'IA génère une épreuve adaptée à ton besoin.",

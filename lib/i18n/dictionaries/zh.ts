@@ -108,6 +108,10 @@ dashboard: {
     actionResumerBody:
       "导入你的课程（PDF、Word、文本），快速获得清晰、结构化、易懂的总结。",
     actionResumerCta: "导入课程",
+    actionProfesseurTitle: "语音导师",
+    actionProfesseurBody:
+      "打开你的 PDF 课程：导师会朗读内容，逐页讲解，并用语音回答你的问题。",
+    actionProfesseurCta: "开始使用导师",
     actionGenererTitle: "生成测试",
     actionGenererBody:
       "选择章节、水平和题型。AI 会生成适合你需求的测试。",

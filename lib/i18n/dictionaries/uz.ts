@@ -108,6 +108,10 @@ dashboard: {
     actionResumerBody:
       "Kurslaringizni (PDF, Word, matn) yuklang va aniq, tartibli, oson tushunarli qisqacha bayon oling.",
     actionResumerCta: "Kurs yuklash",
+    actionProfesseurTitle: "Ovozli tutor",
+    actionProfesseurBody:
+      "Kursingizni PDF ko‘rinishida oching: tutor uni ovoz chiqarib o‘qiydi, sahifama-sahifa tushuntiradi va savollaringizga og‘zaki javob beradi.",
+    actionProfesseurCta: "Tutorni boshlash",
     actionGenererTitle: "Test yaratish",
     actionGenererBody:
       "Boʻlimlaringizni, darajangizni va savol turlarini tanlang. AI sizga mos test yaratadi.",

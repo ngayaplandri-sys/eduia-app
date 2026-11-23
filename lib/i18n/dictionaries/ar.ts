@@ -108,6 +108,10 @@ dashboard: {
     actionResumerBody:
       "استورد دروسك (PDF، Word، نص) واحصل على ملخص واضح، منظم، وسهل الفهم.",
     actionResumerCta: "استيراد درس",
+    actionProfesseurTitle: "معلم صوتي",
+    actionProfesseurBody:
+      "افتح درسك بصيغة PDF: يقرأه المعلم بصوت عالٍ، ويشرحه صفحة بصفحة، ويجيب عن أسئلتك شفهيًا.",
+    actionProfesseurCta: "تشغيل المعلم",
     actionGenererTitle: "إنشاء اختبار",
     actionGenererBody:
       "اختر الفصول، والمستوى، وأنواع الأسئلة. ينشئ الذكاء الاصطناعي اختبارًا مناسبًا لاحتياجاتك.",

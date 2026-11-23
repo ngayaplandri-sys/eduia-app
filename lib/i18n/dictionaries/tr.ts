@@ -108,6 +108,10 @@ dashboard: {
     actionResumerBody:
       "Derslerini (PDF, Word, metin) içe aktar ve net, düzenli, kolay anlaşılır bir özet al.",
     actionResumerCta: "Bir ders içe aktar",
+    actionProfesseurTitle: "Sesli öğretmen",
+    actionProfesseurBody:
+      "Ders PDF'ini aç: öğretmen onu sesli okur, sayfa sayfa açıklar ve sorularını sesli olarak yanıtlar.",
+    actionProfesseurCta: "Öğretmeni başlat",
     actionGenererTitle: "Sınav oluştur",
     actionGenererBody:
       "Bölümlerini, seviyeni ve soru türlerini seç. Yapay zeka ihtiyaçlarına uygun bir sınav oluşturur.",

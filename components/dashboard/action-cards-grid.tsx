@@ -1,4 +1,4 @@
-import { FileText, FilePenLine, ClipboardCheck } from "lucide-react";
+import { FileText, Mic, FilePenLine, ClipboardCheck } from "lucide-react";
 import { getDictionary } from "@/lib/i18n/server";
 import { ActionCard, type ActionCardData } from "./action-card";
 
@@ -17,6 +17,13 @@ export async function ActionCardsGrid() {
     },
     {
       tone: "primary",
+      icon: Mic,
+      title: t.actionProfesseurTitle,
+      description: t.actionProfesseurBody,
+      cta: { label: t.actionProfesseurCta, href: "/professeur-vocal" },
+    },
+    {
+      tone: "primary",
       icon: FilePenLine,
       title: t.actionGenererTitle,
       description: t.actionGenererBody,
@@ -32,7 +39,7 @@ export async function ActionCardsGrid() {
   ];
 
   return (
-    <div className="grid gap-5 md:grid-cols-3 lg:gap-6">
+    <div className="grid gap-5 sm:grid-cols-2 lg:gap-6 2xl:grid-cols-4">
       {actions.map((action) => (
         <ActionCard key={action.title} {...action} />
       ))}

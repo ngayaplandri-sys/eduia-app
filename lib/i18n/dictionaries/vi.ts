@@ -108,6 +108,10 @@ dashboard: {
     actionResumerBody:
       "Nhập khóa học của bạn (PDF, Word, văn bản) và nhận bản tóm tắt rõ ràng, có cấu trúc, dễ hiểu.",
     actionResumerCta: "Nhập khóa học",
+    actionProfesseurTitle: "Gia sư giọng nói",
+    actionProfesseurBody:
+      "Mở khóa học PDF của bạn: gia sư đọc to, giải thích từng trang và trả lời câu hỏi của bạn bằng giọng nói.",
+    actionProfesseurCta: "Bắt đầu với gia sư",
     actionGenererTitle: "Tạo bài kiểm tra",
     actionGenererBody:
       "Chọn chương, trình độ và dạng câu hỏi. AI sẽ tạo bài kiểm tra phù hợp với nhu cầu của bạn.",

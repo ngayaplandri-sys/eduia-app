@@ -108,6 +108,10 @@ dashboard: {
     actionResumerBody:
       "Importeer je cursussen (PDF, Word, tekst) en krijg een duidelijke, gestructureerde en begrijpelijke samenvatting.",
     actionResumerCta: "Cursus importeren",
+    actionProfesseurTitle: "Spraakleraar",
+    actionProfesseurBody:
+      "Open je cursus als PDF: de leraar leest hem voor, legt hem pagina voor pagina uit en beantwoordt je vragen hardop.",
+    actionProfesseurCta: "Leraar starten",
     actionGenererTitle: "Toets genereren",
     actionGenererBody:
       "Kies je hoofdstukken, je niveau en het soort vragen. De AI maakt een toets op maat voor jou.",

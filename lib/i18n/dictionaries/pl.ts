@@ -108,6 +108,10 @@ dashboard: {
     actionResumerBody:
       "Zaimportuj swoje kursy (PDF, Word, tekst) i otrzymaj jasne, uporządkowane, łatwe do zrozumienia podsumowanie.",
     actionResumerCta: "Zaimportuj kurs",
+    actionProfesseurTitle: "Nauczyciel głosowy",
+    actionProfesseurBody:
+      "Otwórz swój kurs w PDF: nauczyciel czyta go na głos, wyjaśnia strona po stronie i odpowiada ustnie na twoje pytania.",
+    actionProfesseurCta: "Uruchom nauczyciela",
     actionGenererTitle: "Wygeneruj test",
     actionGenererBody:
       "Wybierz rozdziały, poziom i typy pytań. AI wygeneruje test dopasowany do twoich potrzeb.",

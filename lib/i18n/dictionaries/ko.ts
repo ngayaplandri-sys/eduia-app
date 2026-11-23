@@ -108,6 +108,10 @@ dashboard: {
     actionResumerBody:
       "강의(PDF, Word, 텍스트)를 가져오면 명확하고 구조적인 이해하기 쉬운 요약을 제공합니다.",
     actionResumerCta: "강의 가져오기",
+    actionProfesseurTitle: "음성 튜터",
+    actionProfesseurBody:
+      "강의 PDF를 열면 튜터가 소리 내어 읽고, 페이지별로 설명하며, 질문에 음성으로 답해 줍니다.",
+    actionProfesseurCta: "튜터 시작하기",
     actionGenererTitle: "시험 생성",
     actionGenererBody:
       "단원, 수준, 문제 유형을 선택하세요. AI가 필요에 맞는 시험을 만듭니다.",

@@ -108,6 +108,10 @@ dashboard: {
     actionResumerBody:
       "अपने कोर्स (PDF, Word, टेक्स्ट) इम्पोर्ट करें और एक साफ, व्यवस्थित, आसानी से समझ आने वाला सारांश पाएँ।",
     actionResumerCta: "कोर्स इम्पोर्ट करें",
+    actionProfesseurTitle: "वॉइस ट्यूटर",
+    actionProfesseurBody:
+      "अपना कोर्स PDF खोलें: ट्यूटर उसे ज़ोर से पढ़ता है, पेज-दर-पेज समझाता है और आपके सवालों का बोलकर जवाब देता है।",
+    actionProfesseurCta: "ट्यूटर शुरू करें",
     actionGenererTitle: "टेस्ट बनाएं",
     actionGenererBody:
       "अपने चैप्टर, स्तर और प्रश्न प्रकार चुनें। AI आपकी ज़रूरत के हिसाब से टेस्ट बनाती है।",

@@ -108,6 +108,10 @@ dashboard: {
     actionResumerBody:
       "Importa os teus cursos (PDF, Word, texto) e recebe um resumo claro, estruturado e fácil de perceber.",
     actionResumerCta: "Importar um curso",
+    actionProfesseurTitle: "Tutor de voz",
+    actionProfesseurBody:
+      "Abre o teu curso em PDF: o tutor lê-o em voz alta, explica-o página a página e responde às tuas perguntas de viva voz.",
+    actionProfesseurCta: "Iniciar o tutor",
     actionGenererTitle: "Gerar um teste",
     actionGenererBody:
       "Escolhe os capítulos, o teu nível e os tipos de perguntas. A IA gera um teste adaptado às tuas necessidades.",

@@ -108,6 +108,10 @@ dashboard: {
     actionResumerBody:
       "コース（PDF、Word、テキスト）を取り込んで、わかりやすく整理された要約を作成します。",
     actionResumerCta: "コースを取り込む",
+    actionProfesseurTitle: "音声チューター",
+    actionProfesseurBody:
+      "コースの PDF を開くと、チューターが音読し、ページごとに解説して、質問にも声で答えます。",
+    actionProfesseurCta: "チューターを始める",
     actionGenererTitle: "テストを作成する",
     actionGenererBody:
       "章、レベル、問題形式を選ぶだけ。AIがあなたに合ったテストを作成します。",

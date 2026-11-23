@@ -108,6 +108,10 @@ dashboard: {
     actionResumerBody:
       "Importiere deine Kurse (PDF, Word, Text) und erhalte eine klare, strukturierte und leicht verständliche Zusammenfassung.",
     actionResumerCta: "Kurs importieren",
+    actionProfesseurTitle: "Sprachlehrer",
+    actionProfesseurBody:
+      "Öffne deinen Kurs als PDF: Der Lehrer liest ihn laut vor, erklärt ihn Seite für Seite und beantwortet deine Fragen mündlich.",
+    actionProfesseurCta: "Lehrer starten",
     actionGenererTitle: "Test erstellen",
     actionGenererBody:
       "Wähle deine Kapitel, dein Niveau und die Fragetypen. Die KI erstellt einen Test, der zu dir passt.",

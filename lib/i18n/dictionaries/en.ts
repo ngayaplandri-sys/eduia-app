@@ -110,6 +110,10 @@ export const en: Dictionary = {
     actionResumerBody:
       "Import your courses (PDF, Word, text) and get a clear, structured, easy-to-understand summary.",
     actionResumerCta: "Import a course",
+    actionProfesseurTitle: "Voice tutor",
+    actionProfesseurBody:
+      "Open your course as a PDF: the tutor reads it aloud, explains it page by page and answers your questions out loud.",
+    actionProfesseurCta: "Start the tutor",
     actionGenererTitle: "Generate a test",
     actionGenererBody:
       "Pick your chapters, your level and the question types. The AI generates a test tailored to your needs.",
