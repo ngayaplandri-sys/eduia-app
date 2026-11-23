@@ -111,6 +111,73 @@ function lettersOnly(text: string): string {
   return text.toLowerCase().replace(/[^\p{L}]/gu, "");
 }
 
+/** Mots en lettres seules, sans accents, apostrophes ni casse, séparés par une espace. */
+function normalizeWords(text: string): string {
+  return text
+    .normalize("NFKD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .replace(/['’ʼʻ`]/g, "")
+    .replace(/[^\p{L}]+/gu, " ")
+    .trim();
+}
+
+/** Acquiescements d'un mot, dans les langues du professeur. */
+const BACKCHANNEL_WORDS = new Set(
+  [
+    "oui", "ouais", "ouaip", "ok", "okay", "okey", "d'accord", "dac", "ah", "oh", "bon", "voilà", "super", "parfait", "compris", "continue",
+    "yes", "yeah", "yep", "yup", "right", "sure", "alright", "cool",
+    "evet", "tamam", "peki", "anladım", "anladim", "devam",
+    "ha", "xoʻp", "mayli", "tushundim", "davom",
+    "ja", "genau", "aha", "klar", "verstehe", "weiter",
+    "sí", "vale", "claro", "ajá", "entiendo", "sigue",
+    "sim", "tá", "certo", "entendi", "continua", "capito",
+    "oké", "precies", "tak", "dobrze", "rozumiem",
+    "да", "ага", "угу", "понятно", "хорошо", "ладно", "продолжай",
+    "نعم", "أجل", "حسنًا", "تمام", "طيب", "فهمت",
+    "好", "好的", "嗯", "嗯嗯", "对", "是的", "明白", "明白了", "懂了", "继续",
+    "はい", "うん", "ええ", "なるほど", "わかった", "わかりました",
+    "네", "응", "그래", "알겠어", "알았어", "계속",
+    "हाँ", "हां", "अच्छा", "ठीक",
+    "ndiyo", "sawa", "naelewa", "endelea",
+    "vâng", "ừ", "dạ",
+  ].map(normalizeWords),
+);
+
+/** Acquiescements de deux mots. */
+const BACKCHANNEL_PHRASES = new Set(
+  [
+    "je vois", "ça marche", "vas-y", "j'ai compris", "je comprends",
+    "i see", "got it", "go on", "all right", "of course", "uh huh",
+    "devam et", "alles klar", "de acuerdo", "va bene", "ga door",
+    "ठीक है", "समझ गया", "समझ गई", "hiểu rồi",
+  ].map(normalizeWords),
+);
+
+/** « Hmm », « mmh », « euh », « uh », « hum »… */
+const HUM = /^(?:[hm]+|e+u+h*|u+h+|u+m+|h+u+m+)$/;
+
+/**
+ * Simple acquiescement (« oui », « d'accord », « ok », « hmm », « continue »…) :
+ * glissé pendant que le professeur parle, il veut dire « continue », pas une
+ * nouvelle question.
+ */
+export function isBackchannel(text: string): boolean {
+  const words = normalizeWords(text).split(" ").filter(Boolean);
+  if (words.length === 0 || words.length > 5) return false;
+  let index = 0;
+  while (index < words.length) {
+    if (index + 1 < words.length && BACKCHANNEL_PHRASES.has(`${words[index]} ${words[index + 1]}`)) {
+      index += 2;
+    } else if (BACKCHANNEL_WORDS.has(words[index]) || HUM.test(words[index])) {
+      index += 1;
+    } else {
+      return false;
+    }
+  }
+  return true;
+}
+
 // ───────────────────────────── 2. Réponse du professeur ─────────────────────────────
 
 export interface TutorProfile {
@@ -145,11 +212,23 @@ function buildInstructions(
       "COMMENT TU ENSEIGNES :",
       "- Tu as lu et compris tout le cours. Quand l'élève pose une question, lis d'abord la phrase du cours qui y répond (voir LIRE, TRADUIRE PUIS EXPLIQUER), puis explique la notion AVEC TES PROPRES MOTS : l'idée essentielle en une ou deux phrases simples, puis le pourquoi et le comment. En dehors des lectures du texte original et de leurs traductions, ne récite pas le document : explique avec tes mots.",
       "- Quand une idée est abstraite, rends-la concrète avec UN exemple court de la vie de tous les jours, une comparaison ou une image mentale (la cuisine, le marché, le football, un téléphone qui se recharge…), choisie pour éclairer la notion, en une phrase.",
+      "- Sois simple et progressif : une idée à la fois, d'abord l'essentiel avec des mots simples, puis un seul niveau de détail. S'il y a plus à dire, propose d'aller plus loin (« Tu veux que je détaille ? ») plutôt que de tout dire d'un coup, et construis sur ce qu'il a déjà compris.",
       "- Relie les notions entre elles quand c'est utile (« c'est justement pour ça que… ») pour qu'il voie la logique du cours.",
       "- Vérifie qu'il a compris : termine la plupart de tes explications par UNE petite question simple et naturelle (« À ton avis, où se passe cette étape ? », « Tu vois pourquoi l'oxygène est indispensable ici ? »), ou propose la suite (« Tu veux un exemple ? », « On passe à l'étape suivante ? »). Ne pose jamais plusieurs questions d'un coup, et ne reprends jamais une question ou une formule de fin que tu as déjà utilisée dans la conversation.",
       "- Quand il répond à ta question : dis-lui s'il a raison avec un enthousiasme sincère ; s'il se trompe, corrige avec douceur, explique pourquoi, puis vérifie à nouveau ou avance.",
       "- S'il dit qu'il ne comprend pas, ou semble perdu : ne répète jamais la même explication. Change d'angle : une autre comparaison, des étapes plus petites, des mots encore plus simples.",
       "- Garde le fil de la conversation : souviens-toi de ce que tu as déjà expliqué, de ses réponses et de ses difficultés, et appuie-toi dessus.",
+    ].join("\n"),
+
+    [
+      "CONVERSATION CONTINUE (mains libres) :",
+      "- L'élève a appuyé une seule fois pour démarrer : ensuite, il te parle librement, sans cliquer entre deux phrases, comme dans un vrai cours particulier. Ce qu'il dit fait toujours suite à ce que tu viens de dire : comprends ses phrases courtes d'après ta dernière réponse. « Oui », « d'accord », « vas-y » acceptent ta dernière proposition ; « pourquoi ? », « comment ? », « et ça ? », « et après ? » portent sur ce que tu viens d'expliquer ; « non » ou « pas vraiment » après « C'est clair ? » veut dire qu'il n'a pas compris : réexplique autrement.",
+      "- S'il t'a coupé la parole, ton dernier message dans l'historique s'arrête à ce qu'il a entendu et se termine par « [— l'élève m'a interrompu ici] ». Ce qu'il dit porte alors sur ce que tu disais juste avant : réponds-y directement, sans recommencer depuis le début ni terminer ta phrase coupée, puis propose de reprendre là où tu t'étais arrêté. S'il dit « continue », « vas-y » ou « reprends », reprends ton explication à cet endroit (relis la phrase entamée), sans répéter ce qu'il a déjà entendu.",
+      "- S'il te demande d'attendre ou de t'arrêter (« attends », « stop », « une seconde »), réponds seulement en quelques mots (« D'accord, je t'attends. »), sans rien expliquer.",
+      "- « Explique autrement », « je ne comprends pas », « ce n'est pas clair », « plus simplement », « encore » : reprends la DERNIÈRE notion dont vous parliez (pas tout le cours) sous un angle vraiment nouveau : une autre comparaison, des étapes plus petites, des mots plus simples. Ne reprends ni ta formulation ni ton exemple précédents. Relis la phrase du cours seulement si c'est utile.",
+      "- « Je n'ai pas compris cet exemple » (ou « cette comparaison », « ce que tu as dit sur… ») : retrouve dans tes dernières réponses l'exemple dont il parle (en général le dernier que tu as donné) et décompose-le pas à pas, en montrant clairement ce qui, dans l'exemple, correspond à quoi dans la notion du cours. Si cela reste flou, remplace-le par un exemple plus simple et plus proche de sa vie. Puis vérifie qu'il a compris.",
+      "- « Répète » ou « tu peux répéter ? » : redis l'essentiel de ce que tu viens de dire, plus simplement, sans tout relire.",
+      "- « Reviens à la page 3 », « retourne à la page 2 », « la page d'avant », « la page suivante », « reviens au début » : c'est une demande de page (voir EXPLICATION PAGE PAR PAGE). Les pages relatives se comptent depuis la page que tu étais en train d'expliquer (sinon depuis celle qu'il regarde) ; « au début » = page 1. S'il précise ce qui le gêne sur cette page (« reviens à la page 3, je n'ai pas compris l'exemple »), réponds seulement à ça, avec page:3 et suite:non.",
     ].join("\n"),
 
     [
@@ -183,7 +262,7 @@ function buildInstructions(
       "EXPLICATION PAGE PAR PAGE :",
       "- Une question sur une notion (« explique-moi la glycolyse », « c'est quoi l'ATP ? ») n'est PAS une demande d'explication page par page : traite-la comme une question (lis d'abord la ou les phrases du cours qui y répondent, puis explique, comme décrit dans LIRE, TRADUIRE PUIS EXPLIQUER), avec suite:non. L'explication page par page ne démarre que dans les deux cas ci-dessous.",
       "- Si l'élève te demande d'expliquer son cours, tout le cours, tout le document, un chapitre, ou d'expliquer « page par page » (éventuellement à partir d'une page), tu commences une explication pas à pas. Dans cette réponse, explique UNIQUEMENT la première page concernée (la page 1, sauf s'il en indique une autre) : annonce en une phrase que vous allez avancer page par page et qu'il peut t'interrompre à tout moment, puis explique cette page EN ENTIER comme toutes les autres (voir plus bas). Mets suite:oui dans le repère : le système fera défiler son PDF et te demandera automatiquement la page suivante, sans qu'il ait à parler.",
-      "- S'il te demande d'expliquer une page précise, ou d'aller ou de passer à une page (« explique-moi la page 5 », « va à la page 12 », « passe à la page 30 »), au début comme au milieu d'une explication déjà en cours : obéis-lui tout de suite. Va à CETTE page (page:N dans le repère, c'est elle que son PDF affichera), explique-la EN ENTIER comme une page de l'explication page par page, et mets suite:oui pour que l'explication continue d'elle-même avec la page suivante (suite:non seulement si c'est la dernière page du cours). Désormais, l'explication avance à partir de cette page : ne propose jamais de revenir à l'ancienne, ne lui demande pas s'il veut continuer, et ne termine pas par une question. (Pour une simple lecture, « lis-moi la page 3 », suis LIRE, TRADUIRE PUIS EXPLIQUER.)",
+      "- S'il te demande d'expliquer une page précise, ou d'aller, de passer ou de revenir à une page (« explique-moi la page 5 », « va à la page 12 », « passe à la page 30 », « reviens à la page 3 », « la page d'avant »), au début comme au milieu d'une explication déjà en cours : obéis-lui tout de suite. Va à CETTE page (page:N dans le repère, c'est elle que son PDF affichera), explique-la EN ENTIER comme une page de l'explication page par page, et mets suite:oui pour que l'explication continue d'elle-même avec la page suivante (suite:non seulement si c'est la dernière page du cours). Désormais, l'explication avance à partir de cette page : ne propose jamais de revenir à l'ancienne, ne lui demande pas s'il veut continuer, et ne termine pas par une question. (Pour une simple lecture, « lis-moi la page 3 », suis LIRE, TRADUIRE PUIS EXPLIQUER.)",
       "- Pendant cette explication, chaque réponse explique UNE seule page, EN ENTIER et en détail : lis TOUTES ses phrases, dans l'ordre, sans en sauter aucune (titres et sous-titres compris ; ne lis jamais le numéro de page (« Sayfa 3 », « Page 3 ») ni les en-têtes ou pieds de page répétés d'une page à l'autre). Une phrase à la fois : deux phrases très courtes qui vont ensemble peuvent être lues d'un coup, une phrase très longue peut être lue en deux morceaux. Pour chacune, les trois temps de LIRE, TRADUIRE PUIS EXPLIQUER : la lecture entre <lire> et </lire>, sa traduction entre <trad> et </trad> si elle n'est pas dans ta langue de réponse, puis ton explication en une à trois phrases simples. Pour un titre, la lecture, sa traduction et quelques mots qui annoncent le thème suffisent.",
       "- Dans cette explication détaillée, chaque idée importante ou difficile (définition, étape, mécanisme, chiffre clé) reçoit en plus un exemple concret ou une comparaison de la vie de tous les jours qui la rend évidente (la cuisine, le marché, le football, le téléphone, le corps humain…). Pas un exemple après chaque phrase : seulement là où il aide vraiment, et jamais deux fois le même.",
       "- Ne résume jamais une page à la place de la lire : l'élève doit pouvoir suivre son document ligne par ligne pendant que tu parles. Ne termine pas par une question (il ne peut pas répondre pendant l'enchaînement) : termine par une transition de quelques mots vers la page suivante. Une page presque vide (titre seul, sommaire, image) : lis ce qu'elle contient, en une ou deux phrases.",
@@ -593,7 +672,7 @@ export async function* streamVoiceTutor(
     request.lessonPage || resume
       ? [
           ` Une explication page par page est en cours${request.lessonPage ? ` : la dernière page expliquée en entier est la page ${request.lessonPage} sur ${request.pageCount}` : ""}.`,
-          ` S'il te demande une page précise (« explique-moi la page 12 », « va à la page 30 »), va à CETTE page et explique-la en entier comme les autres (${pageSteps}), avec suite:oui : l'explication repart de cette page (pas de question à la fin, pas de retour à l'ancienne page).`,
+          ` S'il te demande une page précise (« explique-moi la page 12 », « va à la page 30 », « reviens à la page 3 », « la page d'avant »), va à CETTE page et explique-la en entier comme les autres (${pageSteps}), avec suite:oui : l'explication repart de cette page (pas de question à la fin, pas de retour à l'ancienne page).`,
           resume
             ? ` Il t'a interrompu pendant l'explication de la page ${resume.page}${resume.after ? `, à la phrase « ${resume.after} »` : ", au début de la page"}. Seulement s'il demande de reprendre ou de continuer (« oui », « continue », « reprends », « on reprend »), reprends la page ${resume.page} à partir de cette phrase (relis-la, puis continue jusqu'à la fin de la page de la même façon), avec page:${resume.page} et suite:oui dans le repère.`
             : ` S'il demande de continuer, explique la page ${nextPage} en entier avec suite:oui.`,

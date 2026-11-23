@@ -32,7 +32,9 @@ import { InsufficientCreditsBanner } from "@/components/credits/insufficient-cre
 import {
   VOICE_TUTOR_GREETING,
   VOICE_TUTOR_HISTORY_MESSAGE_CHARS,
+  VOICE_TUTOR_IDLE_LISTEN_MS,
   VOICE_TUTOR_MAX_HISTORY,
+  VOICE_TUTOR_RECENT_HISTORY_MESSAGE_CHARS,
   VOICE_TUTOR_MAX_PAGES,
   VOICE_TUTOR_MAX_PDF_BYTES,
   VOICE_TUTOR_MAX_UPLOAD_CHARS,
@@ -80,6 +82,12 @@ const REQUEST_TIMEOUT_MS = 280_000;
 
 /** Passages audio demandés en même temps (dans l'ordre de la réponse). */
 const SPEECH_CONCURRENCY = 2;
+
+/**
+ * Enregistrements de suite sans parole compréhensible (souffle, bruit) avant
+ * que la conversation s'arrête ; en dessous, le professeur réécoute.
+ */
+const MAX_EMPTY_TURNS = 3;
 
 interface DocumentMeta {
   key: number;
@@ -199,14 +207,23 @@ function locateInPage(
   return { at, progress: Math.min(1, (at + compactText(quote).length) / page.length) };
 }
 
+/** Texte trop long : le début et surtout la fin, la partie la plus récente. */
+function shorten(text: string, limit: number): string {
+  if (text.length <= limit) return text;
+  const head = Math.floor(limit * 0.3);
+  const tail = limit - head - 3;
+  return `${text.slice(0, head).trimEnd()} … ${text.slice(-tail).trimStart()}`;
+}
+
 /**
- * Message du professeur tel qu'il est renvoyé dans l'historique : s'il a été
- * coupé, seulement ce qui a été prononcé, et l'endroit de la coupure.
+ * Message tel qu'il est renvoyé dans l'historique (au plus `limit`
+ * caractères). Trop long, il garde son début et sa fin : c'est souvent à la
+ * fin que se trouve ce dont l'élève parle ensuite (« cet exemple »). S'il a
+ * été coupé : seulement ce qui a été prononcé, et l'endroit de la coupure.
  */
-function historyContent(message: TutorMessage): string {
-  const limit = VOICE_TUTOR_HISTORY_MESSAGE_CHARS;
+function historyContent(message: TutorMessage, limit: number): string {
   if (message.role !== "assistant" || message.interruptedAt === undefined || !message.segments?.length) {
-    return message.content.slice(0, limit);
+    return shorten(message.content, limit);
   }
   const spoken = message.segments
     .slice(0, message.interruptedAt + 1)
@@ -351,7 +368,10 @@ async function* readEvents(body: ReadableStream<Uint8Array>): AsyncGenerator<Tut
  * prononcé dès qu'il est prêt (`POST /api/ai/voice-tutor/speech`).
  *
  * Conversation mains libres : au premier appui, le professeur salue l'élève,
- * puis le micro se rouvre après chaque réponse. Pendant qu'il parle, l'élève
+ * puis le micro se rouvre après chaque réponse. La séance reste ouverte : ni
+ * un silence de quelques minutes, ni un bruit sans parole, ni un simple « oui »
+ * glissé pendant qu'il parle (sa voix reprend alors là où elle s'était
+ * arrêtée) ne l'arrêtent. Pendant qu'il parle, l'élève
  * peut lui couper la parole en parlant (ou en appuyant sur le micro sur
  * iPhone). Explication page par page : le professeur enchaîne seul les pages
  * (le PDF défile avec lui) jusqu'à la fin du cours ou jusqu'à ce que l'élève
@@ -416,6 +436,8 @@ export function VoiceTutorWorkspace({
   // Salutation déjà prononcée dans cette conversation.
   const greetedRef = React.useRef(false);
   const interruptedRef = React.useRef<Interrupted | null>(null);
+  // Enregistrements de suite sans parole compréhensible (bruit, souffle).
+  const emptyTurnsRef = React.useRef(0);
   // « Tour » de parole : chaque nouvelle action (écouter, arrêter, lire une
   // réponse, couper la parole) invalide les suites des actions précédentes.
   const turnRef = React.useRef(0);
@@ -930,6 +952,23 @@ export function VoiceTutorWorkspace({
     else void listen();
   }
 
+  /**
+   * L'élève a coupé le professeur en pleine réponse (pas pendant sa dernière
+   * phrase, qui se termine souvent par une question à laquelle « oui »
+   * répond) ou pendant qu'il préparait la page suivante : un simple « oui »,
+   * « d'accord » ou « continue » veut alors dire « continue » — le serveur le
+   * signale comme un bruit, et la voix reprend là où elle s'était arrêtée.
+   */
+  function interruptedMidway(): boolean {
+    const interrupted = interruptedRef.current;
+    if (!interrupted) return false;
+    if (interrupted.kind === "lesson") return true;
+    const message = messagesRef.current.find((item) => item.id === interrupted.messageId);
+    const at = lastClipRef.current?.messageId === interrupted.messageId ? lastClipRef.current.index : null;
+    if (!message || at === null) return false;
+    return Boolean(message.streaming) || at < (message.segments?.length ?? 0) - 1;
+  }
+
   /** Explication page par page : le professeur passe seul à la page suivante. */
   async function continueLesson() {
     const from = lessonPageRef.current;
@@ -969,13 +1008,19 @@ export function VoiceTutorWorkspace({
     // Pendant qu'il prépare la page suivante, l'élève peut déjà l'arrêter.
     if (continuation) watchForInterruption(turn);
 
-    const history = messagesRef.current
+    const recent = messagesRef.current
       .filter((message) => !message.welcome && message.content.trim())
-      .slice(-VOICE_TUTOR_MAX_HISTORY)
-      .map((message) => ({
-        role: message.role,
-        content: historyContent(message),
-      }));
+      .slice(-VOICE_TUTOR_MAX_HISTORY);
+    const history = recent.map((message, index) => ({
+      role: message.role,
+      // Les deux derniers messages, plus complets : c'est d'eux que l'élève parle.
+      content: historyContent(
+        message,
+        index >= recent.length - 2
+          ? VOICE_TUTOR_RECENT_HISTORY_MESSAGE_CHARS
+          : VOICE_TUTOR_HISTORY_MESSAGE_CHARS,
+      ),
+    }));
 
     const payload = {
       documentName: document.meta.name.slice(0, 200),
@@ -989,6 +1034,7 @@ export function VoiceTutorWorkspace({
       continueLesson: continuation,
       // Une suite automatique part de la page suivante : rien à reprendre.
       lessonResume: continuation ? null : lessonResumeRef.current,
+      interrupted: !continuation && interruptedMidway(),
     };
     const json = JSON.stringify(payload);
     const compressed = await gzipJson(json);
@@ -1036,12 +1082,23 @@ export function VoiceTutorWorkspace({
         if (!isCurrentTurn()) return;
         continuationRef.current = false;
         setPreparingPage(null);
-        // Coupure de parole sur un simple bruit : le professeur reprend.
+        // Coupure de parole sur un simple bruit (ou un simple « oui ») : le professeur reprend.
         if (data?.code === "NO_SPEECH" && interruptedRef.current) {
           recoverFromFalseStart();
           return;
         }
         interruptedRef.current = null;
+        // Rien de compréhensible (souffle, bruit) : la conversation continue
+        // et le professeur réécoute, sauf si cela se répète.
+        if (
+          data?.code === "NO_SPEECH" &&
+          conversationRef.current &&
+          emptyTurnsRef.current < MAX_EMPTY_TURNS
+        ) {
+          emptyTurnsRef.current += 1;
+          void listen();
+          return;
+        }
         conversationRef.current = false;
         if (data?.code === "NO_SPEECH") setNotice(data.error ?? t.errorNoSpeech);
         else setError({ message: data?.error ?? t.errorGeneric, code: data?.code });
@@ -1066,6 +1123,7 @@ export function VoiceTutorWorkspace({
         if (docRef.current !== document) return;
         if (event.type === "question") {
           interruptedRef.current = null;
+          if (!continuation) emptyTurnsRef.current = 0;
           const answer: TutorMessage = {
             id: answerId,
             role: "assistant",
@@ -1215,15 +1273,20 @@ export function VoiceTutorWorkspace({
     setNotice(null);
     setPhase("listening");
     try {
-      await engine.startListening({
-        onUtterance: (audio) => void ask(audio),
-        onNoSpeech: () => {
-          if (turnRef.current !== turn) return;
-          conversationRef.current = false;
-          setNotice(t.noSpeechStopped);
-          setPhase("idle");
+      // L'écoute reste ouverte pendant les silences de l'élève (il réfléchit,
+      // relit son cours) : la conversation ne s'arrête qu'après plusieurs minutes.
+      await engine.startListening(
+        {
+          onUtterance: (audio) => void ask(audio),
+          onNoSpeech: () => {
+            if (turnRef.current !== turn) return;
+            conversationRef.current = false;
+            setNotice(t.noSpeechStopped);
+            setPhase("idle");
+          },
         },
-      });
+        { noSpeechTimeoutMs: VOICE_TUTOR_IDLE_LISTEN_MS },
+      );
     } catch (caught) {
       if (turnRef.current !== turn) return;
       conversationRef.current = false;
@@ -1254,6 +1317,7 @@ export function VoiceTutorWorkspace({
     switch (phaseRef.current) {
       case "idle":
         conversationRef.current = true;
+        emptyTurnsRef.current = 0;
         if (!greetedRef.current) {
           greetedRef.current = true;
           greet();

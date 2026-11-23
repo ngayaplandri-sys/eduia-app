@@ -133,6 +133,20 @@ export const VOICE_TUTOR_MAX_HISTORY = 20;
 export const VOICE_TUTOR_HISTORY_MESSAGE_CHARS = 1500;
 
 /**
+ * Les deux derniers messages de l'historique sont renvoyés plus complets :
+ * c'est d'eux que l'élève parle (« je n'ai pas compris cet exemple »). Reste
+ * sous la limite de 4 000 caractères par message du schéma.
+ */
+export const VOICE_TUTOR_RECENT_HISTORY_MESSAGE_CHARS = 3800;
+
+/**
+ * Conversation mains libres : silence toléré avant que le micro se coupe de
+ * lui-même. En dessous (l'élève relit son cours, réfléchit…), le professeur
+ * continue d'écouter sans qu'il ait à rappuyer.
+ */
+export const VOICE_TUTOR_IDLE_LISTEN_MS = 3 * 60_000;
+
+/**
  * Explication page par page : la question qui la lance coûte 1 crédit, puis
  * les pages qui suivent ne coûtent qu'1 crédit toutes les 3 pages (pages 4, 7,
  * 10… facturées, les autres offertes).

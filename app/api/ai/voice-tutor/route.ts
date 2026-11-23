@@ -10,6 +10,7 @@ import {
 import { getTutorProfile } from "@/lib/data/onboarding";
 import {
   audioExtension,
+  isBackchannel,
   promptCacheKey,
   signSpeechText,
   streamVoiceTutor,
@@ -130,7 +131,10 @@ export async function POST(request: Request) {
       const { status, message } = describeAIError(error, dict);
       return NextResponse.json({ error: message }, { status });
     }
-    if (!question) {
+    // Rien d'audible, ou un simple « oui » / « d'accord » glissé pendant que
+    // le professeur parlait : aucune réponse ni crédit, la page reprend la
+    // voix là où elle s'était arrêtée (ou réécoute l'élève).
+    if (!question || (data.interrupted && isBackchannel(question))) {
       return NextResponse.json(
         { error: dict.voiceTutor.errorNoSpeech, code: "NO_SPEECH" },
         { status: 422 },

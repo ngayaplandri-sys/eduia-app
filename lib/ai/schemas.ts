@@ -513,6 +513,11 @@ export const voiceTutorRequestSchema = z
       })
       .nullable()
       .optional(),
+    /**
+     * La question coupe le professeur en pleine réponse : un simple « oui »
+     * ou « d'accord » y veut dire « continue » (la voix reprend, sans crédit).
+     */
+    interrupted: z.boolean().optional(),
   })
   .refine(
     ({ pages }) =>

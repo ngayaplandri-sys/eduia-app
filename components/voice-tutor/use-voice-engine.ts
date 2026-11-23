@@ -13,6 +13,9 @@ import { VOICE_TUTOR_MAX_RECORDING_MS } from "@/lib/config/voice-tutor";
  *    l'un après l'autre dès qu'ils arrivent (la voix démarre pendant que le
  *    professeur écrit encore la suite), puis réécoutables en entier.
  *
+ * L'écoute peut rester ouverte plusieurs minutes de silence (`noSpeechTimeoutMs`) :
+ * la conversation ne s'arrête pas pendant que l'élève réfléchit.
+ *
  * Le micro reste ouvert pendant toute la conversation (jusqu'à `releaseMic`),
  * sauf sur iPhone et iPad : micro ouvert, la voix du professeur y devient très
  * faible. Il y est relâché après chaque question, et l'élève interrompt le
@@ -61,6 +64,15 @@ interface ListenHandlers {
   onFalseStart?: () => void;
 }
 
+interface ListenOptions {
+  /**
+   * Silence toléré avant `onNoSpeech` (10 s par défaut). Pendant un long
+   * silence, l'enregistrement repart régulièrement de zéro : seule la fin,
+   * avec la question, est envoyée.
+   */
+  noSpeechTimeoutMs?: number;
+}
+
 const RECORDER_TYPES = [
   "audio/webm;codecs=opus",
   "audio/webm",
@@ -75,6 +87,8 @@ const CALIBRATION_MS = 350;
 const SPEECH_MIN_MS = 200;
 const END_SILENCE_MS = 1200;
 const NO_SPEECH_TIMEOUT_MS = 10_000;
+/** Écoute patiente : après ce silence, l'enregistrement repart de zéro (le silence n'est jamais envoyé). */
+const SILENT_RESTART_MS = 8000;
 /** Envoi manuel : en dessous, l'enregistrement est jugé vide. */
 const MIN_MANUAL_MS = 500;
 
@@ -779,8 +793,15 @@ export function useVoiceEngine() {
     return session;
   }
 
-  /** Écoute la question de l'élève jusqu'à la fin de sa phrase. */
-  async function startListening(handlers: ListenHandlers): Promise<void> {
+  /**
+   * Écoute la question de l'élève jusqu'à la fin de sa phrase. Avec un long
+   * `noSpeechTimeoutMs`, l'écoute reste ouverte pendant ses silences (il
+   * réfléchit, relit son cours) sans que ce silence soit envoyé.
+   */
+  async function startListening(
+    handlers: ListenHandlers,
+    options: ListenOptions = {},
+  ): Promise<void> {
     if (!canRecord()) throw new MicError("unsupported");
     // L'élève a commencé à parler juste avant la fin de la réponse : on garde
     // son enregistrement au lieu de le jeter (et de calibrer le bruit sur sa voix).
@@ -790,7 +811,7 @@ export function useVoiceEngine() {
         ...handlers,
         // Ce n'était qu'un bruit : écoute normale de sa question.
         onFalseStart: () => {
-          void startListening(handlers).catch(() => handlers.onNoSpeech?.());
+          void startListening(handlers, options).catch(() => handlers.onNoSpeech?.());
         },
       };
       return;
@@ -802,14 +823,18 @@ export function useVoiceEngine() {
       throw new MicError("unsupported");
     }
 
+    const noSpeechTimeout = options.noSpeechTimeoutMs ?? NO_SPEECH_TIMEOUT_MS;
     const noise: number[] = [];
     let threshold = 0;
     let voicedMs = 0;
     let silentMs = 0;
+    // Début de l'enregistrement en cours (il repart de zéro pendant un long silence).
+    let recordingStart = session.startedAt;
 
     session.timer = window.setInterval(() => {
-      const elapsed = performance.now() - session.startedAt;
-      if (elapsed >= VOICE_TUTOR_MAX_RECORDING_MS) {
+      const now = performance.now();
+      const elapsed = now - session.startedAt;
+      if (now - recordingStart >= VOICE_TUTOR_MAX_RECORDING_MS) {
         finish(session, true);
         return;
       }
@@ -838,8 +863,20 @@ export function useVoiceEngine() {
 
       if (session.speechStarted && silentMs >= END_SILENCE_MS) {
         finish(session, true);
-      } else if (!session.speechStarted && elapsed >= NO_SPEECH_TIMEOUT_MS) {
+      } else if (!session.speechStarted && elapsed >= noSpeechTimeout) {
         finish(session, false, "no-speech");
+      } else if (
+        !session.speechStarted &&
+        voicedMs === 0 &&
+        now - recordingStart >= SILENT_RESTART_MS
+      ) {
+        // Long silence : l'enregistrement repart de zéro, l'écoute continue.
+        dropRecorder(session);
+        if (!startRecorder(session)) {
+          finish(session, false, "no-speech");
+          return;
+        }
+        recordingStart = now;
       }
     }, TICK_MS);
   }
