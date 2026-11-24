@@ -733,6 +733,8 @@ noSpeechStopped:
       "声が聞こえなかったので、マイクをオフにしました。準備ができたら押してください。",
 errorNoSpeech: "質問が聞き取れませんでした。マイクに近づいてもう一度試してください。",
     trialEndedTitle: "無料トライアル終了",
+    pageCreditsNeeded: (cost: number) =>
+      `ページの詳しい解説には${cost}クレジットが必要ですが、残りのクレジットが足りません。質問は引き続きできます（1件につき1クレジット）。解説を続けるにはPremiumを更新してください。`,
     trialEndedMessage: (pages: number) =>
       `音声チューターの無料トライアル（${pages}ページ）は終了しました。引き続き使うにはPremiumにアップグレードしてください。`,
     trialHint: (remaining: number, total: number) =>
@@ -916,6 +918,7 @@ premium: {
       "Incluse": "含まれています",
       "Professeur vocal": "音声チューター",
       "Essai : 2 pages (1 crédit/page)": "トライアル：2ページ（1ページ1クレジット）",
+      "1 crédit/question · 3 crédits/page détaillée": "質問1件につき1クレジット・詳しい解説1ページにつき3クレジット",
     } as Record<string, string>,
     pricePeriod: "/月",
     chargedNote: (charged: string) => `MaketouがFCFAで請求します：${charged}（換算は銀行が行います）。`,
@@ -1471,7 +1474,8 @@ pricing: {
         resumer: "授業要約",
         generer: "生成テスト",
         corriger: "添削",
-        assistant: "アシスタントへのメッセージ",
+        assistant: "音声チューターへの質問",
+        lessonPage: "ページの詳しい解説",
       },
       costUnit: (credits: number) => (credits > 1 ? `${credits}クレジット` : `${credits}クレジット`),
     },

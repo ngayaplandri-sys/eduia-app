@@ -733,6 +733,8 @@ noSpeechStopped:
       "Ich habe dich nicht gehört, also habe ich das Mikrofon ausgeschaltet. Tippe darauf, wenn du bereit bist.",
 errorNoSpeech: "Ich habe deine Frage nicht gehört. Geh näher ans Mikrofon und versuche es noch einmal.",
     trialEndedTitle: "Kostenloser Test beendet",
+    pageCreditsNeeded: (cost: number) =>
+      `Eine ausführlich erklärte Seite kostet ${cost} Credits, und du hast nicht mehr genug. Du kannst weiterhin Fragen stellen (je 1 Credit) oder Premium verlängern, um mit der Erklärung weiterzumachen.`,
     trialEndedMessage: (pages: number) =>
       `Dein kostenloser Test des Sprachlehrers (${pages} Seiten) ist beendet. Wechsle zu Premium, um ihn weiter zu nutzen.`,
     trialHint: (remaining: number, total: number) =>
@@ -916,6 +918,7 @@ premium: {
       "Incluse": "Inbegriffen",
       "Professeur vocal": "Sprachlehrer",
       "Essai : 2 pages (1 crédit/page)": "Test: 2 Seiten (1 Credit/Seite)",
+      "1 crédit/question · 3 crédits/page détaillée": "1 Credit/Frage · 3 Credits/ausführliche Seite",
     } as Record<string, string>,
     pricePeriod: "/Monat",
     chargedNote: (charged: string) => `Von Maketou in FCFA abgebucht: ${charged}, umgerechnet von deiner Bank.`,
@@ -1471,7 +1474,8 @@ pricing: {
         resumer: "Kurszusammenfassung",
         generer: "Erstellter Test",
         corriger: "Korrektur",
-        assistant: "Nachricht an den Assistenten",
+        assistant: "Frage an den Sprachlehrer",
+        lessonPage: "Ausführlich erklärte Seite",
       },
       costUnit: (credits: number) => (credits > 1 ? `${credits} Credits` : `${credits} Credit`),
     },

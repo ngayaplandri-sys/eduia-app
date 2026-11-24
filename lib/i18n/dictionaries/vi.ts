@@ -733,6 +733,8 @@ noSpeechStopped:
       "Tôi không nghe thấy bạn, nên đã tắt mic. Hãy nhấn lại khi bạn sẵn sàng.",
 errorNoSpeech: "Tôi không nghe thấy câu hỏi của bạn. Hãy lại gần mic hơn và thử lại.",
     trialEndedTitle: "Đã hết lượt dùng thử",
+    pageCreditsNeeded: (cost: number) =>
+      `Giảng chi tiết một trang tốn ${cost} credit, và bạn không còn đủ credit. Bạn vẫn có thể đặt câu hỏi (1 credit mỗi câu), hoặc gia hạn Premium để tiếp tục phần giảng.`,
     trialEndedMessage: (pages: number) =>
       `Bản dùng thử miễn phí gia sư giọng nói (${pages} trang) của bạn đã kết thúc. Hãy nâng cấp lên Premium để tiếp tục sử dụng.`,
     trialHint: (remaining: number, total: number) =>
@@ -916,6 +918,7 @@ premium: {
       "Incluse": "Đã bao gồm",
       "Professeur vocal": "Gia sư giọng nói",
       "Essai : 2 pages (1 crédit/page)": "Dùng thử: 2 trang (1 credit/trang)",
+      "1 crédit/question · 3 crédits/page détaillée": "1 credit/câu hỏi · 3 credit/trang giảng chi tiết",
     } as Record<string, string>,
     pricePeriod: "/tháng",
     chargedNote: (charged: string) => `Maketou thu bằng FCFA: ${charged}, ngân hàng của bạn sẽ quy đổi.`,
@@ -1471,7 +1474,8 @@ pricing: {
         resumer: "Tóm tắt bài học",
         generer: "Đề kiểm tra được tạo",
         corriger: "Sửa bài",
-        assistant: "Tin nhắn cho trợ lý",
+        assistant: "Câu hỏi cho Gia sư giọng nói",
+        lessonPage: "Trang được giảng chi tiết",
       },
       costUnit: (credits: number) => (credits > 1 ? `${credits} credit` : `${credits} credit`),
     },

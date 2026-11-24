@@ -752,6 +752,8 @@ export const en: Dictionary = {
       "I didn't hear you, so I turned the mic off. Tap it when you're ready.",
     errorNoSpeech: "I didn't hear your question. Move closer to the mic and try again.",
     trialEndedTitle: "Free trial over",
+    pageCreditsNeeded: (cost: number) =>
+      `A page explained in detail costs ${cost} credits, and you don't have enough left. You can still ask questions (1 credit each), or renew Premium to continue the explanation.`,
     trialEndedMessage: (pages: number) =>
       `Your free voice tutor trial (${pages} pages) is over. Upgrade to Premium to keep using it.`,
     trialHint: (remaining: number, total: number) =>
@@ -939,6 +941,7 @@ export const en: Dictionary = {
       "Incluse": "Included",
       "Professeur vocal": "Voice tutor",
       "Essai : 2 pages (1 crédit/page)": "Trial: 2 pages (1 credit/page)",
+      "1 crédit/question · 3 crédits/page détaillée": "1 credit/question · 3 credits/detailed page",
     } as Record<string, string>,
     pricePeriod: "/month",
     chargedNote: (charged: string) => `Charged in FCFA by Maketou: ${charged}, converted by your bank.`,
@@ -1498,7 +1501,8 @@ export const en: Dictionary = {
         resumer: "Course summary",
         generer: "Generated test",
         corriger: "Correction",
-        assistant: "Message to the assistant",
+        assistant: "Question to the Voice tutor",
+        lessonPage: "Page explained in detail",
       },
       costUnit: (credits: number) => (credits > 1 ? `${credits} credits` : `${credits} credit`),
     },

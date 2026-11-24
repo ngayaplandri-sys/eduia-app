@@ -733,6 +733,8 @@ noSpeechStopped:
       "मुझे आप सुनाई नहीं दिए, इसलिए मैंने माइक बंद कर दिया। तैयार हों तो इसे टैप करें।",
 errorNoSpeech: "मुझे आपका सवाल सुनाई नहीं दिया। माइक के पास आइए और फिर से कोशिश करें।",
     trialEndedTitle: "फ्री ट्रायल खत्म हो गया",
+    pageCreditsNeeded: (cost: number) =>
+      `किसी पेज को विस्तार से समझाने में ${cost} क्रेडिट लगते हैं, और तुम्हारे पास अब इतने क्रेडिट नहीं बचे हैं। तुम अब भी सवाल पूछ सकते हो (हर सवाल 1 क्रेडिट), या समझाना जारी रखने के लिए Premium रिन्यू करो।`,
     trialEndedMessage: (pages: number) =>
       `वॉइस ट्यूटर का आपका फ्री ट्रायल (${pages} पेज) खत्म हो गया है। इसे इस्तेमाल करते रहने के लिए Premium लें।`,
     trialHint: (remaining: number, total: number) =>
@@ -916,6 +918,7 @@ premium: {
       "Incluse": "शामिल",
       "Professeur vocal": "वॉइस ट्यूटर",
       "Essai : 2 pages (1 crédit/page)": "ट्रायल: 2 पेज (1 क्रेडिट/पेज)",
+      "1 crédit/question · 3 crédits/page détaillée": "1 क्रेडिट/प्रश्न · 3 क्रेडिट/विस्तृत पेज",
     } as Record<string, string>,
     pricePeriod: "/माह",
     chargedNote: (charged: string) => `Maketou द्वारा FCFA में लिया जाता है: ${charged}, बदलाव आपका बैंक करता है।`,
@@ -1471,7 +1474,8 @@ pricing: {
         resumer: "कोर्स सारांश",
         generer: "जनरेटेड टेस्ट",
         corriger: "सुधार",
-        assistant: "असिस्टेंट को संदेश",
+        assistant: "वॉइस ट्यूटर से सवाल",
+        lessonPage: "विस्तार से समझाया गया पेज",
       },
       costUnit: (credits: number) => (credits > 1 ? `${credits} क्रेडिट` : `${credits} क्रेडिट`),
     },

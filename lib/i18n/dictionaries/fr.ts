@@ -772,6 +772,8 @@ export const fr = {
       "Je ne t'ai pas entendu, alors j'ai coupé le micro. Appuie dessus quand tu es prêt.",
     errorNoSpeech: "Je n'ai pas entendu ta question. Rapproche-toi du micro et réessaie.",
     trialEndedTitle: "Essai gratuit terminé",
+    pageCreditsNeeded: (cost: number) =>
+      `Une page expliquée en détail coûte ${cost} crédits, et il ne t'en reste pas assez. Tu peux encore poser des questions (1 crédit chacune), ou renouveler Premium pour continuer l'explication.`,
     trialEndedMessage: (pages: number) =>
       `Ton essai gratuit du professeur vocal (${pages} pages) est terminé. Passe à Premium pour continuer à l'utiliser.`,
     trialHint: (remaining: number, total: number) =>
@@ -962,6 +964,7 @@ export const fr = {
       "Incluse": "Incluse",
       "Professeur vocal": "Professeur vocal",
       "Essai : 2 pages (1 crédit/page)": "Essai : 2 pages (1 crédit/page)",
+      "1 crédit/question · 3 crédits/page détaillée": "1 crédit/question · 3 crédits/page détaillée",
     } as Record<string, string>,
     pricePeriod: "/mois",
     chargedNote: (charged: string) => `Prélevé en FCFA par Maketou : ${charged}, converti par ta banque.`,
@@ -1527,7 +1530,8 @@ export const fr = {
         resumer: "Résumé de cours",
         generer: "Épreuve générée",
         corriger: "Correction",
-        assistant: "Message à l'assistant",
+        assistant: "Question au Professeur vocal",
+        lessonPage: "Page expliquée en détail",
       },
       costUnit: (credits: number) => (credits > 1 ? `${credits} crédits` : `${credits} crédit`),
     },

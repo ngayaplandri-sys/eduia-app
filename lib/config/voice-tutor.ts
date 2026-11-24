@@ -147,16 +147,14 @@ export const VOICE_TUTOR_RECENT_HISTORY_MESSAGE_CHARS = 3800;
 export const VOICE_TUTOR_IDLE_LISTEN_MS = 3 * 60_000;
 
 /**
- * Explication page par page : la question qui la lance coûte 1 crédit, puis
- * les pages qui suivent ne coûtent qu'1 crédit toutes les 3 pages (pages 4, 7,
- * 10… facturées, les autres offertes).
+ * Page expliquée en détail (lue, traduite puis expliquée : ≈ 4 min de voix,
+ * ≈ 0,07 $) : 3 crédits chacune — la page qui lance une explication page par
+ * page, chaque page enchaînée ensuite, et une page demandée par son numéro.
+ * Une question simple reste à 1 crédit (`CREDIT_COSTS.assistant`), comme la
+ * reprise d'une page déjà payée après une interruption. Plafonne le coût d'un
+ * abonné Premium (500 crédits ≈ 165 pages ≈ 12 $ de voix au plus).
  */
-export const VOICE_TUTOR_LESSON_PAGES_PER_CREDIT = 3;
-
-/** La page `page` d'une explication page par page est-elle facturée ? */
-export function isChargedLessonPage(page: number): boolean {
-  return page % VOICE_TUTOR_LESSON_PAGES_PER_CREDIT === 1;
-}
+export const VOICE_TUTOR_DETAILED_PAGE_CREDITS = 3;
 
 /**
  * Compte gratuit : essai du Professeur vocal limité à 2 pages (2 réponses du

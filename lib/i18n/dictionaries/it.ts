@@ -733,6 +733,8 @@ noSpeechStopped:
       "Non ti ho sentito, quindi ho disattivato il microfono. Toccalo quando sei pronto.",
 errorNoSpeech: "Non ho sentito la tua domanda. Avvicinati al microfono e riprova.",
     trialEndedTitle: "Prova gratuita terminata",
+    pageCreditsNeeded: (cost: number) =>
+      `Una pagina spiegata nel dettaglio costa ${cost} crediti e non te ne restano abbastanza. Puoi ancora fare domande (1 credito ciascuna) oppure rinnovare Premium per continuare la spiegazione.`,
     trialEndedMessage: (pages: number) =>
       `La tua prova gratuita del tutor vocale (${pages} pagine) è terminata. Passa a Premium per continuare a usarlo.`,
     trialHint: (remaining: number, total: number) =>
@@ -916,6 +918,7 @@ premium: {
       "Incluse": "Inclusa",
       "Professeur vocal": "Tutor vocale",
       "Essai : 2 pages (1 crédit/page)": "Prova: 2 pagine (1 credito/pagina)",
+      "1 crédit/question · 3 crédits/page détaillée": "1 credito/domanda · 3 crediti/pagina dettagliata",
     } as Record<string, string>,
     pricePeriod: "/mese",
     chargedNote: (charged: string) => `Addebitato in FCFA da Maketou: ${charged}, convertito dalla tua banca.`,
@@ -1471,7 +1474,8 @@ pricing: {
         resumer: "Riassunto della lezione",
         generer: "Test generato",
         corriger: "Correzione",
-        assistant: "Messaggio all’assistente",
+        assistant: "Domanda al Tutor vocale",
+        lessonPage: "Pagina spiegata nel dettaglio",
       },
       costUnit: (credits: number) => (credits > 1 ? `${credits} crediti` : `${credits} credito`),
     },

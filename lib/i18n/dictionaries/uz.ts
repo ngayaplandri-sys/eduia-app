@@ -733,6 +733,8 @@ noSpeechStopped:
       "Sizni eshitmadim, shuning uchun mikrofoni oʻchirib qoʻydim. Tayyor boʻlsangiz, bosing.",
 errorNoSpeech: "Savolingizni eshitmadim. Mikrofonga yaqinroq boring va qayta urinib koʻring.",
     trialEndedTitle: "Bepul sinov tugadi",
+    pageCreditsNeeded: (cost: number) =>
+      `Bitta sahifani batafsil tushuntirish ${cost} kredit turadi, senda esa yetarli kredit qolmadi. Savol berishda davom etishing mumkin (har biri 1 kredit) yoki tushuntirishni davom ettirish uchun Premiumni yangila.`,
     trialEndedMessage: (pages: number) =>
       `Ovozli tutorning bepul sinovi (${pages} sahifa) tugadi. Foydalanishni davom ettirish uchun Premiumga oʻting.`,
     trialHint: (remaining: number, total: number) =>
@@ -916,6 +918,7 @@ premium: {
       "Incluse": "Kiritilgan",
       "Professeur vocal": "Ovozli tutor",
       "Essai : 2 pages (1 crédit/page)": "Sinov: 2 sahifa (sahifasiga 1 kredit)",
+      "1 crédit/question · 3 crédits/page détaillée": "1 savolga 1 kredit · batafsil sahifaga 3 kredit",
     } as Record<string, string>,
     pricePeriod: "/oy",
     chargedNote: (charged: string) => `Maketou orqali FCFA’da yechiladi: ${charged}, konvertatsiyani bankingiz qiladi.`,
@@ -1471,7 +1474,8 @@ pricing: {
         resumer: "Kurs xulosasi",
         generer: "Yaratilgan test",
         corriger: "Tuzatish",
-        assistant: "Yordamchiga xabar",
+        assistant: "Ovozli tutorga savol",
+        lessonPage: "Batafsil tushuntirilgan sahifa",
       },
       costUnit: (credits: number) => (credits > 1 ? `${credits} kredit` : `${credits} kredit`),
     },

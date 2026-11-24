@@ -733,6 +733,8 @@ noSpeechStopped:
       "我没听到你说话，所以我已经关闭麦克风。准备好后再点一下。",
 errorNoSpeech: "我没听清你的问题。请靠近麦克风再试一次。",
     trialEndedTitle: "免费试用已结束",
+    pageCreditsNeeded: (cost: number) =>
+      `详细讲解一页需要 ${cost} 积分，你剩余的积分不够了。你仍然可以继续提问（每个问题 1 积分），或续订 Premium 以继续讲解。`,
     trialEndedMessage: (pages: number) =>
       `你的语音导师免费试用（${pages} 页）已结束。升级到 Premium 即可继续使用。`,
     trialHint: (remaining: number, total: number) =>
@@ -916,6 +918,7 @@ premium: {
       "Incluse": "已包含",
       "Professeur vocal": "语音导师",
       "Essai : 2 pages (1 crédit/page)": "试用：2 页（每页 1 积分）",
+      "1 crédit/question · 3 crédits/page détaillée": "1 积分/问题 · 3 积分/详细讲解一页",
     } as Record<string, string>,
     pricePeriod: "/月",
     chargedNote: (charged: string) => `由 Maketou 以 FCFA 扣款：${charged}，由你的银行换算。`,
@@ -1471,7 +1474,8 @@ pricing: {
         resumer: "课程总结",
         generer: "生成的测试",
         corriger: "纠错",
-        assistant: "发给助手的消息",
+        assistant: "向语音导师提问",
+        lessonPage: "详细讲解一页",
       },
       costUnit: (credits: number) => (credits > 1 ? `${credits} 个积分` : `${credits} 个积分`),
     },

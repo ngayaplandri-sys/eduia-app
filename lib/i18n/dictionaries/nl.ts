@@ -733,6 +733,8 @@ noSpeechStopped:
       "Ik heb je niet gehoord, dus ik heb de microfoon uitgeschakeld. Tik erop wanneer je klaar bent.",
 errorNoSpeech: "Ik heb je vraag niet gehoord. Kom dichter bij de microfoon en probeer het opnieuw.",
     trialEndedTitle: "Gratis proefperiode voorbij",
+    pageCreditsNeeded: (cost: number) =>
+      `Een uitgebreid uitgelegde pagina kost ${cost} credits en je hebt er niet genoeg meer. Je kunt nog steeds vragen stellen (1 credit per vraag) of Premium verlengen om verder te gaan met de uitleg.`,
     trialEndedMessage: (pages: number) =>
       `Je gratis proefperiode van de stemdocent (${pages} pagina's) is voorbij. Stap over op Premium om hem te blijven gebruiken.`,
     trialHint: (remaining: number, total: number) =>
@@ -916,6 +918,7 @@ premium: {
       "Incluse": "Inbegrepen",
       "Professeur vocal": "Stemdocent",
       "Essai : 2 pages (1 crédit/page)": "Proef: 2 pagina's (1 credit/pagina)",
+      "1 crédit/question · 3 crédits/page détaillée": "1 credit/vraag · 3 credits/uitgebreide pagina",
     } as Record<string, string>,
     pricePeriod: "/maand",
     chargedNote: (charged: string) => `In FCFA afgeschreven door Maketou: ${charged}, omgerekend door je bank.`,
@@ -1471,7 +1474,8 @@ pricing: {
         resumer: "Cursusoverzicht",
         generer: "Gegenereerde test",
         corriger: "Correctie",
-        assistant: "Bericht aan de assistent",
+        assistant: "Vraag aan de Stemdocent",
+        lessonPage: "Uitgebreid uitgelegde pagina",
       },
       costUnit: (credits: number) => (credits > 1 ? `${credits} credits` : `${credits} credit`),
     },

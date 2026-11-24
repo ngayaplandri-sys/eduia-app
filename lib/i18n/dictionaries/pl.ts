@@ -733,6 +733,8 @@ noSpeechStopped:
       "Nie usłyszałem cię, więc wyłączyłem mikrofon. Dotknij go, gdy będziesz gotowy.",
 errorNoSpeech: "Nie usłyszałem twojego pytania. Podejdź bliżej do mikrofonu i spróbuj ponownie.",
     trialEndedTitle: "Bezpłatny okres próbny zakończony",
+    pageCreditsNeeded: (cost: number) =>
+      `Szczegółowe wyjaśnienie strony kosztuje ${cost} kredyty, a nie masz ich już wystarczająco. Nadal możesz zadawać pytania (1 kredyt za każde) albo odnowić Premium, aby kontynuować wyjaśnianie.`,
     trialEndedMessage: (pages: number) =>
       `Twój bezpłatny okres próbny tutora głosowego (${pages} strony) dobiegł końca. Przejdź na Premium, aby dalej z niego korzystać.`,
     trialHint: (remaining: number, total: number) =>
@@ -916,6 +918,7 @@ premium: {
       "Incluse": "Wliczone",
       "Professeur vocal": "Tutor głosowy",
       "Essai : 2 pages (1 crédit/page)": "Próba: 2 strony (1 kredyt/strona)",
+      "1 crédit/question · 3 crédits/page détaillée": "1 kredyt/pytanie · 3 kredyty/szczegółowa strona",
     } as Record<string, string>,
     pricePeriod: "/miesiąc",
     chargedNote: (charged: string) => `Pobierane w FCFA przez Maketou: ${charged}, przeliczane przez Twój bank.`,
@@ -1471,7 +1474,8 @@ pricing: {
         resumer: "Podsumowanie lekcji",
         generer: "Wygenerowany test",
         corriger: "Poprawka",
-        assistant: "Wiadomość do asystenta",
+        assistant: "Pytanie do Tutora głosowego",
+        lessonPage: "Strona wyjaśniona szczegółowo",
       },
       costUnit: (credits: number) => (credits > 1 ? `${credits} kredyty` : `${credits} kredyt`),
     },

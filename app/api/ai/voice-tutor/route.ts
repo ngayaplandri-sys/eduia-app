@@ -25,11 +25,12 @@ import { OPENAI_MODEL } from "@/lib/ai/openai-client";
 import { logAiUsage } from "@/lib/ai/usage";
 import { isSameOriginRequest } from "@/lib/http/guards";
 import {
+  VOICE_TUTOR_DETAILED_PAGE_CREDITS,
   VOICE_TUTOR_FREE_TRIAL_PAGES,
   VOICE_TUTOR_MAX_AUDIO_BYTES,
-  isChargedLessonPage,
   type VoiceTrialState,
 } from "@/lib/config/voice-tutor";
+import { CREDIT_COSTS } from "@/lib/config/credits";
 import { getDictionary } from "@/lib/i18n/server";
 import type { CreditDebitResult } from "@/types";
 
@@ -64,17 +65,23 @@ async function readPayload(value: FormDataEntryValue | null): Promise<unknown> {
  *    par page, langues, page affichée, historique de la conversation), envoyé
  *    compressé en gzip par les navigateurs qui le permettent ;
  *  - `audio` : la question enregistrée au micro (absente pour la suite
- *    automatique d'une explication page par page : `continueLesson`, facturée
- *    comme une question).
+ *    automatique d'une explication page par page : `continueLesson`).
  *
  * L'audio est d'abord transcrit (sans débit : une question inaudible ne coûte
- * rien, et les erreurs sont renvoyées avec leur code HTTP). La question est
- * ensuite facturée comme un message à l'assistant (`CREDIT_COSTS.assistant`,
- * prélevé avant l'appel OpenAI et remboursé en cas d'échec — sauf accès
+ * rien, et les erreurs sont renvoyées avec leur code HTTP). Facturation
+ * (prélevée avant l'appel OpenAI et remboursée en cas d'échec — sauf accès
  * illimité de l'admin), puis la réponse part en flux NDJSON, une ligne JSON
- * par évènement. Compte gratuit : essai de `VOICE_TUTOR_FREE_TRIAL_PAGES`
- * pages (1 crédit par réponse, une fois pour toutes), puis 402
- * `VOICE_TRIAL_ENDED` (Premium) ; une réponse échouée rend la page d'essai.
+ * par évènement :
+ *  - question simple : 1 crédit (`CREDIT_COSTS.assistant`) ;
+ *  - page détaillée : `VOICE_TUTOR_DETAILED_PAGE_CREDITS` (3). Une suite
+ *    automatique les paie d'avance ; une question dont la réponse s'avère être
+ *    une page détaillée (repère `suite:oui` : début d'une explication page par
+ *    page, page demandée par son numéro) paie 1 crédit d'avance puis le reste
+ *    dès le repère, avant le premier mot (crédits insuffisants : réponse
+ *    arrêtée, crédit rendu, évènement `error` `INSUFFICIENT_CREDITS`).
+ * Compte gratuit : essai de `VOICE_TUTOR_FREE_TRIAL_PAGES` pages (1 crédit
+ * par réponse, une fois pour toutes), puis 402 `VOICE_TRIAL_ENDED`
+ * (Premium) ; une réponse échouée rend la page d'essai.
  *  - `question` : la question transcrite (+ `trialRemaining` pendant l'essai) ;
  *  - `focus` : la page (et quelques mots) du cours dont parle la réponse, et
  *    sa langue si l'élève a demandé d'en changer ;
@@ -178,10 +185,16 @@ export async function POST(request: Request) {
     }
   }
 
-  // Suite d'une explication page par page : 1 crédit toutes les 3 pages seulement
-  // (pendant l'essai gratuit, chaque page coûte 1 crédit).
-  const charged = !data.continueLesson || isChargedLessonPage((data.lessonPage ?? 0) + 1);
-  let debit: { drawnFromSubscription: number; drawnFromRecharge: number } | null = null;
+  // Suite automatique = une page détaillée, payée d'avance ; question = 1
+  // crédit, complété plus bas si sa réponse est une page détaillée (pendant
+  // l'essai gratuit, chaque réponse coûte 1 crédit).
+  const upfrontCost = data.continueLesson
+    ? VOICE_TUTOR_DETAILED_PAGE_CREDITS
+    : CREDIT_COSTS.assistant;
+  const pageCreditsNeeded = () =>
+    dict.voiceTutor.pageCreditsNeeded(VOICE_TUTOR_DETAILED_PAGE_CREDITS);
+  // Tout ce qui a été prélevé pour cette réponse (rendu en cas d'échec).
+  const debits: { drawnFromSubscription: number; drawnFromRecharge: number }[] = [];
   let trialRemaining: number | null = null;
   try {
     if (trial) {
@@ -193,19 +206,23 @@ export async function POST(request: Request) {
           { status: 402 },
         );
       }
-      debit = outcome;
+      debits.push(outcome);
       trialRemaining = outcome.remaining;
-    } else if (!unlimited && charged) {
+    } else if (!unlimited) {
       const result: CreditDebitResult = await db.transaction((tx) =>
-        consumeCredits(tx, user.id, "assistant"),
+        consumeCredits(tx, user.id, "assistant", upfrontCost),
       );
       if (!result.ok) {
         return NextResponse.json(
-          { error: dict.credits.insufficientMessage, code: "INSUFFICIENT_CREDITS", question },
+          {
+            error: data.continueLesson ? pageCreditsNeeded() : dict.credits.insufficientMessage,
+            code: "INSUFFICIENT_CREDITS",
+            question,
+          },
           { status: 402 },
         );
       }
-      debit = result;
+      debits.push(result);
     }
   } catch (error) {
     console.error("[/api/ai/voice-tutor] échec du débit :", error);
@@ -219,6 +236,36 @@ export async function POST(request: Request) {
   }));
   const upstream = new AbortController();
   const encoder = new TextEncoder();
+
+  /** Rend tout ce qui a été prélevé pour cette réponse (et la page d'essai). */
+  const refundAll = async () => {
+    if (debits.length === 0) return;
+    const drawnFromSubscription = debits.reduce((sum, d) => sum + d.drawnFromSubscription, 0);
+    const drawnFromRecharge = debits.reduce((sum, d) => sum + d.drawnFromRecharge, 0);
+    debits.length = 0;
+    await db
+      .transaction(async (tx) => {
+        await refundCredits(tx, user.id, drawnFromSubscription, drawnFromRecharge, "assistant");
+        // Page d'essai rendue avec son crédit.
+        if (trial) await refundVoiceTrialPage(tx, user.id);
+      })
+      .catch((refundError) =>
+        console.error("[/api/ai/voice-tutor] échec du remboursement :", refundError),
+      );
+  };
+
+  /**
+   * Question dont la réponse est une page détaillée (repère `suite:oui` :
+   * début d'une explication page par page, page demandée par son numéro) :
+   * elle coûte une page détaillée, pas une question. Exception : la reprise de
+   * la page coupée en route (`lessonResume`), déjà payée.
+   */
+  const isPagePromotion = (focus: { page: number | null; continues: boolean }) =>
+    !unlimited &&
+    !trial &&
+    !data.continueLesson &&
+    focus.continues &&
+    !(data.lessonResume && focus.page === data.lessonResume.page);
 
   const body = new ReadableStream<Uint8Array>({
     async start(controller) {
@@ -235,11 +282,29 @@ export async function POST(request: Request) {
         text: question,
         ...(trialRemaining !== null ? { trialRemaining } : {}),
       });
+      let stoppedForCredits = false;
       try {
         const cacheKey = promptCacheKey(user.id, data);
         const options = { trialLast: trialRemaining === 0 };
         for await (const event of streamVoiceTutor(data, question, profile, dict, upstream.signal, cacheKey, options)) {
           if (event.type === "focus") {
+            // Le complément est prélevé avant le premier mot : pas de page
+            // détaillée prononcée sans les crédits d'une page détaillée.
+            if (isPagePromotion(event.focus)) {
+              const extra: CreditDebitResult = await db.transaction((tx) =>
+                consumeCredits(
+                  tx,
+                  user.id,
+                  "assistant",
+                  VOICE_TUTOR_DETAILED_PAGE_CREDITS - upfrontCost,
+                ),
+              );
+              if (!extra.ok) {
+                stoppedForCredits = true;
+                break;
+              }
+              debits.push(extra);
+            }
             send({ type: "focus", ...event.focus });
           } else if (event.type === "delta") {
             send({ type: "delta", text: event.text });
@@ -263,20 +328,14 @@ export async function POST(request: Request) {
             send({ type: "done", answer: event.answer, pages: event.pages, credits });
           }
         }
+        if (stoppedForCredits) await stopForCredits();
       } catch (error) {
-        console.error("[/api/ai/voice-tutor] échec de la réponse :", error);
-        if (debit) {
-          const { drawnFromSubscription, drawnFromRecharge } = debit;
-          await db
-            .transaction(async (tx) => {
-              await refundCredits(tx, user.id, drawnFromSubscription, drawnFromRecharge, "assistant");
-              // Page d'essai rendue avec son crédit.
-              if (trial) await refundVoiceTrialPage(tx, user.id);
-            })
-            .catch((refundError) =>
-              console.error("[/api/ai/voice-tutor] échec du remboursement :", refundError),
-            );
+        if (stoppedForCredits) {
+          await stopForCredits();
+          return closeStream();
         }
+        console.error("[/api/ai/voice-tutor] échec de la réponse :", error);
+        await refundAll();
         await logAiUsage({
           userId: user.id,
           kind: "assistant",
@@ -285,10 +344,24 @@ export async function POST(request: Request) {
         });
         send({ type: "error", message: describeAIError(error, dict).message });
       }
-      try {
-        controller.close();
-      } catch {
-        // Déjà fermé.
+      closeStream();
+
+      /**
+       * Pas assez de crédits pour une page détaillée : la génération s'arrête
+       * avant le premier mot et le crédit de la question est rendu.
+       */
+      async function stopForCredits() {
+        upstream.abort();
+        await refundAll();
+        send({ type: "error", message: pageCreditsNeeded(), code: "INSUFFICIENT_CREDITS" });
+      }
+
+      function closeStream() {
+        try {
+          controller.close();
+        } catch {
+          // Déjà fermé.
+        }
       }
     },
     cancel() {

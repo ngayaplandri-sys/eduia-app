@@ -733,6 +733,8 @@ noSpeechStopped:
       "말소리가 들리지 않아 마이크를 껐습니다. 준비되면 다시 눌러 주세요.",
 errorNoSpeech: "질문이 들리지 않았습니다. 마이크에 더 가까이 대고 다시 시도해 주세요.",
     trialEndedTitle: "무료 체험 종료",
+    pageCreditsNeeded: (cost: number) =>
+      `페이지 상세 설명에는 ${cost}크레딧이 필요한데, 남은 크레딧이 부족해. 질문은 계속할 수 있어(질문당 1크레딧). 설명을 이어 가려면 Premium을 갱신해 줘.`,
     trialEndedMessage: (pages: number) =>
       `음성 튜터 무료 체험(${pages}페이지)이 끝났습니다. 계속 사용하려면 Premium으로 업그레이드하세요.`,
     trialHint: (remaining: number, total: number) =>
@@ -916,6 +918,7 @@ premium: {
       "Incluse": "포함",
       "Professeur vocal": "음성 튜터",
       "Essai : 2 pages (1 crédit/page)": "체험: 2페이지(페이지당 1크레딧)",
+      "1 crédit/question · 3 crédits/page détaillée": "문항당 1크레딧 · 상세 설명 페이지당 3크레딧",
     } as Record<string, string>,
     pricePeriod: "/월",
     chargedNote: (charged: string) => `Maketou가 FCFA로 청구합니다: ${charged} (환전은 은행이 처리합니다).`,
@@ -1471,7 +1474,8 @@ pricing: {
         resumer: "수업 요약",
         generer: "생성된 테스트",
         corriger: "첨삭",
-        assistant: "도우미에게 보낸 메시지",
+        assistant: "음성 튜터에게 질문",
+        lessonPage: "페이지 상세 설명",
       },
       costUnit: (credits: number) => (credits > 1 ? `${credits} 크레딧` : `${credits} 크레딧`),
     },

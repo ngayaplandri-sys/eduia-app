@@ -285,8 +285,9 @@ export async function consumeCredits(
   tx: DbTransaction,
   userId: string,
   feature: CreditFeature,
+  /** Coût particulier (ex. page détaillée du Professeur vocal), sinon `CREDIT_COSTS[feature]`. */
+  cost: number = CREDIT_COSTS[feature],
 ): Promise<CreditDebitResult> {
-  const cost = CREDIT_COSTS[feature];
   const kind = CONSUME_KIND_BY_FEATURE[feature];
 
   const result = await tx.execute<{

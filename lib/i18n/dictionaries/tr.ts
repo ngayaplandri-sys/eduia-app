@@ -733,6 +733,8 @@ noSpeechStopped:
       "Seni duyamadım, bu yüzden mikrofonu kapattım. Hazır olduğunda tekrar dokun.",
 errorNoSpeech: "Sorunu duyamadım. Mikrofonun yakınına gel ve tekrar dene.",
     trialEndedTitle: "Ücretsiz deneme sona erdi",
+    pageCreditsNeeded: (cost: number) =>
+      `Ayrıntılı anlatılan bir sayfa ${cost} kredi tutar ve yeterli kredin kalmadı. Yine de soru sorabilirsin (soru başına 1 kredi) ya da anlatıma devam etmek için Premium'u yenileyebilirsin.`,
     trialEndedMessage: (pages: number) =>
       `Sesli öğretmenin ücretsiz denemesi (${pages} sayfa) sona erdi. Kullanmaya devam etmek için Premium’a geç.`,
     trialHint: (remaining: number, total: number) =>
@@ -916,6 +918,7 @@ premium: {
       "Incluse": "Dahil",
       "Professeur vocal": "Sesli öğretmen",
       "Essai : 2 pages (1 crédit/page)": "Deneme: 2 sayfa (sayfa başına 1 kredi)",
+      "1 crédit/question · 3 crédits/page détaillée": "Soru başına 1 kredi · ayrıntılı sayfa başına 3 kredi",
     } as Record<string, string>,
     pricePeriod: "/ay",
     chargedNote: (charged: string) => `Maketou tarafından FCFA olarak tahsil edilir: ${charged}, dönüşümü bankan yapar.`,
@@ -1471,7 +1474,8 @@ pricing: {
         resumer: "Ders özeti",
         generer: "Oluşturulan test",
         corriger: "Düzeltme",
-        assistant: "Asistana mesaj",
+        assistant: "Sesli öğretmene soru",
+        lessonPage: "Ayrıntılı anlatılan sayfa",
       },
       costUnit: (credits: number) => (credits > 1 ? `${credits} kredi` : `${credits} kredi`),
     },

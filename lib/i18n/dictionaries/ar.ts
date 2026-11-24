@@ -733,6 +733,8 @@ noSpeechStopped:
       "لم أسمعك، لذلك أوقفت الميكروفون. اضغط عليه عندما تكون جاهزًا.",
 errorNoSpeech: "لم أسمع سؤالك. اقترب من الميكروفون وحاول مرة أخرى.",
     trialEndedTitle: "انتهت التجربة المجانية",
+    pageCreditsNeeded: (cost: number) =>
+      `شرح صفحة بالتفصيل يكلّف ${cost} أرصدة، ولم يتبقَّ لديك ما يكفي. لا يزال بإمكانك طرح الأسئلة (رصيد واحد لكل سؤال)، أو تجديد Premium لمتابعة الشرح.`,
     trialEndedMessage: (pages: number) =>
       `انتهت تجربتك المجانية للمدرّس الصوتي (${pages} صفحات). انتقل إلى Premium لمواصلة استخدامه.`,
     trialHint: (remaining: number, total: number) =>
@@ -916,6 +918,7 @@ premium: {
       "Incluse": "مشمولة",
       "Professeur vocal": "مدرّس صوتي",
       "Essai : 2 pages (1 crédit/page)": "تجربة: صفحتان (رصيد واحد لكل صفحة)",
+      "1 crédit/question · 3 crédits/page détaillée": "1 رصيد/سؤال · 3 أرصدة/صفحة مفصّلة",
     } as Record<string, string>,
     pricePeriod: "/month",
     chargedNote: (charged: string) => `يُقتطع بالفرنك الإفريقي (FCFA) عبر Maketou: ${charged}، ويتولّى بنكك التحويل.`,
@@ -1471,7 +1474,8 @@ pricing: {
         resumer: "ملخص الدرس",
         generer: "اختبار مُولَّد",
         corriger: "تصحيح",
-        assistant: "رسالة إلى المساعد",
+        assistant: "سؤال للمدرّس الصوتي",
+        lessonPage: "صفحة مشروحة بالتفصيل",
       },
       costUnit: (credits: number) => (credits > 1 ? `${credits} رصيد` : `${credits} رصيد`),
     },

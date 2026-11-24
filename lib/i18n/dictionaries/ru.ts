@@ -733,6 +733,8 @@ noSpeechStopped:
       "Я тебя не услышал, поэтому выключил микрофон. Нажми на него, когда будешь готов.",
 errorNoSpeech: "Я не услышал твой вопрос. Подойди ближе к микрофону и попробуй снова.",
     trialEndedTitle: "Бесплатный пробный период закончился",
+    pageCreditsNeeded: (cost: number) =>
+      `Подробное объяснение страницы стоит ${cost} кредита, а у тебя их осталось недостаточно. Ты по-прежнему можешь задавать вопросы (1 кредит за каждый) или продлить Premium, чтобы продолжить объяснение.`,
     trialEndedMessage: (pages: number) =>
       `Твой бесплатный пробный период голосового тьютора (${pages} страницы) закончился. Перейди на Premium, чтобы продолжить.`,
     trialHint: (remaining: number, total: number) =>
@@ -916,6 +918,7 @@ premium: {
       "Incluse": "Включено",
       "Professeur vocal": "Голосовой тьютор",
       "Essai : 2 pages (1 crédit/page)": "Пробно: 2 страницы (1 кредит/страница)",
+      "1 crédit/question · 3 crédits/page détaillée": "1 кредит/вопрос · 3 кредита/подробная страница",
     } as Record<string, string>,
     pricePeriod: "/мес.",
     chargedNote: (charged: string) => `Списывается в FCFA через Maketou: ${charged}, конвертацию делает твой банк.`,
@@ -1471,7 +1474,8 @@ pricing: {
         resumer: "Конспект курса",
         generer: "Сгенерированный тест",
         corriger: "Проверка",
-        assistant: "Сообщение помощнику",
+        assistant: "Вопрос голосовому тьютору",
+        lessonPage: "Подробно объяснённая страница",
       },
       costUnit: (credits: number) => (credits > 1 ? `${credits} кредитов` : `${credits} кредит`),
     },

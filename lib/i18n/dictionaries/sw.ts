@@ -733,6 +733,8 @@ noSpeechStopped:
       "Sikukusikia, kwa hiyo nimezima maikrofoni. Iguse ukiwa tayari.",
 errorNoSpeech: "Sikusikia swali lako. Karibia maikrofoni na ujaribu tena.",
     trialEndedTitle: "Jaribio la bure limeisha",
+    pageCreditsNeeded: (cost: number) =>
+      `Ukurasa unaoelezwa kwa kina unagharimu salio ${cost}, na huna salio la kutosha tena. Bado unaweza kuuliza maswali (salio 1 kwa kila swali), au kufanya upya Premium ili kuendelea na maelezo.`,
     trialEndedMessage: (pages: number) =>
       `Jaribio lako la bure la mwalimu wa sauti (kurasa ${pages}) limeisha. Panda hadi Premium ili uendelee kumtumia.`,
     trialHint: (remaining: number, total: number) =>
@@ -916,6 +918,7 @@ premium: {
       "Incluse": "Imejumuishwa",
       "Professeur vocal": "Mwalimu wa sauti",
       "Essai : 2 pages (1 crédit/page)": "Jaribio: kurasa 2 (salio 1 kwa ukurasa)",
+      "1 crédit/question · 3 crédits/page détaillée": "salio 1/swali · salio 3/ukurasa wa kina",
     } as Record<string, string>,
     pricePeriod: "/mwezi",
     chargedNote: (charged: string) => `Hulipwa kwa FCFA kupitia Maketou: ${charged}, benki yako hufanya ubadilishaji.`,
@@ -1471,7 +1474,8 @@ pricing: {
         resumer: "Muhtasari wa somo",
         generer: "Jaribio lililotengenezwa",
         corriger: "Marekebisho",
-        assistant: "Ujumbe kwa msaidizi",
+        assistant: "Swali kwa Mwalimu wa sauti",
+        lessonPage: "Ukurasa ulioelezwa kwa kina",
       },
       costUnit: (credits: number) => (credits > 1 ? `${credits} credits` : `${credits} credit`),
     },

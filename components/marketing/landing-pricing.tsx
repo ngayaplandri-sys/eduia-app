@@ -1,13 +1,14 @@
 import Link from "next/link";
 import {
   ArrowRight,
-  Bot,
+  BookOpenText,
   Check,
   ClipboardCheck,
   Coins,
   FilePenLine,
   FileText,
   Gift,
+  Mic,
   Repeat,
   Sparkles,
   Zap,
@@ -16,6 +17,7 @@ import { Reveal } from "@/components/motion/reveal";
 import { TiltSurface } from "@/components/motion/tilt-surface";
 import { cn } from "@/lib/utils/cn";
 import { CREDIT_COSTS, PLAN_CREDITS } from "@/lib/config/credits";
+import { VOICE_TUTOR_DETAILED_PAGE_CREDITS } from "@/lib/config/voice-tutor";
 import type { LocalPricing } from "@/lib/pricing/local-price";
 import { getDictionary } from "@/lib/i18n/server";
 import { PaymentMethodChips } from "@/components/billing/payment-method-chips";
@@ -161,7 +163,8 @@ export async function LandingPricing({
     { label: t.costs.resumer, cost: CREDIT_COSTS.resumer, icon: FileText, tone: "bg-success-100 text-success-700" },
     { label: t.costs.generer, cost: CREDIT_COSTS.generer, icon: FilePenLine, tone: "bg-primary-100 text-primary-700" },
     { label: t.costs.corriger, cost: CREDIT_COSTS.corriger, icon: ClipboardCheck, tone: "bg-warning-100 text-warning-700" },
-    { label: t.costs.assistant, cost: CREDIT_COSTS.assistant, icon: Bot, tone: "bg-info-100 text-info-700" },
+    { label: t.costs.assistant, cost: CREDIT_COSTS.assistant, icon: Mic, tone: "bg-info-100 text-info-700" },
+    { label: t.costs.lessonPage, cost: VOICE_TUTOR_DETAILED_PAGE_CREDITS, icon: BookOpenText, tone: "bg-info-100 text-info-700" },
   ];
 
   const paymentPoints = [
@@ -220,7 +223,7 @@ export async function LandingPricing({
               {costs.map((item) => {
                 const Icon = item.icon;
                 return (
-                  <li key={item.label} className="flex items-center gap-3 rounded-xl bg-surface px-3.5 py-3 ring-1 ring-line">
+                  <li key={item.label} className="flex items-center gap-3 rounded-xl bg-surface px-3.5 py-3 ring-1 ring-line sm:odd:last:col-span-2">
                     <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-lg", item.tone)}>
                       <Icon className="size-[1.05rem]" aria-hidden />
                     </span>

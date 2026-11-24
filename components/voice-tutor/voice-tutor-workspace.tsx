@@ -146,7 +146,7 @@ type TutorEvent =
       translation?: boolean;
     }
   | { type: "done"; answer: string; pages: number[] }
-  | { type: "error"; message: string };
+  | { type: "error"; message: string; code?: string };
 
 /** Page de l'explication interrompue par l'élève, et la phrase lue à ce moment-là. */
 interface LessonResume {
@@ -1140,7 +1140,7 @@ export function VoiceTutorWorkspace({
       // toujours en conversation (il a pu arrêter pendant la transcription).
       if (conversationRef.current && isCurrentTurn()) liveAnswerRef.current = answerId;
       let finished = false;
-      let failure: string | null = null;
+      let failure: { message: string; code?: string } | null = null;
       let voiceStarted = false;
       // Langue de la réponse : celle choisie, ou celle que l'élève vient de demander.
       let answerLanguage = language;
@@ -1231,7 +1231,8 @@ export function VoiceTutorWorkspace({
             streaming: false,
           }));
         } else if (event.type === "error") {
-          failure = event.message;
+          // `INSUFFICIENT_CREDITS` : pas assez de crédits pour une page détaillée.
+          failure = { message: event.message, code: event.code };
         }
       }
       window.clearTimeout(timer);
@@ -1247,7 +1248,7 @@ export function VoiceTutorWorkspace({
         setPreparingPage(null);
         engine.stopPlayback();
         conversationRef.current = false;
-        setError({ message: failure ?? t.errorConnection });
+        setError(failure ?? { message: t.errorConnection });
         setPhase("idle");
         return;
       }
