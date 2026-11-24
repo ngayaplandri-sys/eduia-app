@@ -732,6 +732,11 @@ goToPage: (page: number) => `查看第 ${page} 页`,
 noSpeechStopped:
       "我没听到你说话，所以我已经关闭麦克风。准备好后再点一下。",
 errorNoSpeech: "我没听清你的问题。请靠近麦克风再试一次。",
+    trialEndedTitle: "免费试用已结束",
+    trialEndedMessage: (pages: number) =>
+      `你的语音导师免费试用（${pages} 页）已结束。升级到 Premium 即可继续使用。`,
+    trialHint: (remaining: number, total: number) =>
+      `免费试用：还剩 ${remaining}/${total} 页（每页 1 积分），之后需 Premium。`,
 errorRecordingTooLong: "你的问题太长了：最多一分钟。",
 errorMicDenied:
       "麦克风权限被拒绝。请在浏览器设置中允许 EduIA 使用麦克风，然后再试一次。",
@@ -862,8 +867,8 @@ parametres: {
   },
 premium: {
     metaTitle: "Premium",
-    metaDescription:
-      "EduIA 提供两种方案：免费版（注册时赠送积分）或 Premium，每月 2,500 FCFA，可通过 Mobile Money 或银行卡支付，不会自动扣费。",
+    metaDescription: (price: string) =>
+      `EduIA 提供两种方案：免费版（注册时赠送积分）或 Premium，每月 ${price}，可通过 Mobile Money 或银行卡支付，不会自动扣费。`,
     heroBadgeFree: "免费版",
     heroBadgePremium: "Premium 账户",
     heroBadgePremiumPlus: "Premium+ 账户",
@@ -875,8 +880,8 @@ premium: {
     heroTitlePremiumPlusBefore: "尽享 ",
     heroTitlePremiumPlusAccent: "1,000 积分",
     heroTitlePremiumPlusAfter: " 每月",
-    heroBodyFree:
-      "你的免费账户在注册时会赠送 10 积分，让你体验所有功能。升级到 Premium 后，每月可获得 500 积分，月费 2,500 FCFA。",
+    heroBodyFree: (price: string) =>
+      `你的免费账户在注册时会赠送 10 积分，让你体验所有功能。升级到 Premium 后，每月可获得 500 积分，月费 ${price}。`,
     heroBodyPremium:
       "订阅后每月可获得 500 积分：总结、出题、批改，并与 AI 助手聊天都不计积分。",
     heroBodyPremiumPlus:
@@ -909,8 +914,11 @@ premium: {
       "500 crédits chaque mois": "每月 500 积分",
       "Non disponible": "不可用",
       "Incluse": "已包含",
+      "Professeur vocal": "语音导师",
+      "Essai : 2 pages (1 crédit/page)": "试用：2 页（每页 1 积分）",
     } as Record<string, string>,
     pricePeriod: "/月",
+    chargedNote: (charged: string) => `由 Maketou 以 FCFA 扣款：${charged}，由你的银行换算。`,
   },
 aide: {
     metaTitle: "帮助与支持",
@@ -1469,9 +1477,12 @@ pricing: {
     },
 payment: {
       heading: "简单付款，单位为 FCFA",
+      headingLocal: "支付简单，使用你的货币",
       subtitle: "规则清晰，让你始终准确知道自己要付多少钱。",
       points: {
         fcfa: "所有价格均以 FCFA 显示。",
+        converted: (currency: string, charged: string) =>
+          `价格仅供参考（${currency}）：实际以 FCFA 收款（${charged}），由你的银行换算。`,
         noCard: "免费账户不需要银行卡。",
         premium: (price: string, credits: number) => `Premium：每月 ${price}，包含 ${credits} 个积分。`,
         monthly: "一个月订阅，无自动扣费：想续费时再续。",

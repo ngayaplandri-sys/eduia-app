@@ -732,6 +732,11 @@ goToPage: (page: number) => `Onyesha ukurasa ${page}`,
 noSpeechStopped:
       "Sikukusikia, kwa hiyo nimezima maikrofoni. Iguse ukiwa tayari.",
 errorNoSpeech: "Sikusikia swali lako. Karibia maikrofoni na ujaribu tena.",
+    trialEndedTitle: "Jaribio la bure limeisha",
+    trialEndedMessage: (pages: number) =>
+      `Jaribio lako la bure la mwalimu wa sauti (kurasa ${pages}) limeisha. Panda hadi Premium ili uendelee kumtumia.`,
+    trialHint: (remaining: number, total: number) =>
+      `Jaribio la bure: zimebaki kurasa ${remaining} kati ya ${total} (salio 1 kwa kila ukurasa), kisha Premium.`,
 errorRecordingTooLong: "Swali lako ni refu sana: dakika moja pekee.",
 errorMicDenied:
       "Ufikiaji wa maikrofoni umekataliwa. Ruhusu maikrofoni kwa EduIA kwenye mipangilio ya kivinjari chako, kisha ujaribu tena.",
@@ -862,8 +867,8 @@ parametres: {
   },
 premium: {
     metaTitle: "Premium",
-    metaDescription:
-      "Mipango miwili ya EduIA: Bure (salio unalopata unapojisajili) au Premium kwa FCFA 2,500 kwa mwezi, inalipwa kupitia Mobile Money au kadi, bila malipo ya kiotomatiki.",
+    metaDescription: (price: string) =>
+      `Mipango miwili ya EduIA: Bure (salio unalopata unapojisajili) au Premium kwa ${price} kwa mwezi, inalipwa kupitia Mobile Money au kadi, bila malipo ya kiotomatiki.`,
     heroBadgeFree: "Kiwango cha bure",
     heroBadgePremium: "Akaunti ya Premium",
     heroBadgePremiumPlus: "Akaunti ya Premium+",
@@ -875,8 +880,8 @@ premium: {
     heroTitlePremiumPlusBefore: "Furahia ",
     heroTitlePremiumPlusAccent: "salio 1,000",
     heroTitlePremiumPlusAfter: " kila mwezi",
-    heroBodyFree:
-      "Akaunti yako ya bure inakupa salio 10 unapojisajili ili ujaribu kila zana. Panda hadi Premium upate salio 500 kila mwezi, kwa FCFA 2,500 kwa mwezi.",
+    heroBodyFree: (price: string) =>
+      `Akaunti yako ya bure inakupa salio 10 unapojisajili ili ujaribu kila zana. Panda hadi Premium upate salio 500 kila mwezi, kwa ${price} kwa mwezi.`,
     heroBodyPremium:
       "Salio 500 kwa kila mwezi wa usajili: fanya muhtasari, tengeneza, pima na zungumza na Msaidizi wa AI bila kuhesabiwa.",
     heroBodyPremiumPlus:
@@ -909,8 +914,11 @@ premium: {
       "500 crédits chaque mois": "salio 500 kila mwezi",
       "Non disponible": "Haipatikani",
       "Incluse": "Imejumuishwa",
+      "Professeur vocal": "Mwalimu wa sauti",
+      "Essai : 2 pages (1 crédit/page)": "Jaribio: kurasa 2 (salio 1 kwa ukurasa)",
     } as Record<string, string>,
     pricePeriod: "/mwezi",
+    chargedNote: (charged: string) => `Hulipwa kwa FCFA kupitia Maketou: ${charged}, benki yako hufanya ubadilishaji.`,
   },
 aide: {
     metaTitle: "Msaada na usaidizi",
@@ -1469,9 +1477,12 @@ pricing: {
     },
 payment: {
       heading: "Malipo rahisi, kwa FCFA",
+      headingLocal: "Malipo rahisi, kwa sarafu yako",
       subtitle: "Sheria zilizo wazi, ili ujue kila wakati unacholipa hasa.",
       points: {
         fcfa: "Bei zote zinaonyeshwa kwa FCFA.",
+        converted: (currency: string, charged: string) =>
+          `Bei zinaonyeshwa kama makadirio (${currency}): malipo hutozwa kwa FCFA (${charged}) na benki yako hufanya ubadilishaji.`,
         noCard: "Akaunti ya bure haihitaji kadi ya benki.",
         premium: (price: string, credits: number) => `Premium: ${price} kwa mwezi, ${credits} credits zimejumuishwa.`,
         monthly: "Usajili wa mwezi mmoja, hakuna malipo ya kiotomatiki: fanya upya wakati wowote unapotaka.",

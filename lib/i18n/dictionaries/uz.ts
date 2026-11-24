@@ -732,6 +732,11 @@ goToPage: (page: number) => ` ${page}-sahifani koʻrsatish`,
 noSpeechStopped:
       "Sizni eshitmadim, shuning uchun mikrofoni oʻchirib qoʻydim. Tayyor boʻlsangiz, bosing.",
 errorNoSpeech: "Savolingizni eshitmadim. Mikrofonga yaqinroq boring va qayta urinib koʻring.",
+    trialEndedTitle: "Bepul sinov tugadi",
+    trialEndedMessage: (pages: number) =>
+      `Ovozli tutorning bepul sinovi (${pages} sahifa) tugadi. Foydalanishni davom ettirish uchun Premiumga oʻting.`,
+    trialHint: (remaining: number, total: number) =>
+      `Bepul sinov: ${total} sahifadan ${remaining} tasi qoldi (har sahifa 1 kredit), keyin Premium.`,
 errorRecordingTooLong: "Savolingiz juda uzun: eng koʻpi bir daqiqa.",
 errorMicDenied:
       "Mikrofonga kirish rad etildi. Brauzer sozlamalarida EduIA uchun mikrofonga ruxsat bering, keyin qayta urinib koʻring.",
@@ -862,8 +867,8 @@ parametres: {
   },
 premium: {
     metaTitle: "Premium",
-    metaDescription:
-      "EduIA’ning ikki tarifi: Bepul (roʻyxatdan oʻtganda beriladigan kreditlar) yoki Premium — oyiga 2,500 FCFA, Mobile Money yoki karta orqali toʻlanadi, avtomatik yechib olinmaydi.",
+    metaDescription: (price: string) =>
+      `EduIA’ning ikki tarifi: Bepul (roʻyxatdan oʻtganda beriladigan kreditlar) yoki Premium — oyiga ${price}, Mobile Money yoki karta orqali toʻlanadi, avtomatik yechib olinmaydi.`,
     heroBadgeFree: "Bepul tarif",
     heroBadgePremium: "Premium akkaunt",
     heroBadgePremiumPlus: "Premium+ akkaunt",
@@ -875,8 +880,8 @@ premium: {
     heroTitlePremiumPlusBefore: "Foydalaning ",
     heroTitlePremiumPlusAccent: "1,000 kredit",
     heroTitlePremiumPlusAfter: " har oy",
-    heroBodyFree:
-      "Bepul hisobingiz roʻyxatdan oʻtganda 10 ta kredit beradi — barcha vositalarni sinab koʻring. Premiumga oʻtsangiz, oyiga 500 kredit olasiz, narxi 2,500 FCFA.",
+    heroBodyFree: (price: string) =>
+      `Bepul hisobingiz roʻyxatdan oʻtganda 10 ta kredit beradi — barcha vositalarni sinab koʻring. Premiumga oʻtsangiz, oyiga 500 kredit olasiz, narxi ${price}.`,
     heroBodyPremium:
       "Obunaning har bir oyi uchun 500 kredit: konspekt qiling, yarating, baholang va AI Assistant bilan kredit sanamasdan suhbatlashing.",
     heroBodyPremiumPlus:
@@ -909,8 +914,11 @@ premium: {
       "500 crédits chaque mois": "Har oy 500 kredit",
       "Non disponible": "Mavjud emas",
       "Incluse": "Kiritilgan",
+      "Professeur vocal": "Ovozli tutor",
+      "Essai : 2 pages (1 crédit/page)": "Sinov: 2 sahifa (sahifasiga 1 kredit)",
     } as Record<string, string>,
     pricePeriod: "/oy",
+    chargedNote: (charged: string) => `Maketou orqali FCFA’da yechiladi: ${charged}, konvertatsiyani bankingiz qiladi.`,
   },
 aide: {
     metaTitle: "Yordam va qoʻllab-quvvatlash",
@@ -1469,9 +1477,12 @@ pricing: {
     },
 payment: {
       heading: "Oddiy toʻlov, FCFAda",
+      headingLocal: "Oddiy toʻlov, oʻz valyutangizda",
       subtitle: "Aniq qoidalar, shuning uchun har doim nima toʻlayotganingni aniq bilasan.",
       points: {
         fcfa: "Barcha narxlar FCFAda koʻrsatilgan.",
+        converted: (currency: string, charged: string) =>
+          `Narxlar taxminiy koʻrsatilgan (${currency}): toʻlov FCFA’da olinadi (${charged}), konvertatsiyani bankingiz qiladi.`,
         noCard: "Bepul hisob uchun bank kartasi kerak emas.",
         premium: (price: string, credits: number) => `Premium: oyiga ${price}, ichiga ${credits} kredit kiradi.`,
         monthly: "Bir oylik obuna, avtomatik yechib olish yoʻq: xohlaganingda yangilaysan.",

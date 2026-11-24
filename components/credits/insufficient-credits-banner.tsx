@@ -14,9 +14,12 @@ import { useI18n } from "@/lib/i18n/client";
  */
 export function InsufficientCreditsBanner({
   message,
+  title,
   className,
 }: {
   message: string;
+  /** Titre du bandeau (par défaut « Crédits insuffisants », ex. « Essai gratuit terminé »). */
+  title?: string;
   className?: string;
 }) {
   const { dict } = useI18n();
@@ -33,7 +36,7 @@ export function InsufficientCreditsBanner({
       <div className="flex items-start gap-2.5">
         <CircleAlert className="mt-0.5 size-4 shrink-0 text-danger-600" aria-hidden />
         <div className="min-w-0 flex-1">
-          <p className="text-fine font-semibold text-danger-700">{t.insufficientTitle}</p>
+          <p className="text-fine font-semibold text-danger-700">{title ?? t.insufficientTitle}</p>
           <p className="mt-0.5 text-fine leading-snug text-danger-600">{message}</p>
         </div>
       </div>

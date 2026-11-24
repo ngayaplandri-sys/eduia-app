@@ -732,6 +732,11 @@ goToPage: (page: number) => `Показать страницу ${page}`,
 noSpeechStopped:
       "Я тебя не услышал, поэтому выключил микрофон. Нажми на него, когда будешь готов.",
 errorNoSpeech: "Я не услышал твой вопрос. Подойди ближе к микрофону и попробуй снова.",
+    trialEndedTitle: "Бесплатный пробный период закончился",
+    trialEndedMessage: (pages: number) =>
+      `Твой бесплатный пробный период голосового тьютора (${pages} страницы) закончился. Перейди на Premium, чтобы продолжить.`,
+    trialHint: (remaining: number, total: number) =>
+      `Пробный период: осталось ${remaining} из ${total} страниц (1 кредит за страницу), затем Premium.`,
 errorRecordingTooLong: "Твой вопрос слишком длинный: максимум одна минута.",
 errorMicDenied:
       "Доступ к микрофону запрещён. Разреши микрофон для EduIA в настройках браузера и попробуй снова.",
@@ -862,8 +867,8 @@ parametres: {
   },
 premium: {
     metaTitle: "Premium",
-    metaDescription:
-      "Два тарифа EduIA: Free (кредиты выдаются при регистрации) или Premium за 2 500 FCFA в месяц, оплата через Mobile Money или карту без автосписания.",
+    metaDescription: (price: string) =>
+      `Два тарифа EduIA: Free (кредиты выдаются при регистрации) или Premium за ${price} в месяц, оплата через Mobile Money или карту без автосписания.`,
     heroBadgeFree: "Бесплатный тариф",
     heroBadgePremium: "Аккаунт Premium",
     heroBadgePremiumPlus: "Аккаунт Premium+",
@@ -875,8 +880,8 @@ premium: {
     heroTitlePremiumPlusBefore: "Получайте ",
     heroTitlePremiumPlusAccent: "1 000 кредитов",
     heroTitlePremiumPlusAfter: " каждый месяц",
-    heroBodyFree:
-      "Бесплатный аккаунт даёт 10 кредитов при регистрации, чтобы попробовать все инструменты. Перейдите на Premium и получайте 500 кредитов каждый месяц за 2 500 FCFA в месяц.",
+    heroBodyFree: (price: string) =>
+      `Бесплатный аккаунт даёт 10 кредитов при регистрации, чтобы попробовать все инструменты. Перейдите на Premium и получайте 500 кредитов каждый месяц за ${price} в месяц.`,
     heroBodyPremium:
       "500 кредитов на каждый месяц подписки: суммируйте, создавайте, проверяйте и общайтесь с ИИ-ассистентом без ограничений.",
     heroBodyPremiumPlus:
@@ -909,8 +914,11 @@ premium: {
       "500 crédits chaque mois": "500 кредитов каждый месяц",
       "Non disponible": "Недоступно",
       "Incluse": "Включено",
+      "Professeur vocal": "Голосовой тьютор",
+      "Essai : 2 pages (1 crédit/page)": "Пробно: 2 страницы (1 кредит/страница)",
     } as Record<string, string>,
     pricePeriod: "/мес.",
+    chargedNote: (charged: string) => `Списывается в FCFA через Maketou: ${charged}, конвертацию делает твой банк.`,
   },
 aide: {
     metaTitle: "Помощь и поддержка",
@@ -1469,9 +1477,12 @@ pricing: {
     },
 payment: {
       heading: "Простая оплата в FCFA",
+      headingLocal: "Простая оплата в твоей валюте",
       subtitle: "Понятные правила, чтобы ты всегда точно знал, сколько платишь.",
       points: {
         fcfa: "Все цены указаны в FCFA.",
+        converted: (currency: string, charged: string) =>
+          `Цены указаны ориентировочно (${currency}): оплата списывается в FCFA (${charged}), а конвертацию делает твой банк.`,
         noCard: "Для бесплатного аккаунта банковская карта не нужна.",
         premium: (price: string, credits: number) => `Premium: ${price} в месяц, включено ${credits} кредитов.`,
         monthly: "Подписка на один месяц, без автосписания: продлевай, когда захочешь.",

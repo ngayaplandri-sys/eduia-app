@@ -1,7 +1,7 @@
 # Paiement Maketou — mise en service
 
 EduIA ne propose que **deux offres** : **Gratuit** (0 FCFA, 10 crédits à
-l'inscription) et **Premium** (**2 500 FCFA par mois**, 500 crédits). Premium
+l'inscription) et **Premium** (**12 000 FCFA par mois**, soit environ 20 $, 500 crédits). Premium
 est encaissé via **Maketou** (Mobile Money et carte). Tout le code est en place ; les étapes
 ci-dessous se font dans les tableaux de bord (Maketou, Vercel). Aucune
 modification de code n'est nécessaire.
@@ -34,6 +34,10 @@ Règles :
 - Premium+ (4 000 FCFA) et les recharges de crédits ont été **retirés de la vente
   le 15/10/2026** (voir « Anciennes offres retirées » plus bas).
 - Maketou prélève **5 % de frais** sur chaque paiement (taux de votre compte).
+- **Prix affiché dans la monnaie de l'élève** (pays déclaré à l'inscription,
+  sinon pays de connexion) : hors zone FCFA, c'est un équivalent indicatif
+  (« ≈ 18 € », taux du jour, `lib/pricing/local-price.ts`). Maketou encaisse
+  toujours 12 000 FCFA, et ce montant est écrit sous le prix.
 - Pas de remboursement par l'API : un remboursement se fait dans le tableau de
   bord Maketou (puis retirer l'accès à la main si besoin).
 
@@ -44,9 +48,9 @@ seul produit** à prix fixe, en **XAF**, **publié** :
 
 | Produit | Prix (XAF) | Variable d'environnement |
 |---|---|---|
-| EduIA Premium — 1 mois | 2 500 | `MAKETOU_PRODUCT_PREMIUM` |
+| EduIA Premium — 1 mois | 12 000 | `MAKETOU_PRODUCT_PREMIUM` |
 
-Le prix doit être **exactement** 2 500 (celui affiché dans EduIA et enregistré
+Le prix doit être **exactement** 12 000 (celui affiché dans EduIA et enregistré
 à chaque achat). Si vous changez le prix dans `lib/config/credits.ts`,
 changez-le aussi chez Maketou.
 
@@ -126,7 +130,7 @@ dans les 26 dernières heures).
 Il n'existe pas de bac à sable Maketou : chaque paiement est réel.
 
 1. Avec un compte admin, sur la page Premium, utiliser l'**offre de test** si
-   elle est configurée, sinon l'offre Premium (2 500 XAF).
+   elle est configurée, sinon l'offre Premium (12 000 XAF).
 2. Sur la page Maketou, vérifier que **le montant affiché est exactement le bon**
    et qu'il n'est pas modifiable.
 3. Payer, revenir sur EduIA : la page doit afficher « Paiement confirmé — accès

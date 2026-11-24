@@ -22,13 +22,18 @@ export const CREDIT_COSTS: Record<CreditFeature, number> = {
  * Les DEUX seules offres d'EduIA : Gratuit (crédits une fois, à l'inscription)
  * et Premium (abonnement d'un mois, payé via Maketou). Source unique des prix
  * affichés et du catalogue de paiement (`lib/maketou/catalog.ts`).
+ *
+ * Premium = 20 $ par mois, encaissé en FCFA par Maketou : 12 000 FCFA
+ * (≈ 20,10 $ au taux du 23/11/2026). Ce montant doit être EXACTEMENT le prix du
+ * produit Premium chez Maketou. Ailleurs qu'en zone FCFA, le prix est affiché
+ * dans la monnaie de l'élève à titre indicatif (`lib/pricing/local-price.ts`).
  */
 export const PLAN_CREDITS: {
   free: { signupGrant: number; priceFcfa: number };
   premium: { monthly: number; priceFcfa: number };
 } = {
   free: { signupGrant: 10, priceFcfa: 0 },
-  premium: { monthly: 500, priceFcfa: 2500 },
+  premium: { monthly: 500, priceFcfa: 12_000 },
 };
 
 /**

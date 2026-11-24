@@ -20,7 +20,7 @@ EduIA le résume, en tire une épreuve, puis corrige la copie de l'élève.
 - **Assistant IA**, **Historique**, **recherche** globale.
 - **Mot de passe oublié** : lien de réinitialisation par e-mail (Resend), valable 1 h.
 - **Deux offres** : **Gratuit** (0 FCFA, 10 crédits à l'inscription) et **Premium**
-  (2 500 FCFA / mois, 500 crédits). Le paiement passe par **Maketou** (Orange Money,
+  (12 000 FCFA ≈ 20 $ / mois, 500 crédits). Le paiement passe par **Maketou** (Orange Money,
   MTN Mobile Money, carte) et les crédits sont décomptés côté serveur.
 - Interface **français / anglais**, thème **clair / sombre / système**, responsive.
 - **Espace admin** (`/admin`) : utilisateurs, abonnements, paiements, usage IA,

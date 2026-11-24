@@ -732,6 +732,11 @@ goToPage: (page: number) => `Mostrar página ${page}`,
 noSpeechStopped:
       "Não ouvi você, então desliguei o microfone. Toque nele quando estiver pronto.",
 errorNoSpeech: "Não ouvi sua pergunta. Chegue mais perto do microfone e tente novamente.",
+    trialEndedTitle: "Teste gratuito terminado",
+    trialEndedMessage: (pages: number) =>
+      `O teu teste gratuito do tutor de voz (${pages} páginas) terminou. Passa para Premium para continuar a usá-lo.`,
+    trialHint: (remaining: number, total: number) =>
+      `Teste gratuito: restam ${remaining} de ${total} páginas (1 crédito por página), depois Premium.`,
 errorRecordingTooLong: "Sua pergunta está muito longa: no máximo um minuto.",
 errorMicDenied:
       "Acesso ao microfone negado. Permita o microfone para o EduIA nas configurações do navegador e tente novamente.",
@@ -862,8 +867,8 @@ parametres: {
   },
 premium: {
     metaTitle: "Premium",
-    metaDescription:
-      "Dois planos EduIA: Free (créditos oferecidos no registo) ou Premium por 2.500 FCFA por mês, pago por Mobile Money ou cartão, sem cobrança automática.",
+    metaDescription: (price: string) =>
+      `Dois planos EduIA: Free (créditos oferecidos no registo) ou Premium por ${price} por mês, pago por Mobile Money ou cartão, sem cobrança automática.`,
     heroBadgeFree: "Plano Free",
     heroBadgePremium: "Conta Premium",
     heroBadgePremiumPlus: "Conta Premium+",
@@ -875,8 +880,8 @@ premium: {
     heroTitlePremiumPlusBefore: "Aproveita ",
     heroTitlePremiumPlusAccent: "1.000 créditos",
     heroTitlePremiumPlusAfter: " todos os meses",
-    heroBodyFree:
-      "A tua conta Free dá-te 10 créditos no registo para experimentares todas as ferramentas. Faz upgrade para Premium e recebe 500 créditos todos os meses, por 2.500 FCFA por mês.",
+    heroBodyFree: (price: string) =>
+      `A tua conta Free dá-te 10 créditos no registo para experimentares todas as ferramentas. Faz upgrade para Premium e recebe 500 créditos todos os meses, por ${price} por mês.`,
     heroBodyPremium:
       "500 créditos por cada mês de subscrição: resume, gera, corrige e conversa com o Assistente IA sem contagem.",
     heroBodyPremiumPlus:
@@ -909,8 +914,11 @@ premium: {
       "500 crédits chaque mois": "500 créditos todos os meses",
       "Non disponible": "Não disponível",
       "Incluse": "Incluído",
+      "Professeur vocal": "Tutor de voz",
+      "Essai : 2 pages (1 crédit/page)": "Teste: 2 páginas (1 crédito/página)",
     } as Record<string, string>,
     pricePeriod: "/mês",
+    chargedNote: (charged: string) => `Cobrado em FCFA pela Maketou: ${charged}, convertido pelo teu banco.`,
   },
 aide: {
     metaTitle: "Ajuda e suporte",
@@ -1469,9 +1477,12 @@ pricing: {
     },
 payment: {
       heading: "Pagamento simples, em FCFA",
+      headingLocal: "Pagamento simples, na tua moeda",
       subtitle: "Regras claras, para saberes sempre exatamente o que pagas.",
       points: {
         fcfa: "Todos os preços são mostrados em FCFA.",
+        converted: (currency: string, charged: string) =>
+          `Preços apresentados em ${currency} a título indicativo: o pagamento é cobrado em FCFA (${charged}) e o teu banco faz a conversão.`,
         noCard: "A conta grátis não precisa de cartão bancário.",
         premium: (price: string, credits: number) => `Premium: ${price} por mês, ${credits} créditos incluídos.`,
         monthly: "Subscrição de um mês, sem cobrança automática: renova quando quiseres.",

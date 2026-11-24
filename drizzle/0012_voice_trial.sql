@@ -1,0 +1,1 @@
+ALTER TABLE "credit_wallets" ADD COLUMN "voice_trial_pages" integer DEFAULT 0 NOT NULL;

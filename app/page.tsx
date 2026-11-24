@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { getCurrentUser } from "@/lib/data/user";
+import { getLocalPricing } from "@/lib/pricing/local-price";
+import { getLocale } from "@/lib/i18n/server";
 import { siteConfig } from "@/lib/config/site";
 import { supportConfig } from "@/lib/config/support";
 import { LANDING_BOTTOM_SENTINEL, LANDING_TOP_SENTINEL } from "@/lib/config/marketing";
@@ -70,12 +72,15 @@ const NO_JS_REVEAL_FALLBACK =
 export default async function LandingPage() {
   // Landing publique : la session sert seulement à adapter les CTA.
   // Un échec de lecture (BDD indisponible…) ne doit jamais casser la page.
-  let isAuthenticated = false;
+  let userId: string | null = null;
   try {
-    isAuthenticated = Boolean(await getCurrentUser());
+    userId = (await getCurrentUser())?.id ?? null;
   } catch {
-    isAuthenticated = false;
+    userId = null;
   }
+  const isAuthenticated = userId !== null;
+  // Prix dans la monnaie du visiteur (pays déclaré, sinon celui de sa connexion).
+  const pricing = await getLocalPricing(await getLocale(), userId);
 
   return (
     <div className="relative flex min-h-dvh flex-col bg-canvas">
@@ -96,14 +101,14 @@ export default async function LandingPage() {
       <LandingHeader isAuthenticated={isAuthenticated} />
       <main className="flex-1">
         <LandingHero isAuthenticated={isAuthenticated} />
-        <LandingStats />
+        <LandingStats freePrice={pricing.free} />
         <LandingHow />
         <LandingDemo />
         <LandingFeatures />
         <LandingSubjects />
         <LandingWhy />
         <LandingProof />
-        <LandingPricing isAuthenticated={isAuthenticated} />
+        <LandingPricing isAuthenticated={isAuthenticated} pricing={pricing} />
         <LandingCta isAuthenticated={isAuthenticated} />
       </main>
       <LandingFooter />

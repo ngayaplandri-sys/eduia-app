@@ -15,13 +15,14 @@ import { getLocale } from "@/lib/i18n/server";
 import { PREMIUM_COMPARISON_ROWS } from "@/lib/config/premium";
 import { PLAN_CREDITS } from "@/lib/config/credits";
 import { formatFcfa } from "@/lib/admin/constants";
+import { getLocalPricing } from "@/lib/pricing/local-price";
 import { getDictionary } from "@/lib/i18n/server";
 
 export async function generateMetadata(): Promise<Metadata> {
   const dict = await getDictionary();
   return {
     title: dict.premium.metaTitle,
-    description: dict.premium.metaDescription,
+    description: dict.premium.metaDescription(formatFcfa(PLAN_CREDITS.premium.priceFcfa)),
   };
 }
 
@@ -30,7 +31,11 @@ export default async function PremiumPage() {
   const t = dict.premium;
   const b = dict.billing;
   const row = (key: string) => t.comparisonRows[key] ?? key;
-  const wallet = await getCreditWallet(user.id);
+  const [wallet, pricing] = await Promise.all([
+    getCreditWallet(user.id),
+    // Prix dans la monnaie de l'élève ; paiement toujours encaissé en FCFA.
+    getLocalPricing(locale, user.id),
+  ]);
   const purchasable = purchasableItemKeys({ isAdmin: user.role === "admin" });
   const testPrice = Number.parseInt(process.env.MAKETOU_TEST_PRICE ?? "", 10);
 
@@ -76,7 +81,8 @@ export default async function PremiumPage() {
     { label: row("Résumer mes cours"), included: true },
     { label: row("Générer une épreuve"), included: true },
     { label: row("Corriger une épreuve"), included: true },
-    { label: row("Assistance IA"), included: true },
+    // Professeur vocal : essai limité (VOICE_TUTOR_FREE_TRIAL_PAGES), puis Premium.
+    { label: `${row("Professeur vocal")} · ${row("Essai : 2 pages (1 crédit/page)")}`, included: true },
   ];
 
   const premiumFeatures: PlanFeature[] = [
@@ -84,7 +90,7 @@ export default async function PremiumPage() {
     { label: row("Résumer mes cours"), included: true },
     { label: row("Générer une épreuve"), included: true },
     { label: row("Corriger une épreuve"), included: true },
-    { label: row("Assistance IA"), included: true },
+    { label: row("Professeur vocal"), included: true },
     { label: row("Historique complet"), included: true },
   ];
 
@@ -97,14 +103,14 @@ export default async function PremiumPage() {
         ]}
       />
 
-      <PremiumHero plan={user.plan} />
+      <PremiumHero plan={user.plan} price={pricing.premium} />
 
       <div className="mx-auto grid w-full max-w-4xl grid-cols-1 gap-5 md:grid-cols-2 lg:gap-6">
         <PlanCard
           icon={Gift}
           title={t.planFreeTitle}
           description={t.planFreeDesc}
-          price={t.priceFree}
+          price={pricing.free}
           features={freeFeatures}
           footer={
             user.plan === "free" ? (
@@ -121,8 +127,9 @@ export default async function PremiumPage() {
           icon={Crown}
           title={t.planPremiumTitle}
           description={t.planPremiumDesc}
-          price={formatFcfa(PLAN_CREDITS.premium.priceFcfa)}
+          price={pricing.premium}
           period={t.pricePeriod}
+          priceNote={pricing.converted ? t.chargedNote(pricing.charged) : undefined}
           badge={t.planPremiumBadge}
           highlighted
           features={premiumFeatures}

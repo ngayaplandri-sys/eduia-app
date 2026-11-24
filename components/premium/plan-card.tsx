@@ -14,6 +14,8 @@ interface PlanCardProps {
   description: string;
   price: string;
   period?: string;
+  /** Petite ligne sous le prix (montant réellement prélevé en FCFA). */
+  priceNote?: string;
   badge?: string;
   highlighted?: boolean;
   features: PlanFeature[];
@@ -26,6 +28,7 @@ export function PlanCard({
   description,
   price,
   period,
+  priceNote,
   badge,
   highlighted,
   features,
@@ -57,7 +60,7 @@ export function PlanCard({
       <h3 className="text-title-sm font-bold text-ink-900">{title}</h3>
       <p className="mt-1 text-sm text-ink-500">{description}</p>
 
-      <div className="mt-5 flex items-end gap-1">
+      <div className="mt-5 flex flex-wrap items-end gap-x-1 gap-y-0.5">
         <span className="text-3xl font-extrabold tracking-[-0.02em] text-ink-900">
           {price}
         </span>
@@ -65,6 +68,7 @@ export function PlanCard({
           <span className="pb-1 text-sm font-medium text-ink-400">{period}</span>
         ) : null}
       </div>
+      {priceNote ? <p className="mt-1.5 text-fine text-ink-500">{priceNote}</p> : null}
 
       <ul className="mt-6 flex-1 space-y-3 text-sm">
         {features.map((feature) => (

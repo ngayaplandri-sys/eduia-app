@@ -3,6 +3,7 @@ import { eq, sql } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
 import { isPaidPlan } from "@/lib/utils/plan";
 import { CREDIT_COSTS, planMonthlyCredits } from "@/lib/config/credits";
+import { VOICE_TUTOR_FREE_TRIAL_PAGES, type VoiceTrialState } from "@/lib/config/voice-tutor";
 import type {
   CreditBucket,
   CreditDebitResult,
@@ -379,6 +380,77 @@ export async function refundCredits(
     balanceAfter: row.subscription_balance + row.recharge_balance,
     metadata: { feature },
   });
+}
+
+/**
+ * Essai du Professeur vocal : `null` pour un palier payant actif (pas de
+ * limite d'essai, facturation normale), sinon les pages d'essai utilisées et
+ * restantes du compte gratuit. Une échéance dépassée ramène d'abord le compte
+ * au palier gratuit.
+ */
+export async function getVoiceTrialState(userId: string): Promise<VoiceTrialState | null> {
+  await expireSubscriptionIfDue(userId);
+  const result = await db.execute<{ plan: string; used: number | null }>(sql`
+    SELECT u.plan, w.voice_trial_pages AS used
+    FROM "user" u
+    LEFT JOIN credit_wallets w ON w.user_id = u.id
+    WHERE u.id = ${userId}
+  `);
+  const row = result.rows[0];
+  if (row && isPaidPlan(row.plan as UserPlan)) return null;
+  const limit = VOICE_TUTOR_FREE_TRIAL_PAGES;
+  const used = Math.min(Math.max(row?.used ?? 0, 0), limit);
+  return { limit, used, remaining: limit - used };
+}
+
+export type VoiceTrialDebit =
+  | { ok: true; drawnFromSubscription: number; drawnFromRecharge: number; remaining: number }
+  | { ok: false; reason: "trial_ended" | "insufficient_credits" };
+
+/**
+ * Une page de l'essai gratuit du Professeur vocal (une réponse) : vérifie
+ * qu'il reste une page d'essai, débite `CREDIT_COSTS.assistant` crédit puis
+ * compte la page — tout sous le verrou de la ligne du portefeuille, dans la
+ * transaction de l'appelant (deux questions simultanées ne peuvent pas
+ * dépasser l'essai). Rien n'est écrit si l'essai est épuisé ou si les crédits
+ * manquent.
+ */
+export async function consumeVoiceTrialPage(
+  tx: DbTransaction,
+  userId: string,
+): Promise<VoiceTrialDebit> {
+  const locked = await tx.execute<{ voice_trial_pages: number }>(sql`
+    SELECT voice_trial_pages FROM credit_wallets WHERE user_id = ${userId} FOR UPDATE
+  `);
+  const row = locked.rows[0];
+  if (!row) return { ok: false, reason: "insufficient_credits" };
+  if (row.voice_trial_pages >= VOICE_TUTOR_FREE_TRIAL_PAGES) {
+    return { ok: false, reason: "trial_ended" };
+  }
+  const debit = await consumeCredits(tx, userId, "assistant");
+  if (!debit.ok) return { ok: false, reason: "insufficient_credits" };
+  const counted = await tx.execute<{ voice_trial_pages: number }>(sql`
+    UPDATE credit_wallets
+    SET voice_trial_pages = voice_trial_pages + 1, updated_at = now()
+    WHERE user_id = ${userId}
+    RETURNING voice_trial_pages
+  `);
+  const used = counted.rows[0]?.voice_trial_pages ?? VOICE_TUTOR_FREE_TRIAL_PAGES;
+  return {
+    ok: true,
+    drawnFromSubscription: debit.drawnFromSubscription,
+    drawnFromRecharge: debit.drawnFromRecharge,
+    remaining: Math.max(VOICE_TUTOR_FREE_TRIAL_PAGES - used, 0),
+  };
+}
+
+/** Réponse échouée pendant l'essai : la page d'essai est rendue (avec son crédit, voir `refundCredits`). */
+export async function refundVoiceTrialPage(tx: DbTransaction, userId: string): Promise<void> {
+  await tx.execute(sql`
+    UPDATE credit_wallets
+    SET voice_trial_pages = GREATEST(voice_trial_pages - 1, 0), updated_at = now()
+    WHERE user_id = ${userId}
+  `);
 }
 
 /**

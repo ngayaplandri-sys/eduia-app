@@ -85,6 +85,13 @@
       "when": 1795444829637,
       "tag": "0011_admin_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1795500846091,
+      "tag": "0012_voice_trial",
+      "breakpoints": true
     }
   ]
 }

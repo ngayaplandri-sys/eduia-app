@@ -732,6 +732,11 @@ goToPage: (page: number) => `${page}. sayfayı göster`,
 noSpeechStopped:
       "Seni duyamadım, bu yüzden mikrofonu kapattım. Hazır olduğunda tekrar dokun.",
 errorNoSpeech: "Sorunu duyamadım. Mikrofonun yakınına gel ve tekrar dene.",
+    trialEndedTitle: "Ücretsiz deneme sona erdi",
+    trialEndedMessage: (pages: number) =>
+      `Sesli öğretmenin ücretsiz denemesi (${pages} sayfa) sona erdi. Kullanmaya devam etmek için Premium’a geç.`,
+    trialHint: (remaining: number, total: number) =>
+      `Ücretsiz deneme: ${total} sayfadan ${remaining} sayfa kaldı (sayfa başına 1 kredi), sonra Premium.`,
 errorRecordingTooLong: "Sorun çok uzun: en fazla bir dakika.",
 errorMicDenied:
       "Mikrofon erişimi reddedildi. Tarayıcı ayarlarında EduIA için mikrofona izin ver, sonra tekrar dene.",
@@ -862,8 +867,8 @@ parametres: {
   },
 premium: {
     metaTitle: "Premium",
-    metaDescription:
-      "İki EduIA planı: Ücretsiz (kayıtta verilen krediler) veya ayda 2.500 FCFA karşılığında Premium; Mobile Money ya da kartla ödenir, otomatik tahsilat yoktur.",
+    metaDescription: (price: string) =>
+      `İki EduIA planı: Ücretsiz (kayıtta verilen krediler) veya ayda ${price} karşılığında Premium; Mobile Money ya da kartla ödenir, otomatik tahsilat yoktur.`,
     heroBadgeFree: "Ücretsiz katman",
     heroBadgePremium: "Premium hesap",
     heroBadgePremiumPlus: "Premium+ hesap",
@@ -875,8 +880,8 @@ premium: {
     heroTitlePremiumPlusBefore: "Her ay ",
     heroTitlePremiumPlusAccent: "1.000 kredi",
     heroTitlePremiumPlusAfter: " kazanın",
-    heroBodyFree:
-      "Ücretsiz hesabın, her aracı denemen için kayıt sırasında 10 kredi verir. Ayda 2.500 FCFA karşılığında Premium’a yükselerek her ay 500 kredi alabilirsin.",
+    heroBodyFree: (price: string) =>
+      `Ücretsiz hesabın, her aracı denemen için kayıt sırasında 10 kredi verir. Ayda ${price} karşılığında Premium’a yükselerek her ay 500 kredi alabilirsin.`,
     heroBodyPremium:
       "Aboneliğin her ayı için 500 kredi: özetle, üret, değerlendir ve AI Asistan ile sınırsız sohbet et.",
     heroBodyPremiumPlus:
@@ -909,8 +914,11 @@ premium: {
       "500 crédits chaque mois": "Her ay 500 kredi",
       "Non disponible": "Mevcut değil",
       "Incluse": "Dahil",
+      "Professeur vocal": "Sesli öğretmen",
+      "Essai : 2 pages (1 crédit/page)": "Deneme: 2 sayfa (sayfa başına 1 kredi)",
     } as Record<string, string>,
     pricePeriod: "/ay",
+    chargedNote: (charged: string) => `Maketou tarafından FCFA olarak tahsil edilir: ${charged}, dönüşümü bankan yapar.`,
   },
 aide: {
     metaTitle: "Yardım ve destek",
@@ -1469,9 +1477,12 @@ pricing: {
     },
 payment: {
       heading: "FCFA ile kolay ödeme",
+      headingLocal: "Kolay ödeme, kendi para biriminde",
       subtitle: "Net kurallar, böylece ne ödediğini her zaman tam olarak bilirsin.",
       points: {
         fcfa: "Tüm fiyatlar FCFA cinsindendir.",
+        converted: (currency: string, charged: string) =>
+          `Fiyatlar bilgi amaçlı ${currency} olarak gösterilir: ödeme FCFA olarak alınır (${charged}) ve dönüşümü bankan yapar.`,
         noCard: "Ücretsiz hesap için banka kartı gerekmez.",
         premium: (price: string, credits: number) => `Premium: ayda ${price}, ${credits} kredi dahil.`,
         monthly: "Bir aylık abonelik, otomatik yenileme yok: istediğinde yenilersin.",

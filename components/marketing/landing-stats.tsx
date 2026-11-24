@@ -6,12 +6,17 @@ import { getDictionary } from "@/lib/i18n/server";
 /**
  * Bande d'indicateurs à cheval sur le bas du hero : premier contact avec la
  * partie claire de la page. Valeurs qualitatives du dictionnaire (aucun
- * chiffre inventé), qui « comptent » à leur apparition.
+ * chiffre inventé), qui « comptent » à leur apparition. Le prix du compte
+ * gratuit (« 0 FCFA ») s'affiche dans la monnaie du visiteur (`freePrice`).
  */
-export async function LandingStats() {
+export async function LandingStats({ freePrice }: { freePrice?: string }) {
   const dict = await getDictionary();
   const t = dict.marketing;
-  const stats = t.stats.map((stat, i) => ({ ...stat, icon: marketingStatIcons[i] }));
+  const stats = t.stats.map((stat, i) => ({
+    ...stat,
+    value: freePrice && stat.value === dict.premium.priceFree ? freePrice : stat.value,
+    icon: marketingStatIcons[i],
+  }));
 
   return (
     <section aria-label={t.statsLabel} className="relative z-10 -mt-14 px-4 sm:-mt-16 sm:px-6 lg:px-8">

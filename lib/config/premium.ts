@@ -32,8 +32,9 @@ export const PREMIUM_COMPARISON_ROWS: ComparisonRow[] = [
     premium: "10 crédits/copie",
   },
   {
-    label: "Assistance IA",
-    free: "1 crédit/question",
+    // Essai gratuit limité (VOICE_TUTOR_FREE_TRIAL_PAGES), puis Premium.
+    label: "Professeur vocal",
+    free: "Essai : 2 pages (1 crédit/page)",
     freeIncluded: true,
     premium: "1 crédit/question",
   },

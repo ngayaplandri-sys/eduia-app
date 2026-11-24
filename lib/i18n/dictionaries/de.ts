@@ -732,6 +732,11 @@ goToPage: (page: number) => `Seite ${page} anzeigen`,
 noSpeechStopped:
       "Ich habe dich nicht gehört, also habe ich das Mikrofon ausgeschaltet. Tippe darauf, wenn du bereit bist.",
 errorNoSpeech: "Ich habe deine Frage nicht gehört. Geh näher ans Mikrofon und versuche es noch einmal.",
+    trialEndedTitle: "Kostenloser Test beendet",
+    trialEndedMessage: (pages: number) =>
+      `Dein kostenloser Test des Sprachlehrers (${pages} Seiten) ist beendet. Wechsle zu Premium, um ihn weiter zu nutzen.`,
+    trialHint: (remaining: number, total: number) =>
+      `Kostenloser Test: noch ${remaining} von ${total} Seiten (1 Credit pro Seite), danach Premium.`,
 errorRecordingTooLong: "Deine Frage ist zu lang: maximal eine Minute.",
 errorMicDenied:
       "Mikrofonzugriff verweigert. Erlaube das Mikrofon für EduIA in deinen Browsereinstellungen und versuche es dann erneut.",
@@ -862,8 +867,8 @@ parametres: {
   },
 premium: {
     metaTitle: "Premium",
-    metaDescription:
-      "Zwei EduIA-Tarife: Gratis (bei der Registrierung erhältst du Credits) oder Premium für 2.500 FCFA pro Monat, zahlbar per Mobile Money oder Karte, ohne automatische Abbuchung.",
+    metaDescription: (price: string) =>
+      `Zwei EduIA-Tarife: Gratis (bei der Registrierung erhältst du Credits) oder Premium für ${price} pro Monat, zahlbar per Mobile Money oder Karte, ohne automatische Abbuchung.`,
     heroBadgeFree: "Gratis-Tarif",
     heroBadgePremium: "Premium-Konto",
     heroBadgePremiumPlus: "Premium+-Konto",
@@ -875,8 +880,8 @@ premium: {
     heroTitlePremiumPlusBefore: "Genieße ",
     heroTitlePremiumPlusAccent: "1.000 Credits",
     heroTitlePremiumPlusAfter: " jeden Monat",
-    heroBodyFree:
-      "Dein Gratis-Konto gibt dir bei der Registrierung 10 Credits, damit du alle Funktionen testen kannst. Upgrade auf Premium für 500 Credits jeden Monat, für 2.500 FCFA pro Monat.",
+    heroBodyFree: (price: string) =>
+      `Dein Gratis-Konto gibt dir bei der Registrierung 10 Credits, damit du alle Funktionen testen kannst. Upgrade auf Premium für 500 Credits jeden Monat, für ${price} pro Monat.`,
     heroBodyPremium:
       "500 Credits für jeden Monat des Abonnements: zusammenfassen, generieren, bewerten und mit dem KI-Assistenten chatten, ohne dass Credits abgezogen werden.",
     heroBodyPremiumPlus:
@@ -909,8 +914,11 @@ premium: {
       "500 crédits chaque mois": "500 Credits jeden Monat",
       "Non disponible": "Nicht verfügbar",
       "Incluse": "Inbegriffen",
+      "Professeur vocal": "Sprachlehrer",
+      "Essai : 2 pages (1 crédit/page)": "Test: 2 Seiten (1 Credit/Seite)",
     } as Record<string, string>,
     pricePeriod: "/Monat",
+    chargedNote: (charged: string) => `Von Maketou in FCFA abgebucht: ${charged}, umgerechnet von deiner Bank.`,
   },
 aide: {
     metaTitle: "Hilfe & Support",
@@ -1469,9 +1477,12 @@ pricing: {
     },
 payment: {
       heading: "Einfache Zahlung, in FCFA",
+      headingLocal: "Einfache Zahlung, in deiner Währung",
       subtitle: "Klare Regeln, damit du immer genau weißt, was du bezahlst.",
       points: {
         fcfa: "Alle Preise werden in FCFA angezeigt.",
+        converted: (currency: string, charged: string) =>
+          `Preise zur Orientierung in ${currency}: Bezahlt wird in FCFA (${charged}), deine Bank rechnet um.`,
         noCard: "Für das kostenlose Konto brauchst du keine Bankkarte.",
         premium: (price: string, credits: number) => `Premium: ${price} pro Monat, ${credits} Credits inklusive.`,
         monthly: "Ein-Monats-Abo, keine automatische Abbuchung: Verlängere, wann immer du willst.",

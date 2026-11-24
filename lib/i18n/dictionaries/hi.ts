@@ -732,6 +732,11 @@ goToPage: (page: number) => `पेज ${page} दिखाएँ`,
 noSpeechStopped:
       "मुझे आप सुनाई नहीं दिए, इसलिए मैंने माइक बंद कर दिया। तैयार हों तो इसे टैप करें।",
 errorNoSpeech: "मुझे आपका सवाल सुनाई नहीं दिया। माइक के पास आइए और फिर से कोशिश करें।",
+    trialEndedTitle: "फ्री ट्रायल खत्म हो गया",
+    trialEndedMessage: (pages: number) =>
+      `वॉइस ट्यूटर का आपका फ्री ट्रायल (${pages} पेज) खत्म हो गया है। इसे इस्तेमाल करते रहने के लिए Premium लें।`,
+    trialHint: (remaining: number, total: number) =>
+      `फ्री ट्रायल: ${total} में से ${remaining} पेज बाकी (हर पेज 1 क्रेडिट), फिर Premium।`,
 errorRecordingTooLong: "आपका सवाल बहुत लंबा है: अधिकतम एक मिनट।",
 errorMicDenied:
       "माइक्रोफ़ोन की अनुमति नहीं मिली। अपने ब्राउज़र की सेटिंग्स में EduIA के लिए माइक्रोफ़ोन की अनुमति दें, फिर फिर से कोशिश करें।",
@@ -862,8 +867,8 @@ parametres: {
   },
 premium: {
     metaTitle: "प्रीमियम",
-    metaDescription:
-      "EduIA की दो योजनाएँ: फ्री (साइनअप पर मिले क्रेडिट) या प्रीमियम 2,500 FCFA प्रति माह, Mobile Money या कार्ड से भुगतान, बिना ऑटोमैटिक चार्ज के।",
+    metaDescription: (price: string) =>
+      `EduIA की दो योजनाएँ: फ्री (साइनअप पर मिले क्रेडिट) या प्रीमियम ${price} प्रति माह, Mobile Money या कार्ड से भुगतान, बिना ऑटोमैटिक चार्ज के।`,
     heroBadgeFree: "फ्री टियर",
     heroBadgePremium: "प्रीमियम अकाउंट",
     heroBadgePremiumPlus: "प्रीमियम+ अकाउंट",
@@ -875,8 +880,8 @@ premium: {
     heroTitlePremiumPlusBefore: "का आनंद लें ",
     heroTitlePremiumPlusAccent: "1,000 क्रेडिट्स",
     heroTitlePremiumPlusAfter: " हर महीने",
-    heroBodyFree:
-      "आपको आपका फ्री अकाउंट साइनअप पर 10 क्रेडिट देता है ताकि आप हर टूल आज़मा सकें। 500 क्रेडिट हर महीने पाने के लिए प्रीमियम पर अपग्रेड करें, 2,500 FCFA प्रति माह में।",
+    heroBodyFree: (price: string) =>
+      `आपको आपका फ्री अकाउंट साइनअप पर 10 क्रेडिट देता है ताकि आप हर टूल आज़मा सकें। 500 क्रेडिट हर महीने पाने के लिए प्रीमियम पर अपग्रेड करें, ${price} प्रति माह में।`,
     heroBodyPremium:
       "सब्सक्रिप्शन के हर महीने के लिए 500 क्रेडिट: सारांश बनाइए, जनरेट कीजिए, ग्रेड कीजिए और AI Assistant से बिना गिनती के चैट कीजिए।",
     heroBodyPremiumPlus:
@@ -909,8 +914,11 @@ premium: {
       "500 crédits chaque mois": "हर महीने 500 क्रेडिट",
       "Non disponible": "उपलब्ध नहीं",
       "Incluse": "शामिल",
+      "Professeur vocal": "वॉइस ट्यूटर",
+      "Essai : 2 pages (1 crédit/page)": "ट्रायल: 2 पेज (1 क्रेडिट/पेज)",
     } as Record<string, string>,
     pricePeriod: "/माह",
+    chargedNote: (charged: string) => `Maketou द्वारा FCFA में लिया जाता है: ${charged}, बदलाव आपका बैंक करता है।`,
   },
 aide: {
     metaTitle: "मदद और सहायता",
@@ -1469,9 +1477,12 @@ pricing: {
     },
 payment: {
       heading: "सरल भुगतान, FCFA में",
+      headingLocal: "आसान भुगतान, आपकी मुद्रा में",
       subtitle: "साफ़ नियम, ताकि आपको हमेशा पता रहे कि आप कितना भुगतान कर रहे हैं।",
       points: {
         fcfa: "सभी कीमतें FCFA में दिखाई गई हैं।",
+        converted: (currency: string, charged: string) =>
+          `कीमतें अंदाज़े के लिए दिखाई गई हैं (${currency}): भुगतान FCFA में लिया जाता है (${charged}) और बदलाव आपका बैंक करता है।`,
         noCard: "मुफ़्त खाते के लिए बैंक कार्ड की ज़रूरत नहीं है।",
         premium: (price: string, credits: number) => `Premium: प्रति माह ${price}, ${credits} क्रेडिट शामिल।`,
         monthly: "एक महीने की सदस्यता, कोई ऑटोमैटिक चार्ज नहीं: जब चाहें नवीनीकृत करें।",

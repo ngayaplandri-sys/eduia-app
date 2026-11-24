@@ -732,6 +732,11 @@ goToPage: (page: number) => `Hiển thị trang ${page}`,
 noSpeechStopped:
       "Tôi không nghe thấy bạn, nên đã tắt mic. Hãy nhấn lại khi bạn sẵn sàng.",
 errorNoSpeech: "Tôi không nghe thấy câu hỏi của bạn. Hãy lại gần mic hơn và thử lại.",
+    trialEndedTitle: "Đã hết lượt dùng thử",
+    trialEndedMessage: (pages: number) =>
+      `Bản dùng thử miễn phí gia sư giọng nói (${pages} trang) của bạn đã kết thúc. Hãy nâng cấp lên Premium để tiếp tục sử dụng.`,
+    trialHint: (remaining: number, total: number) =>
+      `Dùng thử miễn phí: còn ${remaining}/${total} trang (1 credit mỗi trang), sau đó là Premium.`,
 errorRecordingTooLong: "Câu hỏi của bạn quá dài: tối đa một phút.",
 errorMicDenied:
       "Quyền truy cập microphone bị từ chối. Hãy cho phép microphone cho EduIA trong cài đặt trình duyệt của bạn, rồi thử lại.",
@@ -862,8 +867,8 @@ parametres: {
   },
 premium: {
     metaTitle: "Premium",
-    metaDescription:
-      "Hai gói EduIA: Miễn phí (tặng credit khi đăng ký) hoặc Premium với giá 2.500 FCFA mỗi tháng, thanh toán bằng Mobile Money hoặc thẻ, không tự động trừ tiền.",
+    metaDescription: (price: string) =>
+      `Hai gói EduIA: Miễn phí (tặng credit khi đăng ký) hoặc Premium với giá ${price} mỗi tháng, thanh toán bằng Mobile Money hoặc thẻ, không tự động trừ tiền.`,
     heroBadgeFree: "Gói miễn phí",
     heroBadgePremium: "Tài khoản Premium",
     heroBadgePremiumPlus: "Tài khoản Premium+",
@@ -875,8 +880,8 @@ premium: {
     heroTitlePremiumPlusBefore: "Tận hưởng ",
     heroTitlePremiumPlusAccent: "1.000 credit",
     heroTitlePremiumPlusAfter: " mỗi tháng",
-    heroBodyFree:
-      "Tài khoản miễn phí của bạn được tặng 10 credit khi đăng ký để thử mọi công cụ. Nâng cấp lên Premium để nhận 500 credit mỗi tháng, với giá 2.500 FCFA mỗi tháng.",
+    heroBodyFree: (price: string) =>
+      `Tài khoản miễn phí của bạn được tặng 10 credit khi đăng ký để thử mọi công cụ. Nâng cấp lên Premium để nhận 500 credit mỗi tháng, với giá ${price} mỗi tháng.`,
     heroBodyPremium:
       "500 credit cho mỗi tháng đăng ký: tóm tắt, tạo đề, chấm bài và chat với Trợ lý AI không giới hạn.",
     heroBodyPremiumPlus:
@@ -909,8 +914,11 @@ premium: {
       "500 crédits chaque mois": "500 credit mỗi tháng",
       "Non disponible": "Không khả dụng",
       "Incluse": "Đã bao gồm",
+      "Professeur vocal": "Gia sư giọng nói",
+      "Essai : 2 pages (1 crédit/page)": "Dùng thử: 2 trang (1 credit/trang)",
     } as Record<string, string>,
     pricePeriod: "/tháng",
+    chargedNote: (charged: string) => `Maketou thu bằng FCFA: ${charged}, ngân hàng của bạn sẽ quy đổi.`,
   },
 aide: {
     metaTitle: "Trợ giúp & hỗ trợ",
@@ -1469,9 +1477,12 @@ pricing: {
     },
 payment: {
       heading: "Thanh toán đơn giản, bằng FCFA",
+      headingLocal: "Thanh toán đơn giản, bằng tiền tệ của bạn",
       subtitle: "Quy tắc rõ ràng, để bạn luôn biết chính xác mình trả bao nhiêu.",
       points: {
         fcfa: "Tất cả giá đều hiển thị bằng FCFA.",
+        converted: (currency: string, charged: string) =>
+          `Giá chỉ mang tính tham khảo (${currency}): khoản thanh toán được thu bằng FCFA (${charged}) và ngân hàng của bạn sẽ quy đổi.`,
         noCard: "Tài khoản miễn phí không cần thẻ ngân hàng.",
         premium: (price: string, credits: number) => `Premium: ${price} mỗi tháng, gồm ${credits} credit.`,
         monthly: "Gói thuê bao một tháng, không tự động trừ tiền: gia hạn khi nào bạn muốn.",

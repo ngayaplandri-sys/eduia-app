@@ -732,6 +732,11 @@ goToPage: (page: number) => `Toon pagina ${page}`,
 noSpeechStopped:
       "Ik heb je niet gehoord, dus ik heb de microfoon uitgeschakeld. Tik erop wanneer je klaar bent.",
 errorNoSpeech: "Ik heb je vraag niet gehoord. Kom dichter bij de microfoon en probeer het opnieuw.",
+    trialEndedTitle: "Gratis proefperiode voorbij",
+    trialEndedMessage: (pages: number) =>
+      `Je gratis proefperiode van de stemdocent (${pages} pagina's) is voorbij. Stap over op Premium om hem te blijven gebruiken.`,
+    trialHint: (remaining: number, total: number) =>
+      `Gratis proefperiode: nog ${remaining} van ${total} pagina's (1 credit per pagina), daarna Premium.`,
 errorRecordingTooLong: "Je vraag is te lang: maximaal één minuut.",
 errorMicDenied:
       "Toegang tot de microfoon geweigerd. Sta de microfoon toe voor EduIA in de instellingen van je browser en probeer het opnieuw.",
@@ -862,8 +867,8 @@ parametres: {
   },
 premium: {
     metaTitle: "Premium",
-    metaDescription:
-      "Twee EduIA-abonnementen: Gratis (credits aangeboden bij aanmelding) of Premium voor 2.500 FCFA per maand, betaald via Mobile Money of kaart, zonder automatische afschrijving.",
+    metaDescription: (price: string) =>
+      `Twee EduIA-abonnementen: Gratis (credits aangeboden bij aanmelding) of Premium voor ${price} per maand, betaald via Mobile Money of kaart, zonder automatische afschrijving.`,
     heroBadgeFree: "Gratis versie",
     heroBadgePremium: "Premiumaccount",
     heroBadgePremiumPlus: "Premium+-account",
@@ -875,8 +880,8 @@ premium: {
     heroTitlePremiumPlusBefore: "Geniet van ",
     heroTitlePremiumPlusAccent: "1.000 credits",
     heroTitlePremiumPlusAfter: " elke maand",
-    heroBodyFree:
-      "Je gratis account geeft je 10 credits bij aanmelding om elk hulpmiddel uit te proberen. Upgrade naar Premium voor 500 credits per maand, voor 2.500 FCFA per maand.",
+    heroBodyFree: (price: string) =>
+      `Je gratis account geeft je 10 credits bij aanmelding om elk hulpmiddel uit te proberen. Upgrade naar Premium voor 500 credits per maand, voor ${price} per maand.`,
     heroBodyPremium:
       "500 credits per abonnementsmaand: vat samen, genereer, beoordeel en chat met de AI-assistent zonder te tellen.",
     heroBodyPremiumPlus:
@@ -909,8 +914,11 @@ premium: {
       "500 crédits chaque mois": "500 credits elke maand",
       "Non disponible": "Niet beschikbaar",
       "Incluse": "Inbegrepen",
+      "Professeur vocal": "Stemdocent",
+      "Essai : 2 pages (1 crédit/page)": "Proef: 2 pagina's (1 credit/pagina)",
     } as Record<string, string>,
     pricePeriod: "/maand",
+    chargedNote: (charged: string) => `In FCFA afgeschreven door Maketou: ${charged}, omgerekend door je bank.`,
   },
 aide: {
     metaTitle: "Hulp & ondersteuning",
@@ -1469,9 +1477,12 @@ pricing: {
     },
 payment: {
       heading: "Eenvoudige betaling, in FCFA",
+      headingLocal: "Eenvoudig betalen, in je eigen valuta",
       subtitle: "Duidelijke regels, zodat je altijd precies weet wat je betaalt.",
       points: {
         fcfa: "Alle prijzen worden in FCFA weergegeven.",
+        converted: (currency: string, charged: string) =>
+          `Prijzen ter indicatie in ${currency}: de betaling gebeurt in FCFA (${charged}) en je bank rekent om.`,
         noCard: "Voor een gratis account heb je geen bankkaart nodig.",
         premium: (price: string, credits: number) => `Premium: ${price} per maand, ${credits} credits inbegrepen.`,
         monthly: "Abonnement voor één maand, geen automatische afschrijving: verleng wanneer je wilt.",

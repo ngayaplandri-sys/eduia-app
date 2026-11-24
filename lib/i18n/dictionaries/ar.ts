@@ -732,6 +732,11 @@ goToPage: (page: number) => `عرض الصفحة ${page}`,
 noSpeechStopped:
       "لم أسمعك، لذلك أوقفت الميكروفون. اضغط عليه عندما تكون جاهزًا.",
 errorNoSpeech: "لم أسمع سؤالك. اقترب من الميكروفون وحاول مرة أخرى.",
+    trialEndedTitle: "انتهت التجربة المجانية",
+    trialEndedMessage: (pages: number) =>
+      `انتهت تجربتك المجانية للمدرّس الصوتي (${pages} صفحات). انتقل إلى Premium لمواصلة استخدامه.`,
+    trialHint: (remaining: number, total: number) =>
+      `التجربة المجانية: تبقّى ${remaining} من ${total} صفحات (رصيد واحد لكل صفحة)، ثم Premium.`,
 errorRecordingTooLong: "سؤالك طويل جدًا: الحد الأقصى دقيقة واحدة.",
 errorMicDenied:
       "تم رفض الوصول إلى الميكروفون. اسمح بالميكروفون لـ EduIA في إعدادات المتصفح، ثم حاول مرة أخرى.",
@@ -862,8 +867,8 @@ parametres: {
   },
 premium: {
     metaTitle: "Premium",
-    metaDescription:
-      "خطتان من EduIA: مجانية (مع أرصدة تُمنح عند التسجيل) أو Premium بسعر 2,500 FCFA شهريًا، تُدفع عبر Mobile Money أو البطاقة، من دون خصم تلقائي.",
+    metaDescription: (price: string) =>
+      `خطتان من EduIA: مجانية (مع أرصدة تُمنح عند التسجيل) أو Premium بسعر ${price} شهريًا، تُدفع عبر Mobile Money أو البطاقة، من دون خصم تلقائي.`,
     heroBadgeFree: "الفئة المجانية",
     heroBadgePremium: "حساب Premium",
     heroBadgePremiumPlus: "حساب Premium+",
@@ -875,8 +880,8 @@ premium: {
     heroTitlePremiumPlusBefore: "استمتع بـ ",
     heroTitlePremiumPlusAccent: "1,000 رصيد",
     heroTitlePremiumPlusAfter: " كل شهر",
-    heroBodyFree:
-      "يمنحك حسابك المجاني 10 أرصدة عند التسجيل لتجربة كل أداة. ارتقِ إلى Premium لتحصل على 500 رصيد كل شهر، مقابل 2,500 FCFA شهريًا.",
+    heroBodyFree: (price: string) =>
+      `يمنحك حسابك المجاني 10 أرصدة عند التسجيل لتجربة كل أداة. ارتقِ إلى Premium لتحصل على 500 رصيد كل شهر، مقابل ${price} شهريًا.`,
     heroBodyPremium:
       "500 رصيد لكل شهر اشتراك: لخّص، أنشئ، صحّح وتحدث مع المساعد الذكي من دون احتساب.",
     heroBodyPremiumPlus:
@@ -909,8 +914,11 @@ premium: {
       "500 crédits chaque mois": "500 رصيد كل شهر",
       "Non disponible": "غير متاح",
       "Incluse": "مشمولة",
+      "Professeur vocal": "مدرّس صوتي",
+      "Essai : 2 pages (1 crédit/page)": "تجربة: صفحتان (رصيد واحد لكل صفحة)",
     } as Record<string, string>,
     pricePeriod: "/month",
+    chargedNote: (charged: string) => `يُقتطع بالفرنك الإفريقي (FCFA) عبر Maketou: ${charged}، ويتولّى بنكك التحويل.`,
   },
 aide: {
     metaTitle: "المساعدة والدعم",
@@ -1469,9 +1477,12 @@ pricing: {
     },
 payment: {
       heading: "دفع بسيط، بـ FCFA",
+      headingLocal: "دفع بسيط بعملتك",
       subtitle: "قواعد واضحة، حتى تعرف دائمًا بالضبط ما تدفعه.",
       points: {
         fcfa: "تُعرض جميع الأسعار بـ FCFA.",
+        converted: (currency: string, charged: string) =>
+          `الأسعار معروضة على سبيل الإرشاد (${currency}): يُحصَّل الدفع بالفرنك الإفريقي (${charged}) ويتولّى بنكك التحويل.`,
         noCard: "الحساب المجاني لا يحتاج إلى بطاقة بنكية.",
         premium: (price: string, credits: number) => `Premium: ${price} شهريًا، مع ${credits} رصيد شامل.`,
         monthly: "اشتراك لمدة شهر واحد، من دون خصم تلقائي: جدده متى شئت.",

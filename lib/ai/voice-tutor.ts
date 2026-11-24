@@ -642,7 +642,8 @@ export function promptCacheKey(userId: string, request: VoiceTutorRequest): stri
  * Réponse du professeur en flux : d'abord le passage du cours dont il parle
  * (`focus`, pour faire défiler le PDF), puis le texte au fil de l'écriture
  * (`delta`), les passages prêts à être prononcés (`speech`) et enfin la
- * réponse complète (`done`).
+ * réponse complète (`done`). `trialLast` : dernière réponse de l'essai
+ * gratuit, conclue sans proposer de suite.
  */
 export async function* streamVoiceTutor(
   request: VoiceTutorRequest,
@@ -651,6 +652,7 @@ export async function* streamVoiceTutor(
   dict: Dictionary,
   signal: AbortSignal,
   cacheKey: string,
+  options: { trialLast?: boolean } = {},
 ): AsyncGenerator<TutorStreamEvent> {
   const lastAnswer = [...request.history].reverse().find((message) => message.role === "assistant");
   // Suite automatique d'une explication page par page : la page à expliquer.
@@ -682,6 +684,10 @@ export async function* streamVoiceTutor(
   const turn = lessonNext
     ? `[EXPLICATION PAGE PAR PAGE — suite automatique : l'élève écoute sans rien dire. Explique maintenant la page ${lessonNext} sur ${request.pageCount} de son cours EN ENTIER, comme la suite naturelle de ta dernière explication : ${pageSteps}.${lessonNext < request.pageCount ? " Termine par une transition de quelques mots vers la page suivante, sans question." : " C'est la DERNIÈRE page du cours : explique-la en entier, puis résume l'essentiel du cours en une ou deux phrases courtes et termine OBLIGATOIREMENT en lui demandant s'il a des questions (pas d'autre proposition à la place)."} Réponds en ${replyName}. Commence ta réponse par la ligne de repère [[page:${lessonNext} lang:… quote:"…" suite:${lessonNext < request.pageCount ? "oui" : "non"}]].]`
     : `[L'élève regarde actuellement la page ${request.currentPage} : « cette page », « ce passage » ou « ici » y renvoient.${lessonContext} Réponds en ${replyName}, sauf s'il te demande explicitement une autre langue. Commence ta réponse par la ligne de repère [[page:… lang:… quote:"…" suite:…]]. Sa question, transcrite depuis sa voix :]\n\n${question}`;
+  // Dernière page de l'essai gratuit : la séance s'arrête après cette réponse.
+  const trialNote = options.trialLast
+    ? "\n\n[IMPORTANT : c'est la dernière réponse de l'essai gratuit de l'élève. Fais ton explication normalement, puis termine-la simplement, sans transition vers la suite et sans question, et mets suite:non dans le repère.]"
+    : "";
 
   // Ordre pensé pour la mise en cache automatique des prompts côté OpenAI :
   // consignes et document (identiques d'une question à l'autre) d'abord, la
@@ -698,7 +704,7 @@ export async function* streamVoiceTutor(
     })),
     {
       role: "user",
-      content: turn,
+      content: turn + trialNote,
     },
   ];
 

@@ -30,6 +30,7 @@ import {
 import { InlineErrorBanner } from "@/components/common/inline-error-banner";
 import { InsufficientCreditsBanner } from "@/components/credits/insufficient-credits-banner";
 import {
+  VOICE_TUTOR_FREE_TRIAL_PAGES,
   VOICE_TUTOR_GREETING,
   VOICE_TUTOR_HISTORY_MESSAGE_CHARS,
   VOICE_TUTOR_IDLE_LISTEN_MS,
@@ -40,6 +41,7 @@ import {
   VOICE_TUTOR_MAX_UPLOAD_CHARS,
   VOICE_TUTOR_WELCOME,
   VOICE_TUTOR_LANGUAGES_COOKIE,
+  type VoiceTrialState,
   type VoiceTutorLanguage,
 } from "@/lib/config/voice-tutor";
 import {
@@ -126,7 +128,7 @@ interface PanelError {
 
 /** Évènements du flux NDJSON de `POST /api/ai/voice-tutor`. */
 type TutorEvent =
-  | { type: "question"; text: string }
+  | { type: "question"; text: string; trialRemaining?: number }
   | {
       type: "focus";
       page: number | null;
@@ -381,14 +383,22 @@ export function VoiceTutorWorkspace({
   userId,
   initialDocumentLanguage,
   initialReplyLanguage,
+  voiceTrial,
 }: {
   userId: string;
   initialDocumentLanguage: VoiceTutorLanguage;
   initialReplyLanguage: VoiceTutorLanguage;
+  /** Compte gratuit : essai limité à quelques pages (`null` : pas de limite d'essai). */
+  voiceTrial: VoiceTrialState | null;
 }) {
   const { dict, locale } = useI18n();
   const t = dict.voiceTutor;
   const engine = useVoiceEngine();
+  /** Pages d'essai restantes (compte gratuit), mises à jour à chaque réponse. */
+  const [trialRemaining, setTrialRemaining] = React.useState<number | null>(
+    voiceTrial ? voiceTrial.remaining : null,
+  );
+  const trialRemainingRef = React.useRef(trialRemaining);
 
   const [documentLanguage, setDocumentLanguage] =
     React.useState<VoiceTutorLanguage>(initialDocumentLanguage);
@@ -880,6 +890,11 @@ export function VoiceTutorWorkspace({
       // Page expliquée jusqu'au bout : plus rien à reprendre.
       lessonResumeRef.current = null;
     }
+    // Dernière page de l'essai gratuit : la séance s'arrête, place à Premium.
+    if (trialRemainingRef.current === 0) {
+      showTrialEnded();
+      return;
+    }
     if (!conversationRef.current) {
       setPhase("idle");
       return;
@@ -889,6 +904,17 @@ export function VoiceTutorWorkspace({
       return;
     }
     void listen();
+  }
+
+  /** Essai gratuit épuisé : fin de la séance et invitation à passer à Premium. */
+  function showTrialEnded() {
+    conversationRef.current = false;
+    setNotice(null);
+    setError({
+      message: t.trialEndedMessage(voiceTrial?.limit ?? VOICE_TUTOR_FREE_TRIAL_PAGES),
+      code: "VOICE_TRIAL_ENDED",
+    });
+    setPhase("idle");
   }
 
   /** L'élève peut couper la parole au professeur en parlant (iPhone et iPad compris). */
@@ -1100,6 +1126,10 @@ export function VoiceTutorWorkspace({
           return;
         }
         conversationRef.current = false;
+        if (data?.code === "VOICE_TRIAL_ENDED") {
+          trialRemainingRef.current = 0;
+          setTrialRemaining(0);
+        }
         if (data?.code === "NO_SPEECH") setNotice(data.error ?? t.errorNoSpeech);
         else setError({ message: data?.error ?? t.errorGeneric, code: data?.code });
         setPhase("idle");
@@ -1122,6 +1152,10 @@ export function VoiceTutorWorkspace({
       for await (const event of readEvents(response.body)) {
         if (docRef.current !== document) return;
         if (event.type === "question") {
+          if (typeof event.trialRemaining === "number") {
+            trialRemainingRef.current = event.trialRemaining;
+            setTrialRemaining(event.trialRemaining);
+          }
           interruptedRef.current = null;
           if (!continuation) emptyTurnsRef.current = 0;
           const answer: TutorMessage = {
@@ -1344,6 +1378,11 @@ export function VoiceTutorWorkspace({
     engine.unlock();
     switch (phaseRef.current) {
       case "idle":
+        // Essai gratuit déjà utilisé : pas de séance, directement l'offre Premium.
+        if (trialRemainingRef.current === 0) {
+          showTrialEnded();
+          break;
+        }
         conversationRef.current = true;
         emptyTurnsRef.current = 0;
         if (!greetedRef.current) {
@@ -1846,14 +1885,22 @@ export function VoiceTutorWorkspace({
           </div>
 
           <div className="shrink-0 space-y-2 px-4 @md:px-5">
-            {error?.code === "INSUFFICIENT_CREDITS" ? (
-              <InsufficientCreditsBanner message={error.message} />
+            {error?.code === "INSUFFICIENT_CREDITS" || error?.code === "VOICE_TRIAL_ENDED" ? (
+              <InsufficientCreditsBanner
+                message={error.message}
+                title={error.code === "VOICE_TRIAL_ENDED" ? t.trialEndedTitle : undefined}
+              />
             ) : error ? (
               <InlineErrorBanner message={error.message} />
             ) : null}
             {notice ? (
               <p role="status" className="rounded-lg bg-primary-50 px-3 py-2 text-fine text-primary-700">
                 {notice}
+              </p>
+            ) : null}
+            {voiceTrial && trialRemaining !== null && trialRemaining > 0 && !error ? (
+              <p className="text-center text-fine text-ink-500">
+                {t.trialHint(trialRemaining, voiceTrial.limit)}
               </p>
             ) : null}
           </div>

@@ -732,6 +732,11 @@ goToPage: (page: number) => `페이지 ${page} 보기`,
 noSpeechStopped:
       "말소리가 들리지 않아 마이크를 껐습니다. 준비되면 다시 눌러 주세요.",
 errorNoSpeech: "질문이 들리지 않았습니다. 마이크에 더 가까이 대고 다시 시도해 주세요.",
+    trialEndedTitle: "무료 체험 종료",
+    trialEndedMessage: (pages: number) =>
+      `음성 튜터 무료 체험(${pages}페이지)이 끝났습니다. 계속 사용하려면 Premium으로 업그레이드하세요.`,
+    trialHint: (remaining: number, total: number) =>
+      `무료 체험: ${total}페이지 중 ${remaining}페이지 남음(페이지당 1크레딧), 이후 Premium.`,
 errorRecordingTooLong: "질문이 너무 깁니다: 최대 1분까지 가능합니다.",
 errorMicDenied:
       "마이크 접근이 거부되었습니다. 브라우저 설정에서 EduIA의 마이크 사용을 허용한 뒤 다시 시도해 주세요.",
@@ -862,8 +867,8 @@ parametres: {
   },
 premium: {
     metaTitle: "Premium",
-    metaDescription:
-      "두 가지 EduIA 요금제: 무료(가입 시 제공 크레딧) 또는 월 2,500 FCFA의 Premium으로, Mobile Money 또는 카드로 결제하며 자동 청구는 없습니다.",
+    metaDescription: (price: string) =>
+      `두 가지 EduIA 요금제: 무료(가입 시 제공 크레딧) 또는 월 ${price}의 Premium으로, Mobile Money 또는 카드로 결제하며 자동 청구는 없습니다.`,
     heroBadgeFree: "무료 요금제",
     heroBadgePremium: "Premium 계정",
     heroBadgePremiumPlus: "Premium+ 계정",
@@ -875,8 +880,8 @@ premium: {
     heroTitlePremiumPlusBefore: "",
     heroTitlePremiumPlusAccent: "1,000 크레딧",
     heroTitlePremiumPlusAfter: " 매월",
-    heroBodyFree:
-      "무료 계정에는 모든 기능을 체험할 수 있도록 가입 시 10크레딧이 제공됩니다. Premium으로 업그레이드하면 월 2,500 FCFA에 매달 500크레딧을 받을 수 있습니다.",
+    heroBodyFree: (price: string) =>
+      `무료 계정에는 모든 기능을 체험할 수 있도록 가입 시 10크레딧이 제공됩니다. Premium으로 업그레이드하면 월 ${price}에 매달 500크레딧을 받을 수 있습니다.`,
     heroBodyPremium:
       "구독 1개월마다 500크레딧: 요약, 생성, 채점, AI Assistant와의 채팅을 제한 없이 이용하세요.",
     heroBodyPremiumPlus:
@@ -909,8 +914,11 @@ premium: {
       "500 crédits chaque mois": "매달 500크레딧",
       "Non disponible": "이용 불가",
       "Incluse": "포함",
+      "Professeur vocal": "음성 튜터",
+      "Essai : 2 pages (1 crédit/page)": "체험: 2페이지(페이지당 1크레딧)",
     } as Record<string, string>,
     pricePeriod: "/월",
+    chargedNote: (charged: string) => `Maketou가 FCFA로 청구합니다: ${charged} (환전은 은행이 처리합니다).`,
   },
 aide: {
     metaTitle: "도움말 및 지원",
@@ -1469,9 +1477,12 @@ pricing: {
     },
 payment: {
       heading: "간편한 결제, FCFA로",
+      headingLocal: "간편한 결제, 내 통화로",
       subtitle: "명확한 규칙으로, 항상 무엇을 결제하는지 정확히 알 수 있습니다.",
       points: {
         fcfa: "모든 가격은 FCFA로 표시됩니다.",
+        converted: (currency: string, charged: string) =>
+          `가격은 참고용으로 표시됩니다(${currency}). 결제는 FCFA(${charged})로 이루어지며 환전은 은행이 처리합니다.`,
         noCard: "무료 계정에는 은행 카드가 필요하지 않습니다.",
         premium: (price: string, credits: number) => `Premium: 월 ${price}, ${credits} 크레딧 포함.`,
         monthly: "한 달 구독이며 자동 결제는 없습니다. 원할 때마다 갱신하세요.",

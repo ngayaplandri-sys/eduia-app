@@ -16,7 +16,7 @@ import { Reveal } from "@/components/motion/reveal";
 import { TiltSurface } from "@/components/motion/tilt-surface";
 import { cn } from "@/lib/utils/cn";
 import { CREDIT_COSTS, PLAN_CREDITS } from "@/lib/config/credits";
-import { formatFcfa } from "@/lib/admin/constants";
+import type { LocalPricing } from "@/lib/pricing/local-price";
 import { getDictionary } from "@/lib/i18n/server";
 import { PaymentMethodChips } from "@/components/billing/payment-method-chips";
 import { SectionHeading, ctaArrowClass, ctaOutlineClass, ctaPrimaryClass } from "./marketing-ui";
@@ -25,6 +25,8 @@ interface Plan {
   name: string;
   price: string;
   period?: string;
+  /** Montant réellement prélevé en FCFA, quand le prix est converti. */
+  priceNote?: string;
   credits: string;
   cadence: string;
   points: string[];
@@ -52,12 +54,13 @@ function PlanCard({ plan, recommendedLabel }: { plan: Plan; recommendedLabel: st
         ) : null}
       </div>
 
-      <p className="mt-5 flex items-baseline gap-1.5">
+      <p className="mt-5 flex flex-wrap items-baseline gap-x-1.5 gap-y-1">
         <span className="font-display text-[2.6rem] font-medium leading-none tracking-[-0.02em] text-ink-900 tabular-nums">
           {plan.price}
         </span>
         {plan.period ? <span className="text-sm font-medium text-ink-400">{plan.period}</span> : null}
       </p>
+      {plan.priceNote ? <p className="mt-2 text-fine text-ink-500">{plan.priceNote}</p> : null}
 
       <p
         className={cn(
@@ -117,7 +120,14 @@ function PlanCard({ plan, recommendedLabel }: { plan: Plan; recommendedLabel: st
  * `lib/config/payment-methods.ts` — ceux que propose réellement la page de
  * paiement Maketou de la boutique.
  */
-export async function LandingPricing({ isAuthenticated }: { isAuthenticated: boolean }) {
+export async function LandingPricing({
+  isAuthenticated,
+  pricing,
+}: {
+  isAuthenticated: boolean;
+  /** Prix dans la monnaie du visiteur (`getLocalPricing`). */
+  pricing: LocalPricing;
+}) {
   const dict = await getDictionary();
   const t = dict.marketing.pricing;
   const p = dict.marketing.payment;
@@ -126,7 +136,7 @@ export async function LandingPricing({ isAuthenticated }: { isAuthenticated: boo
   const plans: Plan[] = [
     {
       name: t.free.name,
-      price: formatFcfa(PLAN_CREDITS.free.priceFcfa),
+      price: pricing.free,
       credits: t.credits(PLAN_CREDITS.free.signupGrant),
       cadence: t.creditsOnce,
       points: t.free.points(PLAN_CREDITS.free.signupGrant),
@@ -135,8 +145,9 @@ export async function LandingPricing({ isAuthenticated }: { isAuthenticated: boo
     },
     {
       name: t.premium.name,
-      price: formatFcfa(PLAN_CREDITS.premium.priceFcfa),
+      price: pricing.premium,
       period: t.period,
+      priceNote: pricing.converted ? dict.premium.chargedNote(pricing.charged) : undefined,
       credits: t.credits(PLAN_CREDITS.premium.monthly),
       cadence: t.creditsMonthly,
       points: t.premium.points(PLAN_CREDITS.premium.monthly),
@@ -154,11 +165,17 @@ export async function LandingPricing({ isAuthenticated }: { isAuthenticated: boo
   ];
 
   const paymentPoints = [
-    { icon: Coins, text: p.points.fcfa },
+    {
+      icon: Coins,
+      text:
+        pricing.converted && pricing.currencyName
+          ? p.points.converted(pricing.currencyName, pricing.charged)
+          : p.points.fcfa,
+    },
     { icon: Gift, text: p.points.noCard },
     {
       icon: Zap,
-      text: p.points.premium(formatFcfa(PLAN_CREDITS.premium.priceFcfa), PLAN_CREDITS.premium.monthly),
+      text: p.points.premium(pricing.premium, PLAN_CREDITS.premium.monthly),
     },
     { icon: Repeat, text: p.points.monthly },
   ];
@@ -219,7 +236,7 @@ export async function LandingPricing({ isAuthenticated }: { isAuthenticated: boo
         {/* ── Paiement ── */}
         <Reveal className="mx-auto mt-6 max-w-4xl">
           <div className="rounded-[1.5rem] bg-scene-auth p-7 text-white shadow-[var(--shadow-elevated)] sm:p-8">
-            <h3 className="font-display text-[1.75rem] font-medium leading-tight tracking-[-0.01em]">{p.heading}</h3>
+            <h3 className="font-display text-[1.75rem] font-medium leading-tight tracking-[-0.01em]">{pricing.converted ? p.headingLocal : p.heading}</h3>
             <p className="mt-2 text-[0.95rem] text-white/70">{p.subtitle}</p>
             <ul className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
               {paymentPoints.map((point, i) => {

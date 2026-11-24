@@ -751,6 +751,11 @@ export const en: Dictionary = {
     noSpeechStopped:
       "I didn't hear you, so I turned the mic off. Tap it when you're ready.",
     errorNoSpeech: "I didn't hear your question. Move closer to the mic and try again.",
+    trialEndedTitle: "Free trial over",
+    trialEndedMessage: (pages: number) =>
+      `Your free voice tutor trial (${pages} pages) is over. Upgrade to Premium to keep using it.`,
+    trialHint: (remaining: number, total: number) =>
+      `Free trial: ${remaining} of ${total} pages left (1 credit per page), then Premium.`,
     errorRecordingTooLong: "Your question is too long: one minute max.",
     errorMicDenied:
       "Microphone access denied. Allow the microphone for EduIA in your browser settings, then try again.",
@@ -885,8 +890,8 @@ export const en: Dictionary = {
 
   premium: {
     metaTitle: "Premium",
-    metaDescription:
-      "Two EduIA plans: Free (credits offered at signup) or Premium at 2,500 FCFA per month, paid by Mobile Money or card, with no automatic charge.",
+    metaDescription: (price: string) =>
+      `Two EduIA plans: Free (credits offered at signup) or Premium at ${price} per month, paid by Mobile Money or card, with no automatic charge.`,
     heroBadgeFree: "Free tier",
     heroBadgePremium: "Premium account",
     heroBadgePremiumPlus: "Premium+ account",
@@ -898,8 +903,8 @@ export const en: Dictionary = {
     heroTitlePremiumPlusBefore: "Enjoy ",
     heroTitlePremiumPlusAccent: "1,000 credits",
     heroTitlePremiumPlusAfter: " every month",
-    heroBodyFree:
-      "Your free account gives you 10 credits at signup to try every tool. Upgrade to Premium for 500 credits every month, at 2,500 FCFA per month.",
+    heroBodyFree: (price: string) =>
+      `Your free account gives you 10 credits at signup to try every tool. Upgrade to Premium for 500 credits every month, at ${price} per month.`,
     heroBodyPremium:
       "500 credits for each month of subscription: summarise, generate, grade and chat with the AI Assistant without counting.",
     heroBodyPremiumPlus:
@@ -932,8 +937,11 @@ export const en: Dictionary = {
       "500 crédits chaque mois": "500 credits every month",
       "Non disponible": "Not available",
       "Incluse": "Included",
+      "Professeur vocal": "Voice tutor",
+      "Essai : 2 pages (1 crédit/page)": "Trial: 2 pages (1 credit/page)",
     } as Record<string, string>,
     pricePeriod: "/month",
+    chargedNote: (charged: string) => `Charged in FCFA by Maketou: ${charged}, converted by your bank.`,
   },
 
   aide: {
@@ -1496,9 +1504,12 @@ export const en: Dictionary = {
     },
     payment: {
       heading: "Simple payment, in FCFA",
+      headingLocal: "Simple payment, in your currency",
       subtitle: "Clear rules, so you always know exactly what you pay.",
       points: {
         fcfa: "All prices are shown in FCFA.",
+        converted: (currency: string, charged: string) =>
+          `Prices shown in ${currency} as a guide: payment is collected in FCFA (${charged}) and your bank handles the conversion.`,
         noCard: "The free account needs no bank card.",
         premium: (price: string, credits: number) => `Premium: ${price} per month, ${credits} credits included.`,
         monthly: "One-month subscription, no automatic charge: renew whenever you want.",

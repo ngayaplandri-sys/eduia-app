@@ -206,6 +206,11 @@ export const creditWallets = pgTable("credit_wallets", {
     .references(() => user.id, { onDelete: "cascade" }),
   subscriptionBalance: integer().notNull().default(0),
   rechargeBalance: integer().notNull().default(0),
+  /**
+   * Pages de l'essai gratuit du Professeur vocal déjà utilisées (compte
+   * gratuit) : plafonnées à `VOICE_TUTOR_FREE_TRIAL_PAGES`, une par réponse.
+   */
+  voiceTrialPages: integer().notNull().default(0),
   createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
 });

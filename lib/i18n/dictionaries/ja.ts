@@ -732,6 +732,11 @@ goToPage: (page: number) => `ページ ${page} を表示`,
 noSpeechStopped:
       "声が聞こえなかったので、マイクをオフにしました。準備ができたら押してください。",
 errorNoSpeech: "質問が聞き取れませんでした。マイクに近づいてもう一度試してください。",
+    trialEndedTitle: "無料トライアル終了",
+    trialEndedMessage: (pages: number) =>
+      `音声チューターの無料トライアル（${pages}ページ）は終了しました。引き続き使うにはPremiumにアップグレードしてください。`,
+    trialHint: (remaining: number, total: number) =>
+      `無料トライアル：残り${remaining}/${total}ページ（1ページ1クレジット）、その後はPremium。`,
 errorRecordingTooLong: "質問が長すぎます。1分以内にしてください。",
 errorMicDenied:
       "マイクへのアクセスが拒否されました。ブラウザ設定でEduIAのマイクを許可してから、もう一度試してください。",
@@ -862,8 +867,8 @@ parametres: {
   },
 premium: {
     metaTitle: "Premium",
-    metaDescription:
-      "EduIAには2つのプランがあります。無料プラン（登録時にクレジット付与）または、月2,500 FCFAのPremiumプラン。Mobile Moneyまたはカードで支払いでき、自動請求はありません。",
+    metaDescription: (price: string) =>
+      `EduIAには2つのプランがあります。無料プラン（登録時にクレジット付与）または、月${price}のPremiumプラン。Mobile Moneyまたはカードで支払いでき、自動請求はありません。`,
     heroBadgeFree: "無料プラン",
     heroBadgePremium: "Premiumアカウント",
     heroBadgePremiumPlus: "Premium+アカウント",
@@ -875,8 +880,8 @@ premium: {
     heroTitlePremiumPlusBefore: "毎月 ",
     heroTitlePremiumPlusAccent: "1,000クレジット",
     heroTitlePremiumPlusAfter: " を利用できます",
-    heroBodyFree:
-      "無料アカウントでは、登録時に10クレジットが付与され、すべての機能をお試しいただけます。Premiumにアップグレードすると、毎月500クレジットを月額2,500 FCFAでご利用いただけます。",
+    heroBodyFree: (price: string) =>
+      `無料アカウントでは、登録時に10クレジットが付与され、すべての機能をお試しいただけます。Premiumにアップグレードすると、毎月500クレジットを月額${price}でご利用いただけます。`,
     heroBodyPremium:
       "毎月500クレジットを使えるサブスクリプションです。要約、作成、採点、AIアシスタントとのチャットを気にせず使えます。",
     heroBodyPremiumPlus:
@@ -909,8 +914,11 @@ premium: {
       "500 crédits chaque mois": "毎月500クレジット",
       "Non disponible": "利用不可",
       "Incluse": "含まれています",
+      "Professeur vocal": "音声チューター",
+      "Essai : 2 pages (1 crédit/page)": "トライアル：2ページ（1ページ1クレジット）",
     } as Record<string, string>,
     pricePeriod: "/月",
+    chargedNote: (charged: string) => `MaketouがFCFAで請求します：${charged}（換算は銀行が行います）。`,
   },
 aide: {
     metaTitle: "ヘルプとサポート",
@@ -1469,9 +1477,12 @@ pricing: {
     },
 payment: {
       heading: "FCFAでかんたん支払い",
+      headingLocal: "かんたんなお支払い、あなたの通貨で",
       subtitle: "わかりやすいルールで、支払額がいつでも正確にわかります。",
       points: {
         fcfa: "すべての料金はFCFAで表示されます。",
+        converted: (currency: string, charged: string) =>
+          `価格は目安として表示しています（${currency}）。お支払いはFCFA（${charged}）で行われ、換算は銀行が行います。`,
         noCard: "無料アカウントに銀行カードは不要です。",
         premium: (price: string, credits: number) => `Premium：月${price}、${credits}クレジット付き。`,
         monthly: "1か月ごとのサブスクです。自動課金はありません。好きなときに更新できます。",

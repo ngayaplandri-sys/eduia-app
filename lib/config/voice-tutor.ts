@@ -158,6 +158,19 @@ export function isChargedLessonPage(page: number): boolean {
   return page % VOICE_TUTOR_LESSON_PAGES_PER_CREDIT === 1;
 }
 
+/**
+ * Compte gratuit : essai du Professeur vocal limité à 2 pages (2 réponses du
+ * professeur, 1 crédit chacune, une fois pour toutes), puis Premium.
+ */
+export const VOICE_TUTOR_FREE_TRIAL_PAGES = 2;
+
+/** Essai du Professeur vocal d'un compte gratuit (`null` : pas de limite d'essai). */
+export interface VoiceTrialState {
+  limit: number;
+  used: number;
+  remaining: number;
+}
+
 /** Enregistrement vocal : durée et taille maximales d'une question. */
 export const VOICE_TUTOR_MAX_RECORDING_MS = 60_000;
 export const VOICE_TUTOR_MAX_AUDIO_BYTES = 4 * 1024 * 1024;

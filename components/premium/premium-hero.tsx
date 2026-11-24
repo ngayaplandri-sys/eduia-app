@@ -2,7 +2,8 @@ import { Crown } from "lucide-react";
 import { getDictionary } from "@/lib/i18n/server";
 import type { UserPlan } from "@/types";
 
-export async function PremiumHero({ plan }: { plan: UserPlan }) {
+/** `price` : prix de Premium dans la monnaie de l'élève (« 12 000 FCFA », « ≈ 18 € »). */
+export async function PremiumHero({ plan, price }: { plan: UserPlan; price: string }) {
   const dict = await getDictionary();
   const t = dict.premium;
 
@@ -38,7 +39,7 @@ export async function PremiumHero({ plan }: { plan: UserPlan }) {
       ? t.heroBodyPremiumPlus
       : plan === "premium"
         ? t.heroBodyPremium
-        : t.heroBodyFree;
+        : t.heroBodyFree(price);
 
   return (
     <section className="overflow-hidden rounded-3xl bg-scene-premium p-6 shadow-[var(--shadow-elevated)] sm:p-8 lg:p-10">
