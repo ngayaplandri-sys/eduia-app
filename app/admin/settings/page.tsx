@@ -72,7 +72,9 @@ export default async function AdminSettingsPage() {
           . Premium :{" "}
           <span className="font-semibold text-ink-700">
             {formatFcfa(PLAN_CREDITS.premium.priceFcfa)} / mois — {PLAN_CREDITS.premium.monthly} crédits
-          </span>
+          </span>{" "}
+          (prix du produit Maketou ; l&apos;élève paie{" "}
+          {formatFcfa(PLAN_CREDITS.premium.paidFcfa)} avec les 2 % de frais de paiement)
           . Paiement réel via Maketou (<code>maketou_checkouts</code>, commandes
           dans <code>credit_orders</code>). Premium+ et les recharges de
           crédits ne sont plus vendus depuis le 15/10/2026 ; leur historique

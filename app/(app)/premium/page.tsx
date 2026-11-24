@@ -22,7 +22,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const dict = await getDictionary();
   return {
     title: dict.premium.metaTitle,
-    description: dict.premium.metaDescription(formatFcfa(PLAN_CREDITS.premium.priceFcfa)),
+    description: dict.premium.metaDescription(formatFcfa(PLAN_CREDITS.premium.paidFcfa)),
   };
 }
 

@@ -8,7 +8,8 @@ import type { RechargePackageId, SubscriptionPlanId } from "@/types";
 /**
  * Catalogue des offres vendues via Maketou — dérivé des prix réels de l'app
  * (`PLAN_CREDITS`), jamais de la requête du client. Une seule offre payante :
- * Premium, 12 000 FCFA (≈ 20 $) pour un mois.
+ * Premium, 11 765 FCFA pour un mois (12 000 FCFA ≈ 20 $ payés par l'élève
+ * avec les 2 % de frais de la page de paiement).
  *
  * Un produit Maketou à PRIX FIXE par offre (choix validé avec le
  * propriétaire) : Maketou facture le prix du tableau de bord, on n'envoie

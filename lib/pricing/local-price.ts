@@ -12,7 +12,8 @@ import type { Locale } from "@/lib/i18n/config";
 
 /**
  * Prix de Premium affiché dans la monnaie de l'élève. Le paiement reste
- * encaissé en FCFA par Maketou (`PLAN_CREDITS.premium.priceFcfa`) : hors zone
+ * encaissé en FCFA par Maketou (`PLAN_CREDITS.premium.paidFcfa`, frais de
+ * paiement compris) : hors zone
  * FCFA, le prix local est un équivalent indicatif (« ≈ »), converti au taux du
  * jour, et le montant réellement prélevé en FCFA est toujours indiqué à côté.
  *
@@ -167,13 +168,14 @@ export interface LocalPricing {
   premium: string;
   /** Prix de l'offre gratuite (« 0 ₺ » ou « 0 FCFA »). */
   free: string;
-  /** Montant réellement prélevé par Maketou (« 12 000 FCFA »). */
+  /** Montant réellement payé à Maketou, frais compris (« 12 000 FCFA »). */
   charged: string;
 }
 
 /** Prix des offres pour cet élève (ou ce visiteur), dans sa monnaie. */
 export async function getLocalPricing(locale: Locale, userId: string | null): Promise<LocalPricing> {
-  const premiumFcfa = PLAN_CREDITS.premium.priceFcfa;
+  // Ce que l'élève paie vraiment (prix du produit + frais de la page de paiement).
+  const premiumFcfa = PLAN_CREDITS.premium.paidFcfa;
   const fcfa: LocalPricing = {
     converted: false,
     currencyName: null,
