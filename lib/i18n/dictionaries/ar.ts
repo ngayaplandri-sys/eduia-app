@@ -735,10 +735,10 @@ errorNoSpeech: "لم أسمع سؤالك. اقترب من الميكروفون �
     trialEndedTitle: "انتهت التجربة المجانية",
     pageCreditsNeeded: (cost: number) =>
       `شرح صفحة بالتفصيل يكلّف ${cost} أرصدة، ولم يتبقَّ لديك ما يكفي. لا يزال بإمكانك طرح الأسئلة (رصيد واحد لكل سؤال)، أو تجديد Premium لمتابعة الشرح.`,
-    trialEndedMessage: (pages: number) =>
-      `انتهت تجربتك المجانية للمدرّس الصوتي (${pages} صفحات). انتقل إلى Premium لمواصلة استخدامه.`,
-    trialHint: (remaining: number, total: number) =>
-      `التجربة المجانية: تبقّى ${remaining} من ${total} صفحات (رصيد واحد لكل صفحة)، ثم Premium.`,
+    trialEndedMessage:
+      "انتهت تجربتك المجانية للمدرّس الصوتي (صفحة واحدة). انتقل إلى Premium لمواصلة استخدامه.",
+    trialHint: (credits: number) =>
+      `التجربة المجانية: صفحة واحدة مشروحة بالتفصيل (${credits} أرصدة)، ثم Premium.`,
 errorRecordingTooLong: "سؤالك طويل جدًا: الحد الأقصى دقيقة واحدة.",
 errorMicDenied:
       "تم رفض الوصول إلى الميكروفون. اسمح بالميكروفون لـ EduIA في إعدادات المتصفح، ثم حاول مرة أخرى.",
@@ -917,7 +917,7 @@ premium: {
       "Non disponible": "غير متاح",
       "Incluse": "مشمولة",
       "Professeur vocal": "مدرّس صوتي",
-      "Essai : 2 pages (1 crédit/page)": "تجربة: صفحتان (رصيد واحد لكل صفحة)",
+      "Essai : 1 page (3 crédits)": "تجربة: صفحة واحدة (3 أرصدة)",
       "1 crédit/question · 3 crédits/page détaillée": "1 رصيد/سؤال · 3 أرصدة/صفحة مفصّلة",
     } as Record<string, string>,
     pricePeriod: "/month",

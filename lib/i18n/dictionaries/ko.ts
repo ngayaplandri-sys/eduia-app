@@ -735,10 +735,10 @@ errorNoSpeech: "질문이 들리지 않았습니다. 마이크에 더 가까이 
     trialEndedTitle: "무료 체험 종료",
     pageCreditsNeeded: (cost: number) =>
       `페이지 상세 설명에는 ${cost}크레딧이 필요한데, 남은 크레딧이 부족해. 질문은 계속할 수 있어(질문당 1크레딧). 설명을 이어 가려면 Premium을 갱신해 줘.`,
-    trialEndedMessage: (pages: number) =>
-      `음성 튜터 무료 체험(${pages}페이지)이 끝났습니다. 계속 사용하려면 Premium으로 업그레이드하세요.`,
-    trialHint: (remaining: number, total: number) =>
-      `무료 체험: ${total}페이지 중 ${remaining}페이지 남음(페이지당 1크레딧), 이후 Premium.`,
+    trialEndedMessage:
+      "음성 튜터 무료 체험(1페이지)이 끝났습니다. 계속 사용하려면 Premium으로 업그레이드하세요.",
+    trialHint: (credits: number) =>
+      `무료 체험: 1페이지 상세 설명(${credits}크레딧), 이후 Premium.`,
 errorRecordingTooLong: "질문이 너무 깁니다: 최대 1분까지 가능합니다.",
 errorMicDenied:
       "마이크 접근이 거부되었습니다. 브라우저 설정에서 EduIA의 마이크 사용을 허용한 뒤 다시 시도해 주세요.",
@@ -917,7 +917,7 @@ premium: {
       "Non disponible": "이용 불가",
       "Incluse": "포함",
       "Professeur vocal": "음성 튜터",
-      "Essai : 2 pages (1 crédit/page)": "체험: 2페이지(페이지당 1크레딧)",
+      "Essai : 1 page (3 crédits)": "체험: 1페이지(3크레딧)",
       "1 crédit/question · 3 crédits/page détaillée": "문항당 1크레딧 · 상세 설명 페이지당 3크레딧",
     } as Record<string, string>,
     pricePeriod: "/월",

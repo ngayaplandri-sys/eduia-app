@@ -735,10 +735,10 @@ errorNoSpeech: "Savolingizni eshitmadim. Mikrofonga yaqinroq boring va qayta uri
     trialEndedTitle: "Bepul sinov tugadi",
     pageCreditsNeeded: (cost: number) =>
       `Bitta sahifani batafsil tushuntirish ${cost} kredit turadi, senda esa yetarli kredit qolmadi. Savol berishda davom etishing mumkin (har biri 1 kredit) yoki tushuntirishni davom ettirish uchun Premiumni yangila.`,
-    trialEndedMessage: (pages: number) =>
-      `Ovozli tutorning bepul sinovi (${pages} sahifa) tugadi. Foydalanishni davom ettirish uchun Premiumga oʻting.`,
-    trialHint: (remaining: number, total: number) =>
-      `Bepul sinov: ${total} sahifadan ${remaining} tasi qoldi (har sahifa 1 kredit), keyin Premium.`,
+    trialEndedMessage:
+      "Ovozli tutorning bepul sinovi (1 sahifa) tugadi. Foydalanishni davom ettirish uchun Premiumga oʻting.",
+    trialHint: (credits: number) =>
+      `Bepul sinov: batafsil tushuntirilgan 1 sahifa (${credits} kredit), keyin Premium.`,
 errorRecordingTooLong: "Savolingiz juda uzun: eng koʻpi bir daqiqa.",
 errorMicDenied:
       "Mikrofonga kirish rad etildi. Brauzer sozlamalarida EduIA uchun mikrofonga ruxsat bering, keyin qayta urinib koʻring.",
@@ -917,7 +917,7 @@ premium: {
       "Non disponible": "Mavjud emas",
       "Incluse": "Kiritilgan",
       "Professeur vocal": "Ovozli tutor",
-      "Essai : 2 pages (1 crédit/page)": "Sinov: 2 sahifa (sahifasiga 1 kredit)",
+      "Essai : 1 page (3 crédits)": "Sinov: 1 sahifa (3 kredit)",
       "1 crédit/question · 3 crédits/page détaillée": "1 savolga 1 kredit · batafsil sahifaga 3 kredit",
     } as Record<string, string>,
     pricePeriod: "/oy",

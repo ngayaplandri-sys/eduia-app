@@ -30,7 +30,7 @@ import {
 import { InlineErrorBanner } from "@/components/common/inline-error-banner";
 import { InsufficientCreditsBanner } from "@/components/credits/insufficient-credits-banner";
 import {
-  VOICE_TUTOR_FREE_TRIAL_PAGES,
+  VOICE_TUTOR_FREE_TRIAL_PAGE_CREDITS,
   VOICE_TUTOR_GREETING,
   VOICE_TUTOR_HISTORY_MESSAGE_CHARS,
   VOICE_TUTOR_IDLE_LISTEN_MS,
@@ -911,7 +911,7 @@ export function VoiceTutorWorkspace({
     conversationRef.current = false;
     setNotice(null);
     setError({
-      message: t.trialEndedMessage(voiceTrial?.limit ?? VOICE_TUTOR_FREE_TRIAL_PAGES),
+      message: t.trialEndedMessage,
       code: "VOICE_TRIAL_ENDED",
     });
     setPhase("idle");
@@ -1901,7 +1901,7 @@ export function VoiceTutorWorkspace({
             ) : null}
             {voiceTrial && trialRemaining !== null && trialRemaining > 0 && !error ? (
               <p className="text-center text-fine text-ink-500">
-                {t.trialHint(trialRemaining, voiceTrial.limit)}
+                {t.trialHint(VOICE_TUTOR_FREE_TRIAL_PAGE_CREDITS)}
               </p>
             ) : null}
           </div>

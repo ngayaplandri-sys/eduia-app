@@ -735,10 +735,10 @@ errorNoSpeech: "Ik heb je vraag niet gehoord. Kom dichter bij de microfoon en pr
     trialEndedTitle: "Gratis proefperiode voorbij",
     pageCreditsNeeded: (cost: number) =>
       `Een uitgebreid uitgelegde pagina kost ${cost} credits en je hebt er niet genoeg meer. Je kunt nog steeds vragen stellen (1 credit per vraag) of Premium verlengen om verder te gaan met de uitleg.`,
-    trialEndedMessage: (pages: number) =>
-      `Je gratis proefperiode van de stemdocent (${pages} pagina's) is voorbij. Stap over op Premium om hem te blijven gebruiken.`,
-    trialHint: (remaining: number, total: number) =>
-      `Gratis proefperiode: nog ${remaining} van ${total} pagina's (1 credit per pagina), daarna Premium.`,
+    trialEndedMessage:
+      "Je gratis proefperiode van de stemdocent (één pagina) is voorbij. Stap over op Premium om hem te blijven gebruiken.",
+    trialHint: (credits: number) =>
+      `Gratis proefperiode: één uitgebreid uitgelegde pagina (${credits} credits), daarna Premium.`,
 errorRecordingTooLong: "Je vraag is te lang: maximaal één minuut.",
 errorMicDenied:
       "Toegang tot de microfoon geweigerd. Sta de microfoon toe voor EduIA in de instellingen van je browser en probeer het opnieuw.",
@@ -917,7 +917,7 @@ premium: {
       "Non disponible": "Niet beschikbaar",
       "Incluse": "Inbegrepen",
       "Professeur vocal": "Stemdocent",
-      "Essai : 2 pages (1 crédit/page)": "Proef: 2 pagina's (1 credit/pagina)",
+      "Essai : 1 page (3 crédits)": "Proef: 1 pagina (3 credits)",
       "1 crédit/question · 3 crédits/page détaillée": "1 credit/vraag · 3 credits/uitgebreide pagina",
     } as Record<string, string>,
     pricePeriod: "/maand",

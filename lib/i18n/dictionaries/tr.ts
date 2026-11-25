@@ -735,10 +735,10 @@ errorNoSpeech: "Sorunu duyamadım. Mikrofonun yakınına gel ve tekrar dene.",
     trialEndedTitle: "Ücretsiz deneme sona erdi",
     pageCreditsNeeded: (cost: number) =>
       `Ayrıntılı anlatılan bir sayfa ${cost} kredi tutar ve yeterli kredin kalmadı. Yine de soru sorabilirsin (soru başına 1 kredi) ya da anlatıma devam etmek için Premium'u yenileyebilirsin.`,
-    trialEndedMessage: (pages: number) =>
-      `Sesli öğretmenin ücretsiz denemesi (${pages} sayfa) sona erdi. Kullanmaya devam etmek için Premium’a geç.`,
-    trialHint: (remaining: number, total: number) =>
-      `Ücretsiz deneme: ${total} sayfadan ${remaining} sayfa kaldı (sayfa başına 1 kredi), sonra Premium.`,
+    trialEndedMessage:
+      "Sesli öğretmenin ücretsiz denemesi (1 sayfa) sona erdi. Kullanmaya devam etmek için Premium’a geç.",
+    trialHint: (credits: number) =>
+      `Ücretsiz deneme: ayrıntılı anlatılan 1 sayfa (${credits} kredi), sonra Premium.`,
 errorRecordingTooLong: "Sorun çok uzun: en fazla bir dakika.",
 errorMicDenied:
       "Mikrofon erişimi reddedildi. Tarayıcı ayarlarında EduIA için mikrofona izin ver, sonra tekrar dene.",
@@ -917,7 +917,7 @@ premium: {
       "Non disponible": "Mevcut değil",
       "Incluse": "Dahil",
       "Professeur vocal": "Sesli öğretmen",
-      "Essai : 2 pages (1 crédit/page)": "Deneme: 2 sayfa (sayfa başına 1 kredi)",
+      "Essai : 1 page (3 crédits)": "Deneme: 1 sayfa (3 kredi)",
       "1 crédit/question · 3 crédits/page détaillée": "Soru başına 1 kredi · ayrıntılı sayfa başına 3 kredi",
     } as Record<string, string>,
     pricePeriod: "/ay",

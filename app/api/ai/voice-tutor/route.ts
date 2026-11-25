@@ -26,7 +26,6 @@ import { logAiUsage } from "@/lib/ai/usage";
 import { isSameOriginRequest } from "@/lib/http/guards";
 import {
   VOICE_TUTOR_DETAILED_PAGE_CREDITS,
-  VOICE_TUTOR_FREE_TRIAL_PAGES,
   VOICE_TUTOR_MAX_AUDIO_BYTES,
   type VoiceTrialState,
 } from "@/lib/config/voice-tutor";
@@ -79,9 +78,10 @@ async function readPayload(value: FormDataEntryValue | null): Promise<unknown> {
  *    page, page demandée par son numéro) paie 1 crédit d'avance puis le reste
  *    dès le repère, avant le premier mot (crédits insuffisants : réponse
  *    arrêtée, crédit rendu, évènement `error` `INSUFFICIENT_CREDITS`).
- * Compte gratuit : essai de `VOICE_TUTOR_FREE_TRIAL_PAGES` pages (1 crédit
- * par réponse, une fois pour toutes), puis 402 `VOICE_TRIAL_ENDED`
- * (Premium) ; une réponse échouée rend la page d'essai.
+ * Compte gratuit : essai de `VOICE_TUTOR_FREE_TRIAL_PAGES` page (une réponse
+ * du professeur, une page expliquée en entier, `VOICE_TUTOR_FREE_TRIAL_PAGE_CREDITS`
+ * crédits, une fois pour toutes), puis 402 `VOICE_TRIAL_ENDED` (Premium) ;
+ * une réponse échouée rend la page d'essai et ses crédits.
  *  - `question` : la question transcrite (+ `trialRemaining` pendant l'essai) ;
  *  - `focus` : la page (et quelques mots) du cours dont parle la réponse, et
  *    sa langue si l'élève a demandé d'en changer ;
@@ -136,7 +136,7 @@ export async function POST(request: Request) {
   const trialEnded = () =>
     NextResponse.json(
       {
-        error: dict.voiceTutor.trialEndedMessage(VOICE_TUTOR_FREE_TRIAL_PAGES),
+        error: dict.voiceTutor.trialEndedMessage,
         code: "VOICE_TRIAL_ENDED",
       },
       { status: 402 },
@@ -187,7 +187,7 @@ export async function POST(request: Request) {
 
   // Suite automatique = une page détaillée, payée d'avance ; question = 1
   // crédit, complété plus bas si sa réponse est une page détaillée (pendant
-  // l'essai gratuit, chaque réponse coûte 1 crédit).
+  // l'essai gratuit, l'unique réponse coûte le prix d'une page détaillée).
   const upfrontCost = data.continueLesson
     ? VOICE_TUTOR_DETAILED_PAGE_CREDITS
     : CREDIT_COSTS.assistant;

@@ -754,10 +754,10 @@ export const en: Dictionary = {
     trialEndedTitle: "Free trial over",
     pageCreditsNeeded: (cost: number) =>
       `A page explained in detail costs ${cost} credits, and you don't have enough left. You can still ask questions (1 credit each), or renew Premium to continue the explanation.`,
-    trialEndedMessage: (pages: number) =>
-      `Your free voice tutor trial (${pages} pages) is over. Upgrade to Premium to keep using it.`,
-    trialHint: (remaining: number, total: number) =>
-      `Free trial: ${remaining} of ${total} pages left (1 credit per page), then Premium.`,
+    trialEndedMessage:
+      "Your free voice tutor trial (one page) is over. Upgrade to Premium to keep using it.",
+    trialHint: (credits: number) =>
+      `Free trial: one page explained in detail (${credits} credits), then Premium.`,
     errorRecordingTooLong: "Your question is too long: one minute max.",
     errorMicDenied:
       "Microphone access denied. Allow the microphone for EduIA in your browser settings, then try again.",
@@ -940,7 +940,7 @@ export const en: Dictionary = {
       "Non disponible": "Not available",
       "Incluse": "Included",
       "Professeur vocal": "Voice tutor",
-      "Essai : 2 pages (1 crédit/page)": "Trial: 2 pages (1 credit/page)",
+      "Essai : 1 page (3 crédits)": "Trial: 1 page (3 credits)",
       "1 crédit/question · 3 crédits/page détaillée": "1 credit/question · 3 credits/detailed page",
     } as Record<string, string>,
     pricePeriod: "/month",

@@ -3,7 +3,11 @@ import { eq, sql } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
 import { isPaidPlan } from "@/lib/utils/plan";
 import { CREDIT_COSTS, planMonthlyCredits } from "@/lib/config/credits";
-import { VOICE_TUTOR_FREE_TRIAL_PAGES, type VoiceTrialState } from "@/lib/config/voice-tutor";
+import {
+  VOICE_TUTOR_FREE_TRIAL_PAGE_CREDITS,
+  VOICE_TUTOR_FREE_TRIAL_PAGES,
+  type VoiceTrialState,
+} from "@/lib/config/voice-tutor";
 import type {
   CreditBucket,
   CreditDebitResult,
@@ -410,8 +414,8 @@ export type VoiceTrialDebit =
 
 /**
  * Une page de l'essai gratuit du Professeur vocal (une réponse) : vérifie
- * qu'il reste une page d'essai, débite `CREDIT_COSTS.assistant` crédit puis
- * compte la page — tout sous le verrou de la ligne du portefeuille, dans la
+ * qu'il reste une page d'essai, débite `VOICE_TUTOR_FREE_TRIAL_PAGE_CREDITS`
+ * crédits puis compte la page — tout sous le verrou de la ligne du portefeuille, dans la
  * transaction de l'appelant (deux questions simultanées ne peuvent pas
  * dépasser l'essai). Rien n'est écrit si l'essai est épuisé ou si les crédits
  * manquent.
@@ -428,7 +432,7 @@ export async function consumeVoiceTrialPage(
   if (row.voice_trial_pages >= VOICE_TUTOR_FREE_TRIAL_PAGES) {
     return { ok: false, reason: "trial_ended" };
   }
-  const debit = await consumeCredits(tx, userId, "assistant");
+  const debit = await consumeCredits(tx, userId, "assistant", VOICE_TUTOR_FREE_TRIAL_PAGE_CREDITS);
   if (!debit.ok) return { ok: false, reason: "insufficient_credits" };
   const counted = await tx.execute<{ voice_trial_pages: number }>(sql`
     UPDATE credit_wallets

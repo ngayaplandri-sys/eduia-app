@@ -157,10 +157,13 @@ export const VOICE_TUTOR_IDLE_LISTEN_MS = 3 * 60_000;
 export const VOICE_TUTOR_DETAILED_PAGE_CREDITS = 3;
 
 /**
- * Compte gratuit : essai du Professeur vocal limité à 2 pages (2 réponses du
- * professeur, 1 crédit chacune, une fois pour toutes), puis Premium.
+ * Compte gratuit : essai du Professeur vocal limité à UNE page expliquée en
+ * détail (une seule réponse du professeur, une fois pour toutes), puis Premium.
  */
-export const VOICE_TUTOR_FREE_TRIAL_PAGES = 2;
+export const VOICE_TUTOR_FREE_TRIAL_PAGES = 1;
+
+/** Prix d'une page d'essai : celui d'une page détaillée (3 crédits). */
+export const VOICE_TUTOR_FREE_TRIAL_PAGE_CREDITS = VOICE_TUTOR_DETAILED_PAGE_CREDITS;
 
 /** Essai du Professeur vocal d'un compte gratuit (`null` : pas de limite d'essai). */
 export interface VoiceTrialState {

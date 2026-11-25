@@ -735,10 +735,10 @@ errorNoSpeech: "Sikusikia swali lako. Karibia maikrofoni na ujaribu tena.",
     trialEndedTitle: "Jaribio la bure limeisha",
     pageCreditsNeeded: (cost: number) =>
       `Ukurasa unaoelezwa kwa kina unagharimu salio ${cost}, na huna salio la kutosha tena. Bado unaweza kuuliza maswali (salio 1 kwa kila swali), au kufanya upya Premium ili kuendelea na maelezo.`,
-    trialEndedMessage: (pages: number) =>
-      `Jaribio lako la bure la mwalimu wa sauti (kurasa ${pages}) limeisha. Panda hadi Premium ili uendelee kumtumia.`,
-    trialHint: (remaining: number, total: number) =>
-      `Jaribio la bure: zimebaki kurasa ${remaining} kati ya ${total} (salio 1 kwa kila ukurasa), kisha Premium.`,
+    trialEndedMessage:
+      "Jaribio lako la bure la mwalimu wa sauti (ukurasa mmoja) limeisha. Panda hadi Premium ili uendelee kumtumia.",
+    trialHint: (credits: number) =>
+      `Jaribio la bure: ukurasa mmoja ulioelezwa kwa kina (salio ${credits}), kisha Premium.`,
 errorRecordingTooLong: "Swali lako ni refu sana: dakika moja pekee.",
 errorMicDenied:
       "Ufikiaji wa maikrofoni umekataliwa. Ruhusu maikrofoni kwa EduIA kwenye mipangilio ya kivinjari chako, kisha ujaribu tena.",
@@ -917,7 +917,7 @@ premium: {
       "Non disponible": "Haipatikani",
       "Incluse": "Imejumuishwa",
       "Professeur vocal": "Mwalimu wa sauti",
-      "Essai : 2 pages (1 crédit/page)": "Jaribio: kurasa 2 (salio 1 kwa ukurasa)",
+      "Essai : 1 page (3 crédits)": "Jaribio: ukurasa 1 (salio 3)",
       "1 crédit/question · 3 crédits/page détaillée": "salio 1/swali · salio 3/ukurasa wa kina",
     } as Record<string, string>,
     pricePeriod: "/mwezi",

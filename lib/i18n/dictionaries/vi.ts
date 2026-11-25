@@ -735,10 +735,10 @@ errorNoSpeech: "Tôi không nghe thấy câu hỏi của bạn. Hãy lại gần
     trialEndedTitle: "Đã hết lượt dùng thử",
     pageCreditsNeeded: (cost: number) =>
       `Giảng chi tiết một trang tốn ${cost} credit, và bạn không còn đủ credit. Bạn vẫn có thể đặt câu hỏi (1 credit mỗi câu), hoặc gia hạn Premium để tiếp tục phần giảng.`,
-    trialEndedMessage: (pages: number) =>
-      `Bản dùng thử miễn phí gia sư giọng nói (${pages} trang) của bạn đã kết thúc. Hãy nâng cấp lên Premium để tiếp tục sử dụng.`,
-    trialHint: (remaining: number, total: number) =>
-      `Dùng thử miễn phí: còn ${remaining}/${total} trang (1 credit mỗi trang), sau đó là Premium.`,
+    trialEndedMessage:
+      "Bản dùng thử miễn phí gia sư giọng nói (1 trang) của bạn đã kết thúc. Hãy nâng cấp lên Premium để tiếp tục sử dụng.",
+    trialHint: (credits: number) =>
+      `Dùng thử miễn phí: giảng chi tiết 1 trang (${credits} credit), sau đó là Premium.`,
 errorRecordingTooLong: "Câu hỏi của bạn quá dài: tối đa một phút.",
 errorMicDenied:
       "Quyền truy cập microphone bị từ chối. Hãy cho phép microphone cho EduIA trong cài đặt trình duyệt của bạn, rồi thử lại.",
@@ -917,7 +917,7 @@ premium: {
       "Non disponible": "Không khả dụng",
       "Incluse": "Đã bao gồm",
       "Professeur vocal": "Gia sư giọng nói",
-      "Essai : 2 pages (1 crédit/page)": "Dùng thử: 2 trang (1 credit/trang)",
+      "Essai : 1 page (3 crédits)": "Dùng thử: 1 trang (3 credit)",
       "1 crédit/question · 3 crédits/page détaillée": "1 credit/câu hỏi · 3 credit/trang giảng chi tiết",
     } as Record<string, string>,
     pricePeriod: "/tháng",

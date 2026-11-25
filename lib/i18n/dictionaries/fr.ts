@@ -774,10 +774,10 @@ export const fr = {
     trialEndedTitle: "Essai gratuit terminé",
     pageCreditsNeeded: (cost: number) =>
       `Une page expliquée en détail coûte ${cost} crédits, et il ne t'en reste pas assez. Tu peux encore poser des questions (1 crédit chacune), ou renouveler Premium pour continuer l'explication.`,
-    trialEndedMessage: (pages: number) =>
-      `Ton essai gratuit du professeur vocal (${pages} pages) est terminé. Passe à Premium pour continuer à l'utiliser.`,
-    trialHint: (remaining: number, total: number) =>
-      `Essai gratuit : encore ${remaining} page${remaining > 1 ? "s" : ""} sur ${total} (1 crédit par page), puis Premium.`,
+    trialEndedMessage:
+      "Ton essai gratuit du Professeur vocal (une page) est terminé. Passe à Premium pour continuer à l'utiliser.",
+    trialHint: (credits: number) =>
+      `Essai gratuit : une page expliquée en détail (${credits} crédits), puis Premium.`,
     errorRecordingTooLong: "Ta question est trop longue : une minute maximum.",
     errorMicDenied:
       "Accès au micro refusé. Autorise le micro pour EduIA dans les réglages de ton navigateur, puis réessaie.",
@@ -963,7 +963,7 @@ export const fr = {
       "Non disponible": "Non disponible",
       "Incluse": "Incluse",
       "Professeur vocal": "Professeur vocal",
-      "Essai : 2 pages (1 crédit/page)": "Essai : 2 pages (1 crédit/page)",
+      "Essai : 1 page (3 crédits)": "Essai : 1 page (3 crédits)",
       "1 crédit/question · 3 crédits/page détaillée": "1 crédit/question · 3 crédits/page détaillée",
     } as Record<string, string>,
     pricePeriod: "/mois",

@@ -735,10 +735,10 @@ errorNoSpeech: "No he oído tu pregunta. Acércate al micrófono y prueba de nue
     trialEndedTitle: "Prueba gratuita terminada",
     pageCreditsNeeded: (cost: number) =>
       `Una página explicada en detalle cuesta ${cost} créditos y no te quedan suficientes. Todavía puedes hacer preguntas (1 crédito cada una) o renovar Premium para continuar la explicación.`,
-    trialEndedMessage: (pages: number) =>
-      `Tu prueba gratuita del tutor de voz (${pages} páginas) ha terminado. Pásate a Premium para seguir usándolo.`,
-    trialHint: (remaining: number, total: number) =>
-      `Prueba gratuita: te quedan ${remaining} de ${total} páginas (1 crédito por página); después, Premium.`,
+    trialEndedMessage:
+      "Tu prueba gratuita del tutor de voz (una página) ha terminado. Pásate a Premium para seguir usándolo.",
+    trialHint: (credits: number) =>
+      `Prueba gratuita: una página explicada en detalle (${credits} créditos); después, Premium.`,
 errorRecordingTooLong: "Tu pregunta es demasiado larga: máximo un minuto.",
 errorMicDenied:
       "Acceso al micrófono denegado. Permite el micrófono para EduIA en la configuración de tu navegador y vuelve a intentarlo.",
@@ -917,7 +917,7 @@ premium: {
       "Non disponible": "No disponible",
       "Incluse": "Incluida",
       "Professeur vocal": "Tutor de voz",
-      "Essai : 2 pages (1 crédit/page)": "Prueba: 2 páginas (1 crédito/página)",
+      "Essai : 1 page (3 crédits)": "Prueba: 1 página (3 créditos)",
       "1 crédit/question · 3 crédits/page détaillée": "1 crédito/pregunta · 3 créditos/página detallada",
     } as Record<string, string>,
     pricePeriod: "/mes",

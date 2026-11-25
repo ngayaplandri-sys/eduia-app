@@ -735,10 +735,10 @@ errorNoSpeech: "質問が聞き取れませんでした。マイクに近づい�
     trialEndedTitle: "無料トライアル終了",
     pageCreditsNeeded: (cost: number) =>
       `ページの詳しい解説には${cost}クレジットが必要ですが、残りのクレジットが足りません。質問は引き続きできます（1件につき1クレジット）。解説を続けるにはPremiumを更新してください。`,
-    trialEndedMessage: (pages: number) =>
-      `音声チューターの無料トライアル（${pages}ページ）は終了しました。引き続き使うにはPremiumにアップグレードしてください。`,
-    trialHint: (remaining: number, total: number) =>
-      `無料トライアル：残り${remaining}/${total}ページ（1ページ1クレジット）、その後はPremium。`,
+    trialEndedMessage:
+      "音声チューターの無料トライアル（1ページ）は終了しました。引き続き使うにはPremiumにアップグレードしてください。",
+    trialHint: (credits: number) =>
+      `無料トライアル：1ページの詳しい解説（${credits}クレジット）、その後はPremium。`,
 errorRecordingTooLong: "質問が長すぎます。1分以内にしてください。",
 errorMicDenied:
       "マイクへのアクセスが拒否されました。ブラウザ設定でEduIAのマイクを許可してから、もう一度試してください。",
@@ -917,7 +917,7 @@ premium: {
       "Non disponible": "利用不可",
       "Incluse": "含まれています",
       "Professeur vocal": "音声チューター",
-      "Essai : 2 pages (1 crédit/page)": "トライアル：2ページ（1ページ1クレジット）",
+      "Essai : 1 page (3 crédits)": "トライアル：1ページ（3クレジット）",
       "1 crédit/question · 3 crédits/page détaillée": "質問1件につき1クレジット・詳しい解説1ページにつき3クレジット",
     } as Record<string, string>,
     pricePeriod: "/月",

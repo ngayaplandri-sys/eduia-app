@@ -34,7 +34,7 @@ export const PREMIUM_COMPARISON_ROWS: ComparisonRow[] = [
   {
     // Essai gratuit limité (VOICE_TUTOR_FREE_TRIAL_PAGES), puis Premium.
     label: "Professeur vocal",
-    free: "Essai : 2 pages (1 crédit/page)",
+    free: "Essai : 1 page (3 crédits)",
     freeIncluded: true,
     // VOICE_TUTOR_DETAILED_PAGE_CREDITS : page lue, traduite et expliquée.
     premium: "1 crédit/question · 3 crédits/page détaillée",

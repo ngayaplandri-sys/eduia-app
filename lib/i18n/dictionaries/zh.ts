@@ -735,10 +735,10 @@ errorNoSpeech: "我没听清你的问题。请靠近麦克风再试一次。",
     trialEndedTitle: "免费试用已结束",
     pageCreditsNeeded: (cost: number) =>
       `详细讲解一页需要 ${cost} 积分，你剩余的积分不够了。你仍然可以继续提问（每个问题 1 积分），或续订 Premium 以继续讲解。`,
-    trialEndedMessage: (pages: number) =>
-      `你的语音导师免费试用（${pages} 页）已结束。升级到 Premium 即可继续使用。`,
-    trialHint: (remaining: number, total: number) =>
-      `免费试用：还剩 ${remaining}/${total} 页（每页 1 积分），之后需 Premium。`,
+    trialEndedMessage:
+      "你的语音导师免费试用（1 页）已结束。升级到 Premium 即可继续使用。",
+    trialHint: (credits: number) =>
+      `免费试用：详细讲解 1 页（${credits} 积分），之后需 Premium。`,
 errorRecordingTooLong: "你的问题太长了：最多一分钟。",
 errorMicDenied:
       "麦克风权限被拒绝。请在浏览器设置中允许 EduIA 使用麦克风，然后再试一次。",
@@ -917,7 +917,7 @@ premium: {
       "Non disponible": "不可用",
       "Incluse": "已包含",
       "Professeur vocal": "语音导师",
-      "Essai : 2 pages (1 crédit/page)": "试用：2 页（每页 1 积分）",
+      "Essai : 1 page (3 crédits)": "试用：1 页（3 积分）",
       "1 crédit/question · 3 crédits/page détaillée": "1 积分/问题 · 3 积分/详细讲解一页",
     } as Record<string, string>,
     pricePeriod: "/月",

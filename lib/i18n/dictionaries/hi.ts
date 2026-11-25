@@ -735,10 +735,10 @@ errorNoSpeech: "मुझे आपका सवाल सुनाई नही
     trialEndedTitle: "फ्री ट्रायल खत्म हो गया",
     pageCreditsNeeded: (cost: number) =>
       `किसी पेज को विस्तार से समझाने में ${cost} क्रेडिट लगते हैं, और तुम्हारे पास अब इतने क्रेडिट नहीं बचे हैं। तुम अब भी सवाल पूछ सकते हो (हर सवाल 1 क्रेडिट), या समझाना जारी रखने के लिए Premium रिन्यू करो।`,
-    trialEndedMessage: (pages: number) =>
-      `वॉइस ट्यूटर का आपका फ्री ट्रायल (${pages} पेज) खत्म हो गया है। इसे इस्तेमाल करते रहने के लिए Premium लें।`,
-    trialHint: (remaining: number, total: number) =>
-      `फ्री ट्रायल: ${total} में से ${remaining} पेज बाकी (हर पेज 1 क्रेडिट), फिर Premium।`,
+    trialEndedMessage:
+      "वॉइस ट्यूटर का आपका फ्री ट्रायल (1 पेज) खत्म हो गया है। इसे इस्तेमाल करते रहने के लिए Premium लें।",
+    trialHint: (credits: number) =>
+      `फ्री ट्रायल: 1 पेज विस्तार से समझाया जाएगा (${credits} क्रेडिट), फिर Premium।`,
 errorRecordingTooLong: "आपका सवाल बहुत लंबा है: अधिकतम एक मिनट।",
 errorMicDenied:
       "माइक्रोफ़ोन की अनुमति नहीं मिली। अपने ब्राउज़र की सेटिंग्स में EduIA के लिए माइक्रोफ़ोन की अनुमति दें, फिर फिर से कोशिश करें।",
@@ -917,7 +917,7 @@ premium: {
       "Non disponible": "उपलब्ध नहीं",
       "Incluse": "शामिल",
       "Professeur vocal": "वॉइस ट्यूटर",
-      "Essai : 2 pages (1 crédit/page)": "ट्रायल: 2 पेज (1 क्रेडिट/पेज)",
+      "Essai : 1 page (3 crédits)": "ट्रायल: 1 पेज (3 क्रेडिट)",
       "1 crédit/question · 3 crédits/page détaillée": "1 क्रेडिट/प्रश्न · 3 क्रेडिट/विस्तृत पेज",
     } as Record<string, string>,
     pricePeriod: "/माह",

@@ -82,7 +82,7 @@ export default async function PremiumPage() {
     { label: row("Générer une épreuve"), included: true },
     { label: row("Corriger une épreuve"), included: true },
     // Professeur vocal : essai limité (VOICE_TUTOR_FREE_TRIAL_PAGES), puis Premium.
-    { label: `${row("Professeur vocal")} · ${row("Essai : 2 pages (1 crédit/page)")}`, included: true },
+    { label: `${row("Professeur vocal")} · ${row("Essai : 1 page (3 crédits)")}`, included: true },
   ];
 
   const premiumFeatures: PlanFeature[] = [
