@@ -164,11 +164,11 @@ export interface LocalPricing {
   converted: boolean;
   /** Nom de la monnaie affichée (« livre turque »), si convertie. */
   currencyName: string | null;
-  /** Prix de Premium affiché (« ≈ 1 020 ₺ » ou « 12 000 FCFA »). */
+  /** Prix de Premium affiché (« ≈ 1 530 ₺ » ou « 18 000 FCFA »). */
   premium: string;
   /** Prix de l'offre gratuite (« 0 ₺ » ou « 0 FCFA »). */
   free: string;
-  /** Montant réellement payé à Maketou, frais compris (« 12 000 FCFA »). */
+  /** Montant réellement payé à Maketou, frais compris (« 18 000 FCFA »). */
   charged: string;
 }
 

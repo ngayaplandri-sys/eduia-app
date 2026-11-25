@@ -2,7 +2,7 @@ import { Crown } from "lucide-react";
 import { getDictionary } from "@/lib/i18n/server";
 import type { UserPlan } from "@/types";
 
-/** `price` : prix de Premium dans la monnaie de l'élève (« 12 000 FCFA », « ≈ 18 € »). */
+/** `price` : prix de Premium dans la monnaie de l'élève (« 18 000 FCFA », « ≈ 27 € »). */
 export async function PremiumHero({ plan, price }: { plan: UserPlan; price: string }) {
   const dict = await getDictionary();
   const t = dict.premium;
