@@ -739,8 +739,10 @@ errorNoSpeech: "質問が聞き取れませんでした。マイクに近づい�
       "音声チューターの無料トライアル（1ページ）は終了しました。引き続き使うにはPremiumにアップグレードしてください。",
     trialHint: (credits: number) =>
       `無料トライアル：1ページの詳しい解説（${credits}クレジット）、その後はPremium。`,
-    trialFirstPageOnly: (max: number) =>
-      `無料トライアル：PDFの1ページ目だけが読み込まれます。コース全体（最大${max}ページ）を使うにはPremiumにアップグレードしてください。`,
+    trialOnePageOnly: (max: number) =>
+      `無料トライアル：1ページだけのPDFのみ利用できます。コース全体（最大${max}ページ）を取り込むにはPremiumにアップグレードしてください。`,
+    errorTrialTooManyPages: (max: number) =>
+      `このPDFは複数ページあります。無料トライアル中、音声チューターは1ページだけのPDFしか受け付けません。授業資料の1ページだけを取り込むか、Premiumにアップグレードしてコース全体（最大${max}ページ）を使ってください。`,
 errorRecordingTooLong: "質問が長すぎます。1分以内にしてください。",
 errorMicDenied:
       "マイクへのアクセスが拒否されました。ブラウザ設定でEduIAのマイクを許可してから、もう一度試してください。",

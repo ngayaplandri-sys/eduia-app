@@ -739,8 +739,10 @@ errorNoSpeech: "Ich habe deine Frage nicht gehört. Geh näher ans Mikrofon und 
       "Dein kostenloser Test des Sprachlehrers (eine Seite) ist beendet. Wechsle zu Premium, um ihn weiter zu nutzen.",
     trialHint: (credits: number) =>
       `Kostenloser Test: eine ausführlich erklärte Seite (${credits} Credits), danach Premium.`,
-    trialFirstPageOnly: (max: number) =>
-      `Kostenloser Test: Nur die erste Seite deines PDFs wird geladen. Wechsle zu Premium für deinen ganzen Kurs (bis zu ${max} Seiten).`,
+    trialOnePageOnly: (max: number) =>
+      `Kostenloser Test: nur PDFs mit einer einzigen Seite. Wechsle zu Premium, um deinen ganzen Kurs zu importieren (bis zu ${max} Seiten).`,
+    errorTrialTooManyPages: (max: number) =>
+      `Dein PDF hat mehrere Seiten: Im kostenlosen Test akzeptiert der Sprachlehrer nur ein PDF mit einer Seite. Importiere eine einzelne Seite deines Kurses oder wechsle zu Premium für deinen ganzen Kurs (bis zu ${max} Seiten).`,
 errorRecordingTooLong: "Deine Frage ist zu lang: maximal eine Minute.",
 errorMicDenied:
       "Mikrofonzugriff verweigert. Erlaube das Mikrofon für EduIA in deinen Browsereinstellungen und versuche es dann erneut.",

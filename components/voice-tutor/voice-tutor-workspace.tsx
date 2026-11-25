@@ -400,8 +400,8 @@ export function VoiceTutorWorkspace({
     voiceTrial ? voiceTrial.remaining : null,
   );
   /**
-   * Pages chargées d'un PDF : la première seulement pendant l'essai gratuit
-   * (le reste du fichier est ignoré), jusqu'à `VOICE_TUTOR_MAX_PAGES` en Premium.
+   * Pages maximales d'un PDF : une seule pendant l'essai gratuit (un PDF plus
+   * long est refusé), jusqu'à `VOICE_TUTOR_MAX_PAGES` en Premium.
    */
   const pdfPageLimit = voiceTrial ? VOICE_TUTOR_FREE_PDF_PAGES : VOICE_TUTOR_MAX_PAGES;
   const trialRemainingRef = React.useRef(trialRemaining);
@@ -543,10 +543,10 @@ export function VoiceTutorWorkspace({
         void doc.loadingTask.destroy();
         return;
       }
-      // Pages chargées selon l'offre : un cours enregistré avec un autre nombre
-      // de pages (passage à Premium, fin d'abonnement) est à réimporter.
-      const pageCount = Math.min(doc.numPages, pdfPageLimit);
-      if (pageCount !== saved.pageTexts.length) {
+      // Cours trop long pour l'offre actuelle (essai gratuit : 1 page), ou
+      // enregistré incomplet : à réimporter.
+      const pageCount = doc.numPages;
+      if (pageCount > pdfPageLimit || pageCount !== saved.pageTexts.length) {
         void doc.loadingTask.destroy();
         setDocState({ status: "empty" });
         void deleteSavedDocument(userId);
@@ -657,15 +657,19 @@ export function VoiceTutorWorkspace({
       void doc.loadingTask.destroy();
       return;
     }
-    // Essai gratuit : seule la première page est chargée, quelle que soit la
-    // taille du PDF ; Premium : refus au-delà de VOICE_TUTOR_MAX_PAGES.
-    if (!voiceTrial && doc.numPages > VOICE_TUTOR_MAX_PAGES) {
+    // Essai gratuit : PDF d'une seule page uniquement ; Premium : jusqu'à
+    // VOICE_TUTOR_MAX_PAGES. Refusé avant toute lecture (aucune dépense).
+    if (doc.numPages > pdfPageLimit) {
       void doc.loadingTask.destroy();
       setDocState({ status: "empty" });
-      setDocError(t.errorTooManyPages(doc.numPages, VOICE_TUTOR_MAX_PAGES));
+      setDocError(
+        voiceTrial
+          ? t.errorTrialTooManyPages(VOICE_TUTOR_MAX_PAGES)
+          : t.errorTooManyPages(doc.numPages, VOICE_TUTOR_MAX_PAGES),
+      );
       return;
     }
-    const pageCount = Math.min(doc.numPages, pdfPageLimit);
+    const pageCount = doc.numPages;
 
     docKeyRef.current += 1;
     const meta: DocumentMeta = {
@@ -1742,14 +1746,16 @@ export function VoiceTutorWorkspace({
                     <FileUp className="size-4" aria-hidden />
                     {t.uploadButton}
                   </Button>
-                  <p className="text-meta text-ink-400">
-                    {t.uploadHint(formatBytes(VOICE_TUTOR_MAX_PDF_BYTES, locale), VOICE_TUTOR_MAX_PAGES)}
-                  </p>
+                  {/* Essai gratuit : une seule page (pas de « jusqu'à 50 pages »). */}
                   {voiceTrial ? (
                     <p className="max-w-sm text-fine font-medium text-primary-700">
-                      {t.trialFirstPageOnly(VOICE_TUTOR_MAX_PAGES)}
+                      {t.trialOnePageOnly(VOICE_TUTOR_MAX_PAGES)}
                     </p>
-                  ) : null}
+                  ) : (
+                    <p className="text-meta text-ink-400">
+                      {t.uploadHint(formatBytes(VOICE_TUTOR_MAX_PDF_BYTES, locale), VOICE_TUTOR_MAX_PAGES)}
+                    </p>
+                  )}
                 </>
               )}
             </div>
@@ -1921,12 +1927,6 @@ export function VoiceTutorWorkspace({
             {voiceTrial && trialRemaining !== null && trialRemaining > 0 && !error ? (
               <p className="text-center text-fine text-ink-500">
                 {t.trialHint(VOICE_TUTOR_FREE_TRIAL_PAGE_CREDITS)}
-              </p>
-            ) : null}
-            {/* Essai gratuit : le reste du PDF n'a pas été chargé. */}
-            {openDoc && openDoc.doc.numPages > openDoc.meta.pageCount && !error ? (
-              <p className="text-center text-fine font-medium text-primary-700">
-                {t.trialFirstPageOnly(VOICE_TUTOR_MAX_PAGES)}
               </p>
             ) : null}
           </div>

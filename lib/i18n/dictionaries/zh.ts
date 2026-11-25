@@ -739,8 +739,10 @@ errorNoSpeech: "我没听清你的问题。请靠近麦克风再试一次。",
       "你的语音导师免费试用（1 页）已结束。升级到 Premium 即可继续使用。",
     trialHint: (credits: number) =>
       `免费试用：详细讲解 1 页（${credits} 积分），之后需 Premium。`,
-    trialFirstPageOnly: (max: number) =>
-      `免费试用：只加载你 PDF 的第 1 页。升级到 Premium 即可导入整门课程（最多 ${max} 页）。`,
+    trialOnePageOnly: (max: number) =>
+      `免费试用：仅支持单页 PDF。升级到 Premium 即可导入整门课程（最多 ${max} 页）。`,
+    errorTrialTooManyPages: (max: number) =>
+      `你的 PDF 有多页：免费试用期间，语音导师只接受单页 PDF。请只导入课程的一页，或升级到 Premium 导入整门课程（最多 ${max} 页）。`,
 errorRecordingTooLong: "你的问题太长了：最多一分钟。",
 errorMicDenied:
       "麦克风权限被拒绝。请在浏览器设置中允许 EduIA 使用麦克风，然后再试一次。",

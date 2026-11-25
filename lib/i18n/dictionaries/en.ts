@@ -758,8 +758,10 @@ export const en: Dictionary = {
       "Your free voice tutor trial (one page) is over. Upgrade to Premium to keep using it.",
     trialHint: (credits: number) =>
       `Free trial: one page explained in detail (${credits} credits), then Premium.`,
-    trialFirstPageOnly: (max: number) =>
-      `Free trial: only the first page of your PDF is loaded. Upgrade to Premium for your whole course (up to ${max} pages).`,
+    trialOnePageOnly: (max: number) =>
+      `Free trial: one-page PDFs only. Upgrade to Premium to import your whole course (up to ${max} pages).`,
+    errorTrialTooManyPages: (max: number) =>
+      `Your PDF has several pages: during the free trial, the voice tutor only accepts a one-page PDF. Import a single page of your course, or upgrade to Premium for your whole course (up to ${max} pages).`,
     errorRecordingTooLong: "Your question is too long: one minute max.",
     errorMicDenied:
       "Microphone access denied. Allow the microphone for EduIA in your browser settings, then try again.",

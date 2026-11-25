@@ -739,8 +739,10 @@ errorNoSpeech: "Nie usłyszałem twojego pytania. Podejdź bliżej do mikrofonu 
       "Twój bezpłatny okres próbny tutora głosowego (jedna strona) dobiegł końca. Przejdź na Premium, aby dalej z niego korzystać.",
     trialHint: (credits: number) =>
       `Okres próbny: jedna strona wyjaśniona szczegółowo (${credits} kredyty), potem Premium.`,
-    trialFirstPageOnly: (max: number) =>
-      `Okres próbny: wczytywana jest tylko pierwsza strona twojego PDF-a. Przejdź na Premium, aby wczytać cały kurs (do ${max} stron).`,
+    trialOnePageOnly: (max: number) =>
+      `Okres próbny: tylko PDF z jedną stroną. Przejdź na Premium, aby zaimportować cały kurs (do ${max} stron).`,
+    errorTrialTooManyPages: (max: number) =>
+      `Twój PDF ma kilka stron: w okresie próbnym tutor głosowy przyjmuje tylko PDF z jedną stroną. Zaimportuj jedną stronę kursu albo przejdź na Premium, aby wczytać cały kurs (do ${max} stron).`,
 errorRecordingTooLong: "Twoje pytanie jest za długie: maksymalnie jedna minuta.",
 errorMicDenied:
       "Dostęp do mikrofonu został odrzucony. Zezwól na mikrofon dla EduIA w ustawieniach przeglądarki, a potem spróbuj ponownie.",

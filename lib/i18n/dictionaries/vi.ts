@@ -739,8 +739,10 @@ errorNoSpeech: "Tôi không nghe thấy câu hỏi của bạn. Hãy lại gần
       "Bản dùng thử miễn phí gia sư giọng nói (1 trang) của bạn đã kết thúc. Hãy nâng cấp lên Premium để tiếp tục sử dụng.",
     trialHint: (credits: number) =>
       `Dùng thử miễn phí: giảng chi tiết 1 trang (${credits} credit), sau đó là Premium.`,
-    trialFirstPageOnly: (max: number) =>
-      `Dùng thử miễn phí: chỉ trang đầu tiên của tệp PDF được tải. Hãy nâng cấp lên Premium để dùng toàn bộ bài học (tối đa ${max} trang).`,
+    trialOnePageOnly: (max: number) =>
+      `Dùng thử miễn phí: chỉ nhận tệp PDF một trang. Hãy nâng cấp lên Premium để nhập toàn bộ bài học (tối đa ${max} trang).`,
+    errorTrialTooManyPages: (max: number) =>
+      `Tệp PDF của bạn có nhiều trang: trong thời gian dùng thử miễn phí, gia sư giọng nói chỉ nhận tệp PDF một trang. Hãy nhập một trang duy nhất của bài học, hoặc nâng cấp lên Premium để dùng toàn bộ bài học (tối đa ${max} trang).`,
 errorRecordingTooLong: "Câu hỏi của bạn quá dài: tối đa một phút.",
 errorMicDenied:
       "Quyền truy cập microphone bị từ chối. Hãy cho phép microphone cho EduIA trong cài đặt trình duyệt của bạn, rồi thử lại.",

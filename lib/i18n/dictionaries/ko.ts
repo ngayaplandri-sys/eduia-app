@@ -739,8 +739,10 @@ errorNoSpeech: "질문이 들리지 않았습니다. 마이크에 더 가까이 
       "음성 튜터 무료 체험(1페이지)이 끝났습니다. 계속 사용하려면 Premium으로 업그레이드하세요.",
     trialHint: (credits: number) =>
       `무료 체험: 1페이지 상세 설명(${credits}크레딧), 이후 Premium.`,
-    trialFirstPageOnly: (max: number) =>
-      `무료 체험: PDF의 첫 페이지만 불러옵니다. 전체 수업 자료(최대 ${max}페이지)를 사용하려면 Premium으로 업그레이드하세요.`,
+    trialOnePageOnly: (max: number) =>
+      `무료 체험: 1페이지짜리 PDF만 가능합니다. 전체 수업 자료(최대 ${max}페이지)를 가져오려면 Premium으로 업그레이드하세요.`,
+    errorTrialTooManyPages: (max: number) =>
+      `PDF에 여러 페이지가 있습니다. 무료 체험 중에는 음성 튜터가 1페이지짜리 PDF만 받습니다. 수업 자료의 한 페이지만 가져오거나, Premium으로 업그레이드해 전체 자료(최대 ${max}페이지)를 사용하세요.`,
 errorRecordingTooLong: "질문이 너무 깁니다: 최대 1분까지 가능합니다.",
 errorMicDenied:
       "마이크 접근이 거부되었습니다. 브라우저 설정에서 EduIA의 마이크 사용을 허용한 뒤 다시 시도해 주세요.",

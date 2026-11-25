@@ -739,8 +739,10 @@ errorNoSpeech: "Sikusikia swali lako. Karibia maikrofoni na ujaribu tena.",
       "Jaribio lako la bure la mwalimu wa sauti (ukurasa mmoja) limeisha. Panda hadi Premium ili uendelee kumtumia.",
     trialHint: (credits: number) =>
       `Jaribio la bure: ukurasa mmoja ulioelezwa kwa kina (salio ${credits}), kisha Premium.`,
-    trialFirstPageOnly: (max: number) =>
-      `Jaribio la bure: ukurasa wa kwanza tu wa PDF yako ndio unapakiwa. Panda hadi Premium kwa somo lako lote (hadi kurasa ${max}).`,
+    trialOnePageOnly: (max: number) =>
+      `Jaribio la bure: PDF ya ukurasa mmoja tu. Panda hadi Premium ili kuingiza somo lako lote (hadi kurasa ${max}).`,
+    errorTrialTooManyPages: (max: number) =>
+      `PDF yako ina kurasa kadhaa: wakati wa jaribio la bure, mwalimu wa sauti anakubali PDF ya ukurasa mmoja tu. Ingiza ukurasa mmoja tu wa somo lako, au panda hadi Premium kwa somo lako lote (hadi kurasa ${max}).`,
 errorRecordingTooLong: "Swali lako ni refu sana: dakika moja pekee.",
 errorMicDenied:
       "Ufikiaji wa maikrofoni umekataliwa. Ruhusu maikrofoni kwa EduIA kwenye mipangilio ya kivinjari chako, kisha ujaribu tena.",

@@ -739,8 +739,10 @@ errorNoSpeech: "Ik heb je vraag niet gehoord. Kom dichter bij de microfoon en pr
       "Je gratis proefperiode van de stemdocent (één pagina) is voorbij. Stap over op Premium om hem te blijven gebruiken.",
     trialHint: (credits: number) =>
       `Gratis proefperiode: één uitgebreid uitgelegde pagina (${credits} credits), daarna Premium.`,
-    trialFirstPageOnly: (max: number) =>
-      `Gratis proefperiode: alleen de eerste pagina van je pdf wordt geladen. Stap over op Premium voor je hele cursus (tot ${max} pagina's).`,
+    trialOnePageOnly: (max: number) =>
+      `Gratis proefperiode: alleen pdf's van één pagina. Stap over op Premium om je hele cursus te importeren (tot ${max} pagina's).`,
+    errorTrialTooManyPages: (max: number) =>
+      `Je pdf heeft meerdere pagina's: tijdens de gratis proefperiode accepteert de stemdocent alleen een pdf van één pagina. Importeer één pagina van je cursus, of stap over op Premium voor je hele cursus (tot ${max} pagina's).`,
 errorRecordingTooLong: "Je vraag is te lang: maximaal één minuut.",
 errorMicDenied:
       "Toegang tot de microfoon geweigerd. Sta de microfoon toe voor EduIA in de instellingen van je browser en probeer het opnieuw.",

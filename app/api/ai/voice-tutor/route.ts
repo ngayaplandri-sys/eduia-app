@@ -147,12 +147,12 @@ export async function POST(request: Request) {
   // « oui » doit laisser la voix reprendre (NO_SPEECH plus bas) ; une vraie
   // question est refusée au moment du débit.
   if (trial && trial.remaining <= 0 && !data.interrupted) return trialEnded();
-  // Essai : seule la première page du PDF est chargée par la page (contrôle
+  // Essai : PDF d'une seule page uniquement (refusé par la page ; contrôle
   // repris ici, le navigateur pouvant être modifié).
   if (trial && data.pageCount > VOICE_TUTOR_FREE_PDF_PAGES) {
     return NextResponse.json(
       {
-        error: dict.voiceTutor.trialFirstPageOnly(VOICE_TUTOR_MAX_PAGES),
+        error: dict.voiceTutor.trialOnePageOnly(VOICE_TUTOR_MAX_PAGES),
         code: "VOICE_TRIAL_PAGE_LIMIT",
       },
       { status: 403 },
