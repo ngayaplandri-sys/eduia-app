@@ -438,9 +438,12 @@ export function PdfViewer({
   onPageChange,
   pageTexts,
   initialPage = 1,
+  pageCount: pageLimit,
   ref,
 }: {
   doc: PDFDocumentProxy;
+  /** Pages affichées depuis la première (essai gratuit : 1 seule) ; toutes par défaut. */
+  pageCount?: number;
   /** Page à afficher à l'ouverture (cours retrouvé là où l'élève en était). */
   initialPage?: number;
   /** Page qui traverse la ligne de lecture, à chaque changement. */
@@ -451,7 +454,7 @@ export function PdfViewer({
 }) {
   const { dict } = useI18n();
   const t = dict.voiceTutor;
-  const pageCount = doc.numPages;
+  const pageCount = Math.max(1, Math.min(pageLimit ?? doc.numPages, doc.numPages));
 
   const rootRef = React.useRef<HTMLDivElement>(null);
   const scrollRef = React.useRef<HTMLDivElement>(null);
@@ -533,9 +536,9 @@ export function PdfViewer({
     (async () => {
       const first = (await doc.getPage(1)).getViewport({ scale: 1 });
       if (cancelled) return;
-      setSizes(Array.from({ length: doc.numPages }, () => ({ width: first.width, height: first.height })));
+      setSizes(Array.from({ length: pageCount }, () => ({ width: first.width, height: first.height })));
       const all: PageSize[] = [{ width: first.width, height: first.height }];
-      for (let number = 2; number <= doc.numPages; number++) {
+      for (let number = 2; number <= pageCount; number++) {
         const viewport = (await doc.getPage(number)).getViewport({ scale: 1 });
         if (cancelled) return;
         all.push({ width: viewport.width, height: viewport.height });
@@ -548,7 +551,7 @@ export function PdfViewer({
     return () => {
       cancelled = true;
     };
-  }, [doc]);
+  }, [doc, pageCount]);
 
   const pageText = React.useCallback(
     (number: number): Promise<PageText> => {

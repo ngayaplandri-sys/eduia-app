@@ -26,7 +26,9 @@ import { logAiUsage } from "@/lib/ai/usage";
 import { isSameOriginRequest } from "@/lib/http/guards";
 import {
   VOICE_TUTOR_DETAILED_PAGE_CREDITS,
+  VOICE_TUTOR_FREE_PDF_PAGES,
   VOICE_TUTOR_MAX_AUDIO_BYTES,
+  VOICE_TUTOR_MAX_PAGES,
   type VoiceTrialState,
 } from "@/lib/config/voice-tutor";
 import { CREDIT_COSTS } from "@/lib/config/credits";
@@ -145,6 +147,17 @@ export async function POST(request: Request) {
   // « oui » doit laisser la voix reprendre (NO_SPEECH plus bas) ; une vraie
   // question est refusée au moment du débit.
   if (trial && trial.remaining <= 0 && !data.interrupted) return trialEnded();
+  // Essai : seule la première page du PDF est chargée par la page (contrôle
+  // repris ici, le navigateur pouvant être modifié).
+  if (trial && data.pageCount > VOICE_TUTOR_FREE_PDF_PAGES) {
+    return NextResponse.json(
+      {
+        error: dict.voiceTutor.trialFirstPageOnly(VOICE_TUTOR_MAX_PAGES),
+        code: "VOICE_TRIAL_PAGE_LIMIT",
+      },
+      { status: 403 },
+    );
+  }
 
   // Suite automatique d'une explication page par page : pas de question orale.
   let question = "";

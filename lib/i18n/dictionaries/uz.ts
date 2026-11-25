@@ -739,6 +739,8 @@ errorNoSpeech: "Savolingizni eshitmadim. Mikrofonga yaqinroq boring va qayta uri
       "Ovozli tutorning bepul sinovi (1 sahifa) tugadi. Foydalanishni davom ettirish uchun Premiumga oʻting.",
     trialHint: (credits: number) =>
       `Bepul sinov: batafsil tushuntirilgan 1 sahifa (${credits} kredit), keyin Premium.`,
+    trialFirstPageOnly: (max: number) =>
+      `Bepul sinov: PDF faylingizning faqat birinchi sahifasi yuklanadi. Butun darsingiz uchun (${max} sahifagacha) Premiumga oʻting.`,
 errorRecordingTooLong: "Savolingiz juda uzun: eng koʻpi bir daqiqa.",
 errorMicDenied:
       "Mikrofonga kirish rad etildi. Brauzer sozlamalarida EduIA uchun mikrofonga ruxsat bering, keyin qayta urinib koʻring.",

@@ -778,6 +778,8 @@ export const fr = {
       "Ton essai gratuit du Professeur vocal (une page) est terminé. Passe à Premium pour continuer à l'utiliser.",
     trialHint: (credits: number) =>
       `Essai gratuit : une page expliquée en détail (${credits} crédits), puis Premium.`,
+    trialFirstPageOnly: (max: number) =>
+      `Essai gratuit : seule la 1re page de ton PDF est chargée. Passe à Premium pour ton cours entier (jusqu'à ${max} pages).`,
     errorRecordingTooLong: "Ta question est trop longue : une minute maximum.",
     errorMicDenied:
       "Accès au micro refusé. Autorise le micro pour EduIA dans les réglages de ton navigateur, puis réessaie.",

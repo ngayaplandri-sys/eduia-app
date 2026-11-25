@@ -739,6 +739,8 @@ errorNoSpeech: "No he oído tu pregunta. Acércate al micrófono y prueba de nue
       "Tu prueba gratuita del tutor de voz (una página) ha terminado. Pásate a Premium para seguir usándolo.",
     trialHint: (credits: number) =>
       `Prueba gratuita: una página explicada en detalle (${credits} créditos); después, Premium.`,
+    trialFirstPageOnly: (max: number) =>
+      `Prueba gratuita: solo se carga la primera página de tu PDF. Pásate a Premium para tu curso completo (hasta ${max} páginas).`,
 errorRecordingTooLong: "Tu pregunta es demasiado larga: máximo un minuto.",
 errorMicDenied:
       "Acceso al micrófono denegado. Permite el micrófono para EduIA en la configuración de tu navegador y vuelve a intentarlo.",

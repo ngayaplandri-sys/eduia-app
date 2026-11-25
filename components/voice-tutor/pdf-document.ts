@@ -145,9 +145,12 @@ export async function extractPagesText(
   doc: PDFDocumentProxy,
   onProgress: (done: number) => void,
   signal: AbortSignal,
+  /** Pages lues depuis la première (essai gratuit : 1 seule). */
+  pageCount: number = doc.numPages,
 ): Promise<string[]> {
   const texts: string[] = [];
-  for (let number = 1; number <= doc.numPages; number++) {
+  const last = Math.min(pageCount, doc.numPages);
+  for (let number = 1; number <= last; number++) {
     if (signal.aborted) throw new DOMException("Aborted", "AbortError");
     const page = await doc.getPage(number);
     texts.push(await readPageText(page));

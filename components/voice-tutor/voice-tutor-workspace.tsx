@@ -30,6 +30,7 @@ import {
 import { InlineErrorBanner } from "@/components/common/inline-error-banner";
 import { InsufficientCreditsBanner } from "@/components/credits/insufficient-credits-banner";
 import {
+  VOICE_TUTOR_FREE_PDF_PAGES,
   VOICE_TUTOR_FREE_TRIAL_PAGE_CREDITS,
   VOICE_TUTOR_GREETING,
   VOICE_TUTOR_HISTORY_MESSAGE_CHARS,
@@ -398,6 +399,11 @@ export function VoiceTutorWorkspace({
   const [trialRemaining, setTrialRemaining] = React.useState<number | null>(
     voiceTrial ? voiceTrial.remaining : null,
   );
+  /**
+   * Pages chargées d'un PDF : la première seulement pendant l'essai gratuit
+   * (le reste du fichier est ignoré), jusqu'à `VOICE_TUTOR_MAX_PAGES` en Premium.
+   */
+  const pdfPageLimit = voiceTrial ? VOICE_TUTOR_FREE_PDF_PAGES : VOICE_TUTOR_MAX_PAGES;
   const trialRemainingRef = React.useRef(trialRemaining);
 
   const [documentLanguage, setDocumentLanguage] =
@@ -537,14 +543,17 @@ export function VoiceTutorWorkspace({
         void doc.loadingTask.destroy();
         return;
       }
-      if (doc.numPages !== saved.pageTexts.length) {
+      // Pages chargées selon l'offre : un cours enregistré avec un autre nombre
+      // de pages (passage à Premium, fin d'abonnement) est à réimporter.
+      const pageCount = Math.min(doc.numPages, pdfPageLimit);
+      if (pageCount !== saved.pageTexts.length) {
         void doc.loadingTask.destroy();
         setDocState({ status: "empty" });
         void deleteSavedDocument(userId);
         return;
       }
       docKeyRef.current += 1;
-      const initialPage = Math.min(doc.numPages, Math.max(1, Math.round(saved.page) || 1));
+      const initialPage = Math.min(pageCount, Math.max(1, Math.round(saved.page) || 1));
       const hasText = saved.pageTexts.some((text) => !isScannedPageText(text));
       setPage(initialPage);
       setDocState({
@@ -554,7 +563,7 @@ export function VoiceTutorWorkspace({
           key: docKeyRef.current,
           name: saved.name,
           size: saved.size,
-          pageCount: doc.numPages,
+          pageCount,
           initialPage,
         },
         pageTexts: saved.pageTexts,
@@ -565,7 +574,7 @@ export function VoiceTutorWorkspace({
     return () => {
       cancelled = true;
     };
-  }, [userId]);
+  }, [userId, pdfPageLimit]);
 
   // Page affichée mémorisée avec le cours (reprise au même endroit).
   const savedPageKey = docState.status === "ready" && docState.hasText ? docState.meta.key : 0;
@@ -648,23 +657,26 @@ export function VoiceTutorWorkspace({
       void doc.loadingTask.destroy();
       return;
     }
-    if (doc.numPages > VOICE_TUTOR_MAX_PAGES) {
+    // Essai gratuit : seule la première page est chargée, quelle que soit la
+    // taille du PDF ; Premium : refus au-delà de VOICE_TUTOR_MAX_PAGES.
+    if (!voiceTrial && doc.numPages > VOICE_TUTOR_MAX_PAGES) {
       void doc.loadingTask.destroy();
       setDocState({ status: "empty" });
       setDocError(t.errorTooManyPages(doc.numPages, VOICE_TUTOR_MAX_PAGES));
       return;
     }
+    const pageCount = Math.min(doc.numPages, pdfPageLimit);
 
     docKeyRef.current += 1;
     const meta: DocumentMeta = {
       key: docKeyRef.current,
       name: file.name,
       size: file.size,
-      pageCount: doc.numPages,
+      pageCount,
       initialPage: 1,
     };
     setPage(1);
-    setDocState({ status: "reading", doc, meta, done: 0, total: doc.numPages, scanned: false });
+    setDocState({ status: "reading", doc, meta, done: 0, total: pageCount, scanned: false });
 
     const progress = (done: number, total: number, scanned: boolean) =>
       setDocState((current) =>
@@ -676,8 +688,9 @@ export function VoiceTutorWorkspace({
     try {
       const texts = await extractPagesText(
         doc,
-        (done) => progress(done, doc.numPages, false),
+        (done) => progress(done, pageCount, false),
         controller.signal,
+        pageCount,
       );
       const scannedPages = texts.flatMap((text, index) =>
         isScannedPageText(text) ? [index + 1] : [],
@@ -1702,6 +1715,7 @@ export function VoiceTutorWorkspace({
               key={openDoc.meta.key}
               ref={viewerRef}
               doc={openDoc.doc}
+              pageCount={openDoc.meta.pageCount}
               initialPage={openDoc.meta.initialPage}
               onPageChange={setPage}
               pageTexts={docState.status === "ready" ? docState.pageTexts : null}
@@ -1731,6 +1745,11 @@ export function VoiceTutorWorkspace({
                   <p className="text-meta text-ink-400">
                     {t.uploadHint(formatBytes(VOICE_TUTOR_MAX_PDF_BYTES, locale), VOICE_TUTOR_MAX_PAGES)}
                   </p>
+                  {voiceTrial ? (
+                    <p className="max-w-sm text-fine font-medium text-primary-700">
+                      {t.trialFirstPageOnly(VOICE_TUTOR_MAX_PAGES)}
+                    </p>
+                  ) : null}
                 </>
               )}
             </div>
@@ -1902,6 +1921,12 @@ export function VoiceTutorWorkspace({
             {voiceTrial && trialRemaining !== null && trialRemaining > 0 && !error ? (
               <p className="text-center text-fine text-ink-500">
                 {t.trialHint(VOICE_TUTOR_FREE_TRIAL_PAGE_CREDITS)}
+              </p>
+            ) : null}
+            {/* Essai gratuit : le reste du PDF n'a pas été chargé. */}
+            {openDoc && openDoc.doc.numPages > openDoc.meta.pageCount && !error ? (
+              <p className="text-center text-fine font-medium text-primary-700">
+                {t.trialFirstPageOnly(VOICE_TUTOR_MAX_PAGES)}
               </p>
             ) : null}
           </div>

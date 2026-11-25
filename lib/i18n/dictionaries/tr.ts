@@ -739,6 +739,8 @@ errorNoSpeech: "Sorunu duyamadım. Mikrofonun yakınına gel ve tekrar dene.",
       "Sesli öğretmenin ücretsiz denemesi (1 sayfa) sona erdi. Kullanmaya devam etmek için Premium’a geç.",
     trialHint: (credits: number) =>
       `Ücretsiz deneme: ayrıntılı anlatılan 1 sayfa (${credits} kredi), sonra Premium.`,
+    trialFirstPageOnly: (max: number) =>
+      `Ücretsiz deneme: PDF'nin yalnızca ilk sayfası yüklenir. Dersinin tamamı için (en fazla ${max} sayfa) Premium'a geç.`,
 errorRecordingTooLong: "Sorun çok uzun: en fazla bir dakika.",
 errorMicDenied:
       "Mikrofon erişimi reddedildi. Tarayıcı ayarlarında EduIA için mikrofona izin ver, sonra tekrar dene.",

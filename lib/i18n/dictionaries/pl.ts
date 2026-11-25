@@ -739,6 +739,8 @@ errorNoSpeech: "Nie usłyszałem twojego pytania. Podejdź bliżej do mikrofonu 
       "Twój bezpłatny okres próbny tutora głosowego (jedna strona) dobiegł końca. Przejdź na Premium, aby dalej z niego korzystać.",
     trialHint: (credits: number) =>
       `Okres próbny: jedna strona wyjaśniona szczegółowo (${credits} kredyty), potem Premium.`,
+    trialFirstPageOnly: (max: number) =>
+      `Okres próbny: wczytywana jest tylko pierwsza strona twojego PDF-a. Przejdź na Premium, aby wczytać cały kurs (do ${max} stron).`,
 errorRecordingTooLong: "Twoje pytanie jest za długie: maksymalnie jedna minuta.",
 errorMicDenied:
       "Dostęp do mikrofonu został odrzucony. Zezwól na mikrofon dla EduIA w ustawieniach przeglądarki, a potem spróbuj ponownie.",

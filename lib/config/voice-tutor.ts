@@ -165,6 +165,13 @@ export const VOICE_TUTOR_FREE_TRIAL_PAGES = 1;
 /** Prix d'une page d'essai : celui d'une page détaillée (3 crédits). */
 export const VOICE_TUTOR_FREE_TRIAL_PAGE_CREDITS = VOICE_TUTOR_DETAILED_PAGE_CREDITS;
 
+/**
+ * Compte gratuit (essai) : seule la première page du PDF importé est chargée,
+ * lue et envoyée au professeur (le reste du fichier est ignoré). Premium :
+ * jusqu'à `VOICE_TUTOR_MAX_PAGES` pages.
+ */
+export const VOICE_TUTOR_FREE_PDF_PAGES = 1;
+
 /** Essai du Professeur vocal d'un compte gratuit (`null` : pas de limite d'essai). */
 export interface VoiceTrialState {
   limit: number;
