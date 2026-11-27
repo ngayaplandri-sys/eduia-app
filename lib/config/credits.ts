@@ -24,12 +24,15 @@ export const CREDIT_COSTS: Record<CreditFeature, number> = {
  * affichés et du catalogue de paiement (`lib/maketou/catalog.ts`).
  *
  * Premium = 30 $ par mois, encaissé en FCFA par Maketou :
- *  - `priceFcfa` (17 647) : prix du produit Premium chez Maketou — doit lui
+ *  - `priceFcfa` (17 650) : prix du produit Premium chez Maketou — doit lui
  *    être EXACTEMENT égal ; enregistré à chaque achat et compté dans les
  *    revenus de l'admin ;
  *  - `paidFcfa` (18 000, ≈ 30,20 $ au taux du 23/11/2026) : ce que l'élève
  *    paie réellement, la page de paiement (Moneroo) ajoutant 2 % de frais
- *    (17 647 × 1,02 ≈ 18 000) — le prix AFFICHÉ aux élèves.
+ *    (17 650 × 1,02 = 18 003, arrondi à 18 000) — le prix AFFICHÉ aux élèves.
+ *    Le prix Maketou doit être un multiple de 50 : avec les 2 %, tout autre
+ *    prix donne des centimes que Moneroo refuse en XAF (17 647 × 1,02 =
+ *    17 999,94 → aucun panier ne pouvait être créé).
  * Ailleurs qu'en zone FCFA, le prix est affiché dans la monnaie de l'élève à
  * titre indicatif (`lib/pricing/local-price.ts`).
  */
@@ -38,7 +41,7 @@ export const PLAN_CREDITS: {
   premium: { monthly: number; priceFcfa: number; paidFcfa: number };
 } = {
   free: { signupGrant: 10, priceFcfa: 0 },
-  premium: { monthly: 500, priceFcfa: 17_647, paidFcfa: 18_000 },
+  premium: { monthly: 500, priceFcfa: 17_650, paidFcfa: 18_000 },
 };
 
 /**

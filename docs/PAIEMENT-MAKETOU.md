@@ -39,9 +39,12 @@ Règles :
   (« ≈ 27 € », taux du jour, `lib/pricing/local-price.ts`). Maketou encaisse
   toujours 18 000 FCFA (frais compris), et ce montant est écrit sous le prix.
 - **Frais de la page de paiement** : la page Maketou (Moneroo) ajoute 2 % au
-  prix du produit, payés par l'élève. Le produit est donc à **17 647 XAF**
-  pour que l'élève paie **18 000 FCFA** (17 647 × 1,02 ≈ 18 000). EduIA
-  enregistre 17 647 (prix du produit) et affiche 18 000.
+  prix du produit, payés par l'élève. Le produit est donc à **17 650 XAF**
+  pour que l'élève paie **18 003 FCFA** (17 650 × 1,02). EduIA enregistre
+  17 650 (prix du produit) et affiche 18 000.
+- **Le prix du produit doit être un multiple de 50** : Moneroo refuse les
+  centimes en XAF, et 2 % d'un autre prix en donne (17 647 × 1,02 =
+  17 999,94 → erreur `MONEROO_INITIATE_PAYMENT_FAILED`, aucun panier créé).
 - Pas de remboursement par l'API : un remboursement se fait dans le tableau de
   bord Maketou (puis retirer l'accès à la main si besoin).
 
@@ -52,9 +55,9 @@ seul produit** à prix fixe, en **XAF**, **publié** :
 
 | Produit | Prix (XAF) | Variable d'environnement |
 |---|---|---|
-| EduIA Premium — 1 mois | 17 647 | `MAKETOU_PRODUCT_PREMIUM` |
+| EduIA Premium — 1 mois | 17 650 | `MAKETOU_PRODUCT_PREMIUM` |
 
-Le prix doit être **exactement** 17 647 (`priceFcfa`, enregistré
+Le prix doit être **exactement** 17 650 (`priceFcfa`, enregistré
 à chaque achat). Si vous changez le prix dans `lib/config/credits.ts`,
 changez-le aussi chez Maketou.
 
