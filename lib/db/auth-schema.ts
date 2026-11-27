@@ -1,6 +1,6 @@
 /**
  * Schéma d'authentification Better Auth (v1.7) — tables `user` / `session` /
- * `account` / `verification`.
+ * `account` / `verification` / `rateLimit`.
  *
  * Écrit à la main d'après `@better-auth/core` `getAuthTables()`. Les noms de
  * colonnes sont en camelCase ici et convertis en snake_case dans la base
@@ -14,6 +14,8 @@ import {
   pgTable,
   text,
   boolean,
+  integer,
+  bigint,
   timestamp,
   index,
   uniqueIndex,
@@ -55,7 +57,13 @@ export const account = pgTable(
   "account",
   {
     id: text().primaryKey(),
-    issuer: text().notNull(),
+    /**
+     * Colonne des versions 1.7.0 à 1.7.2 de Better Auth, qui ne l'écrit plus
+     * depuis la 1.7.3 (un compte est identifié par `providerId` + `accountId`,
+     * comme en 1.6). Gardée facultative pour conserver les valeurs existantes :
+     * obligatoire, elle ferait échouer chaque création de compte.
+     */
+    issuer: text(),
     accountId: text().notNull(),
     providerId: text().notNull(),
     userId: text()
@@ -72,7 +80,7 @@ export const account = pgTable(
     updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
-    uniqueIndex("account_issuer_account_id_idx").on(t.issuer, t.accountId),
+    uniqueIndex("account_provider_id_account_id_idx").on(t.providerId, t.accountId),
     index("account_user_id_idx").on(t.userId),
   ],
 );
@@ -89,3 +97,17 @@ export const verification = pgTable(
   },
   (t) => [index("verification_identifier_idx").on(t.identifier)],
 );
+
+/**
+ * Compteurs de la limite de requêtes de Better Auth (`rateLimit.storage:
+ * "database"` dans `lib/auth.ts`) : partagés par toutes les instances Vercel,
+ * contrairement au stockage en mémoire propre à chaque instance. Une ligne par
+ * couple adresse IP + chemin (`key`), supprimée quand sa fenêtre est passée.
+ */
+export const rateLimit = pgTable("rate_limit", {
+  id: text().primaryKey(),
+  key: text().notNull().unique(),
+  count: integer().notNull(),
+  /** Dernière requête, en millisecondes depuis 1970. */
+  lastRequest: bigint({ mode: "number" }).notNull(),
+});

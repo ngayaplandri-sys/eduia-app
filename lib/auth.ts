@@ -39,6 +39,7 @@ export const auth = betterAuth({
       session: schema.session,
       account: schema.account,
       verification: schema.verification,
+      rateLimit: schema.rateLimit,
     },
   }),
   emailAndPassword: {
@@ -155,12 +156,13 @@ export const auth = betterAuth({
       "/sign-up/email": { window: 3600, max: 10 }, // 10 inscriptions / heure / IP
       "/request-password-reset": { window: 3600, max: 5 }, // 5 e-mails / heure / IP
     },
-    // Stockage "memory" (par défaut) : suffisant pour un serveur Node unique
-    // (Railway, Render, VPS…). Sur un déploiement serverless multi-instances
-    // (Vercel), chaque instance aurait son propre compteur — passer à
-    // storage: "database" (après avoir ajouté la table `rateLimit` au schéma,
-    // voir @better-auth/core/db/schema/rate-limit) ou à un stockage secondaire
-    // partagé (Redis/Upstash) dans ce cas.
+    // Compteurs en base (table `rate_limit`) : sur Vercel, chaque instance a sa
+    // propre mémoire — un stockage "memory" laisserait un attaquant répartir ses
+    // tentatives sur plusieurs instances et repartir de zéro à chaque nouvelle.
+    // La base est partagée et la vérification + l'incrément sont atomiques.
+    // L'adresse IP vient de `x-forwarded-for`, que Vercel réécrit avec la
+    // seule adresse du visiteur (impossible à falsifier depuis le navigateur).
+    storage: "database",
   },
   databaseHooks: {
     // Octroie les 10 crédits gratuits une seule fois, à la création réelle du
