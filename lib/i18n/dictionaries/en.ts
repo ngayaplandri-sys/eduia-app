@@ -775,7 +775,6 @@ export const en: Dictionary = {
     errorGeneric: "The teacher couldn't answer. Try again in a moment.",
     errorConnection: "Connection lost. Check your internet connection, then try again.",
     timeout: "The teacher is taking too long to answer. Try again.",
-    disclaimer: "The AI teacher can make mistakes: check important information in your course.",
   },
 
   documents: {

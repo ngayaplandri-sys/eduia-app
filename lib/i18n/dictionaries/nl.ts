@@ -756,7 +756,6 @@ speechDailyLimit:
 errorGeneric: "De docent kon niet antwoorden. Probeer het over een moment opnieuw.",
 errorConnection: "Verbinding verbroken. Controleer je internetverbinding en probeer het opnieuw.",
 timeout: "De docent doet te lang over het antwoord. Probeer het opnieuw.",
-disclaimer: "De AI-docent kan fouten maken: controleer belangrijke informatie in je cursus."
   },
 documents: {
     metaTitle: "Documenten",

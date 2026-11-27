@@ -1980,8 +1980,6 @@ export function VoiceTutorWorkspace({
           </div>
         </section>
       </div>
-
-      <p className="shrink-0 text-center text-meta text-ink-400">{t.disclaimer}</p>
     </div>
   );
 }

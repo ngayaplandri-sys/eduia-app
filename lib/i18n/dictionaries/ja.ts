@@ -756,7 +756,6 @@ speechDailyLimit:
 errorGeneric: "先生が回答できませんでした。少ししてからもう一度お試しください。",
 errorConnection: "接続が切れました。インターネット接続を確認してから、もう一度お試しください。",
 timeout: "先生の回答に時間がかかりすぎています。もう一度お試しください。",
-disclaimer: "AI 先生は間違えることがあります。コース内の重要な情報は必ず確認してください。"
   },
 documents: {
     metaTitle: "ドキュメント",

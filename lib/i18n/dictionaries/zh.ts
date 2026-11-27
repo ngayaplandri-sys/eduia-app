@@ -756,7 +756,6 @@ speechDailyLimit:
 errorGeneric: "老师暂时无法回答。请稍后再试。",
 errorConnection: "连接已断开。请检查你的网络连接，然后重试。",
 timeout: "老师回复太慢了。请重试。",
-disclaimer: "AI 老师可能会出错：请检查课程中的重要信息。"
   },
 documents: {
     metaTitle: "文档",

@@ -756,7 +756,6 @@ speechDailyLimit:
 errorGeneric: "선생님이 답변하지 못했습니다. 잠시 후 다시 시도해 주세요.",
 errorConnection: "연결이 끊겼습니다. 인터넷 연결을 확인한 뒤 다시 시도해 주세요.",
 timeout: "선생님의 답변이 너무 오래 걸리고 있습니다. 다시 시도해 주세요.",
-disclaimer: "AI 선생님은 실수할 수 있습니다. 과정의 중요한 정보는 꼭 확인해 주세요."
   },
 documents: {
     metaTitle: "문서",

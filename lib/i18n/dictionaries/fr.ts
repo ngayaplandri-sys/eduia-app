@@ -797,8 +797,6 @@ export const fr = {
     errorGeneric: "Le professeur n'a pas pu répondre. Réessaie dans un instant.",
     errorConnection: "Connexion interrompue. Vérifie ta connexion internet, puis réessaie.",
     timeout: "Le professeur met trop de temps à répondre. Réessaie.",
-    disclaimer:
-      "Le professeur IA peut se tromper : vérifie les informations importantes dans ton cours.",
   },
 
   documents: {

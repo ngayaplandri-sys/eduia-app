@@ -756,7 +756,6 @@ speechDailyLimit:
 errorGeneric: "Mwalimu hakuweza kujibu. Jaribu tena baada ya muda mfupi.",
 errorConnection: "Muunganisho umekatika. Angalia intaneti yako, kisha jaribu tena.",
 timeout: "Mwalimu anachukua muda mrefu sana kujibu. Jaribu tena.",
-disclaimer: "Mwalimu wa AI anaweza kukosea: angalia taarifa muhimu katika kozi yako."
   },
 documents: {
     metaTitle: "Nyaraka",

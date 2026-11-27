@@ -756,7 +756,6 @@ speechDailyLimit:
 errorGeneric: "Öğretmen cevap veremedi. Birazdan tekrar dene.",
 errorConnection: "Bağlantı kesildi. İnternet bağlantını kontrol et, sonra tekrar dene.",
 timeout: "Öğretmen cevap vermekte gecikiyor. Tekrar dene.",
-disclaimer: "Yapay zekâ öğretmen hata yapabilir: kursundaki önemli bilgileri kontrol et."
   },
 documents: {
     metaTitle: "Belgeler",

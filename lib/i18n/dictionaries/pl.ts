@@ -756,7 +756,6 @@ speechDailyLimit:
 errorGeneric: "Nauczyciel nie mógł odpowiedzieć. Spróbuj ponownie za chwilę.",
 errorConnection: "Połączenie zostało utracone. Sprawdź internet i spróbuj ponownie.",
 timeout: "Nauczyciel zbyt długo odpowiada. Spróbuj ponownie.",
-disclaimer: "Nauczyciel AI może się mylić: sprawdź ważne informacje w swoim kursie."
   },
 documents: {
     metaTitle: "Dokumenty",

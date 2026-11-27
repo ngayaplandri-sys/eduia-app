@@ -756,7 +756,6 @@ speechDailyLimit:
 errorGeneric: "O professor não conseguiu responder. Tenta novamente dentro de momentos.",
 errorConnection: "Ligação perdida. Verifica a tua ligação à internet e tenta novamente.",
 timeout: "O professor está a demorar demasiado a responder. Tenta novamente.",
-disclaimer: "O professor de IA pode cometer erros: confirma as informações importantes no teu curso."
   },
 documents: {
     metaTitle: "Documentos",

@@ -756,7 +756,6 @@ speechDailyLimit:
 errorGeneric: "L'insegnante non è riuscito a rispondere. Riprova tra un momento.",
 errorConnection: "Connessione persa. Controlla la tua connessione internet, poi riprova.",
 timeout: "L'insegnante sta impiegando troppo tempo a rispondere. Riprova.",
-disclaimer: "L'insegnante AI può sbagliare: controlla le informazioni importanti nel tuo corso."
   },
 documents: {
     metaTitle: "Documenti",

@@ -756,7 +756,6 @@ speechDailyLimit:
 errorGeneric: "Giáo viên không thể trả lời. Hãy thử lại sau ít phút.",
 errorConnection: "Mất kết nối. Kiểm tra kết nối internet rồi thử lại.",
 timeout: "Giáo viên trả lời quá lâu. Hãy thử lại.",
-disclaimer: "Giáo viên AI có thể mắc lỗi: hãy kiểm tra các thông tin quan trọng trong khóa học của bạn."
   },
 documents: {
     metaTitle: "Tài liệu",

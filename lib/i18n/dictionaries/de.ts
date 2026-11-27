@@ -756,7 +756,6 @@ speechDailyLimit:
 errorGeneric: "Die Lehrkraft konnte nicht antworten. Versuch es gleich noch einmal.",
 errorConnection: "Verbindung verloren. Überprüfe deine Internetverbindung und versuch es dann noch einmal.",
 timeout: "Die Lehrkraft braucht zu lange zum Antworten. Versuch es noch einmal.",
-disclaimer: "Die KI-Lehrkraft kann Fehler machen: Überprüfe wichtige Informationen in deinem Kurs."
   },
 documents: {
     metaTitle: "Dokumente",

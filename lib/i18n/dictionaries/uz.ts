@@ -756,7 +756,6 @@ speechDailyLimit:
 errorGeneric: "Ustoz javob bera olmadi. Birozdan keyin qayta urinib koʻring.",
 errorConnection: "Ulanish uzildi. Internet aloqangizni tekshirib, yana urinib koʻring.",
 timeout: "Ustoz javob berishga juda koʻp vaqt olyapti. Qayta urinib koʻring.",
-disclaimer: "AI ustoz xatoga yoʻl qoʻyishi mumkin: kursingizdagi muhim maʼlumotlarni tekshiring."
   },
 documents: {
     metaTitle: "Hujjatlar",
