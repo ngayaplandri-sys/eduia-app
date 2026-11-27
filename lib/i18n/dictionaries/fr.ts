@@ -772,6 +772,8 @@ export const fr = {
       "Je ne t'ai pas entendu, alors j'ai coupé le micro. Appuie dessus quand tu es prêt.",
     errorNoSpeech: "Je n'ai pas entendu ta question. Rapproche-toi du micro et réessaie.",
     trialEndedTitle: "Essai gratuit terminé",
+    transcribeDailyLimit: (limit: number) =>
+      `Tu as atteint la limite de ${limit} questions à voix haute pour aujourd'hui. Réessaie demain.`,
     pageCreditsNeeded: (cost: number) =>
       `Une page expliquée en détail coûte ${cost} crédits, et il ne t'en reste pas assez. Tu peux encore poser des questions (1 crédit chacune), ou renouveler Premium pour continuer l'explication.`,
     trialEndedMessage:

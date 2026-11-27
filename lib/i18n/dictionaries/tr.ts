@@ -733,6 +733,8 @@ noSpeechStopped:
       "Seni duyamadım, bu yüzden mikrofonu kapattım. Hazır olduğunda tekrar dokun.",
 errorNoSpeech: "Sorunu duyamadım. Mikrofonun yakınına gel ve tekrar dene.",
     trialEndedTitle: "Ücretsiz deneme sona erdi",
+    transcribeDailyLimit: (limit: number) =>
+      `Bugünkü ${limit} sesli soru sınırına ulaştın. Yarın tekrar dene.`,
     pageCreditsNeeded: (cost: number) =>
       `Ayrıntılı anlatılan bir sayfa ${cost} kredi tutar ve yeterli kredin kalmadı. Yine de soru sorabilirsin (soru başına 1 kredi) ya da anlatıma devam etmek için Premium'u yenileyebilirsin.`,
     trialEndedMessage:

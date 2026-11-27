@@ -82,6 +82,12 @@ export const DAILY_AI_LIMITS = {
   ocrImages: { free: 60, paid: 400 },
   /** Caractères prononcés par la voix du professeur (≈ 900 par minute). */
   speechChars: { free: 40_000, paid: 300_000 },
+  /**
+   * Questions orales transcrites (Professeur vocal) : la transcription est
+   * payée à OpenAI même quand la question ne coûte aucun crédit (rien
+   * d'audible, simple « oui » glissé pendant la voix, crédits épuisés).
+   */
+  transcriptions: { free: 20, paid: 400 },
 } as const;
 
 export function dailyAiLimit(

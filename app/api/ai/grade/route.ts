@@ -6,7 +6,7 @@ import {
   getCreditWallet,
   refundCredits,
 } from "@/lib/data/credits";
-import { CREDIT_COSTS } from "@/lib/config/credits";
+import { CREDIT_COSTS, dailyAiLimit } from "@/lib/config/credits";
 import { gradeExam } from "@/lib/ai/generate";
 import { analyzeExamDocument } from "@/lib/ai/exam-analysis";
 import type { ExamAttachment } from "@/lib/ai/attachments";
@@ -24,7 +24,7 @@ import {
   describeUploadIntakeError,
 } from "@/lib/uploads/server";
 import { OPENAI_MODEL } from "@/lib/ai/openai-client";
-import { logAiUsage } from "@/lib/ai/usage";
+import { finishAiCalls, logAiUsage, reserveAiCalls } from "@/lib/ai/usage";
 import { detectImageMime } from "@/lib/ai/ocr";
 import {
   MAX_UPLOAD_BYTES,
@@ -335,20 +335,30 @@ export async function POST(request: Request) {
           copyAttachments = [...examAttachments, ...copyAttachments];
         } else if (examAttachments.length > 0) {
           // ── 1. Analyse de l'épreuve importée (aucun crédit prélevé) ──────
+          // Gratuite quand l'épreuve est illisible : comptée dans le plafond
+          // quotidien des photos et pages lues (une unité par fichier), place
+          // réservée avant l'appel — sinon des envois en boucle de photos
+          // floues coûteraient sans limite.
+          const ocrLimit = unlimited ? null : dailyAiLimit("ocrImages", user.plan);
+          const analysisCalls = await reserveAiCalls({
+            userId: user.id,
+            kind: "ocr",
+            model: OPENAI_MODEL,
+            limit: ocrLimit,
+            units: examAttachments.length,
+          });
+          if (!analysisCalls) {
+            send({ type: "error", error: dict.ai.dailyOcrLimit(ocrLimit ?? 0), code: "DAILY_LIMIT" });
+            return;
+          }
           send({ type: "stage", stage: "analyzing" });
           let analysis: AIExamAnalysis;
           try {
             const result = await analyzeExamDocument(examAttachments, dict, remaining(120_000));
             analysis = result.analysis;
-            await logAiUsage({
-              userId: user.id,
-              kind: "ocr",
-              model: OPENAI_MODEL,
-              status: "success",
-              tokens: result.usage,
-            });
+            await finishAiCalls(analysisCalls, "success", result.usage);
           } catch (error) {
-            await logAiUsage({ userId: user.id, kind: "ocr", model: OPENAI_MODEL, status: "error" });
+            await finishAiCalls(analysisCalls, "error");
             throw error;
           }
 

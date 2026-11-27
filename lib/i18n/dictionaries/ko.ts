@@ -733,6 +733,8 @@ noSpeechStopped:
       "말소리가 들리지 않아 마이크를 껐습니다. 준비되면 다시 눌러 주세요.",
 errorNoSpeech: "질문이 들리지 않았습니다. 마이크에 더 가까이 대고 다시 시도해 주세요.",
     trialEndedTitle: "무료 체험 종료",
+    transcribeDailyLimit: (limit: number) =>
+      `오늘 음성 질문 한도(${limit}개)에 도달했습니다. 내일 다시 시도하세요.`,
     pageCreditsNeeded: (cost: number) =>
       `페이지 상세 설명에는 ${cost}크레딧이 필요한데, 남은 크레딧이 부족해. 질문은 계속할 수 있어(질문당 1크레딧). 설명을 이어 가려면 Premium을 갱신해 줘.`,
     trialEndedMessage:

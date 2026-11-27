@@ -733,6 +733,8 @@ noSpeechStopped:
       "Nie usłyszałem cię, więc wyłączyłem mikrofon. Dotknij go, gdy będziesz gotowy.",
 errorNoSpeech: "Nie usłyszałem twojego pytania. Podejdź bliżej do mikrofonu i spróbuj ponownie.",
     trialEndedTitle: "Bezpłatny okres próbny zakończony",
+    transcribeDailyLimit: (limit: number) =>
+      `Osiągnięto dzisiejszy limit ${limit} pytań głosowych. Spróbuj ponownie jutro.`,
     pageCreditsNeeded: (cost: number) =>
       `Szczegółowe wyjaśnienie strony kosztuje ${cost} kredyty, a nie masz ich już wystarczająco. Nadal możesz zadawać pytania (1 kredyt za każde) albo odnowić Premium, aby kontynuować wyjaśnianie.`,
     trialEndedMessage:

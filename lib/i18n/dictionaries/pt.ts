@@ -733,6 +733,8 @@ noSpeechStopped:
       "Não ouvi você, então desliguei o microfone. Toque nele quando estiver pronto.",
 errorNoSpeech: "Não ouvi sua pergunta. Chegue mais perto do microfone e tente novamente.",
     trialEndedTitle: "Teste gratuito terminado",
+    transcribeDailyLimit: (limit: number) =>
+      `Atingiste o limite de hoje de ${limit} perguntas faladas. Tenta novamente amanhã.`,
     pageCreditsNeeded: (cost: number) =>
       `Uma página explicada em detalhe custa ${cost} créditos e já não tens créditos suficientes. Ainda podes fazer perguntas (1 crédito cada) ou renovar o Premium para continuar a explicação.`,
     trialEndedMessage:

@@ -898,6 +898,7 @@ export async function getAdminStats(): Promise<AdminStatsData> {
     assistant: "Assistant IA",
     ocr: "Lecture de photos",
     speech: "Voix du professeur",
+    transcribe: "Transcription de la voix",
   };
   const aiByKind = aiKinds.map((kind) => ({
     label: aiKindLabel[kind],

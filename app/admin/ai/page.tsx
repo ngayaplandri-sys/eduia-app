@@ -21,6 +21,7 @@ const KIND_LABELS: Record<string, string> = {
   assistant: "Assistant IA",
   ocr: "Lecture de photos",
   speech: "Voix du professeur",
+  transcribe: "Transcription de la voix",
 };
 
 /** Durée de voix lisible : « 7,5 min », « 42 min », « 3 h 05 ». */

@@ -733,6 +733,8 @@ noSpeechStopped:
       "Tôi không nghe thấy bạn, nên đã tắt mic. Hãy nhấn lại khi bạn sẵn sàng.",
 errorNoSpeech: "Tôi không nghe thấy câu hỏi của bạn. Hãy lại gần mic hơn và thử lại.",
     trialEndedTitle: "Đã hết lượt dùng thử",
+    transcribeDailyLimit: (limit: number) =>
+      `Bạn đã đạt giới hạn ${limit} câu hỏi bằng giọng nói hôm nay. Hãy thử lại vào ngày mai.`,
     pageCreditsNeeded: (cost: number) =>
       `Giảng chi tiết một trang tốn ${cost} credit, và bạn không còn đủ credit. Bạn vẫn có thể đặt câu hỏi (1 credit mỗi câu), hoặc gia hạn Premium để tiếp tục phần giảng.`,
     trialEndedMessage:

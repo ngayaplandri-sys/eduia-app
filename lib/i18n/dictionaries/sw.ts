@@ -733,6 +733,8 @@ noSpeechStopped:
       "Sikukusikia, kwa hiyo nimezima maikrofoni. Iguse ukiwa tayari.",
 errorNoSpeech: "Sikusikia swali lako. Karibia maikrofoni na ujaribu tena.",
     trialEndedTitle: "Jaribio la bure limeisha",
+    transcribeDailyLimit: (limit: number) =>
+      `Umefikia kikomo cha leo cha maswali ${limit} ya sauti. Jaribu tena kesho.`,
     pageCreditsNeeded: (cost: number) =>
       `Ukurasa unaoelezwa kwa kina unagharimu salio ${cost}, na huna salio la kutosha tena. Bado unaweza kuuliza maswali (salio 1 kwa kila swali), au kufanya upya Premium ili kuendelea na maelezo.`,
     trialEndedMessage:

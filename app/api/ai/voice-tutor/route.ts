@@ -12,6 +12,7 @@ import {
 } from "@/lib/data/credits";
 import { getTutorProfile } from "@/lib/data/onboarding";
 import {
+  VOICE_TUTOR_TRANSCRIBE_MODEL,
   audioExtension,
   isBackchannel,
   promptCacheKey,
@@ -22,7 +23,7 @@ import {
 import { voiceTutorRequestSchema } from "@/lib/ai/schemas";
 import { describeAIError } from "@/lib/ai/errors";
 import { OPENAI_MODEL } from "@/lib/ai/openai-client";
-import { logAiUsage } from "@/lib/ai/usage";
+import { finishAiCall, logAiUsage, reserveAiCall } from "@/lib/ai/usage";
 import { isSameOriginRequest } from "@/lib/http/guards";
 import {
   VOICE_TUTOR_DETAILED_PAGE_CREDITS,
@@ -31,7 +32,7 @@ import {
   VOICE_TUTOR_MAX_PAGES,
   type VoiceTrialState,
 } from "@/lib/config/voice-tutor";
-import { CREDIT_COSTS } from "@/lib/config/credits";
+import { CREDIT_COSTS, dailyAiLimit } from "@/lib/config/credits";
 import { getDictionary } from "@/lib/i18n/server";
 import type { CreditDebitResult } from "@/types";
 
@@ -180,9 +181,55 @@ export async function POST(request: Request) {
       );
     }
 
+    // La transcription est payée à OpenAI même quand la question ne coûte
+    // aucun crédit : sans crédit pour y répondre, refus AVANT de transcrire
+    // (sauf un « oui » glissé pendant la voix, qui la laisse reprendre)…
+    if (!unlimited && !trial && !data.interrupted) {
+      let wallet: Awaited<ReturnType<typeof getCreditWallet>>;
+      try {
+        wallet = await getCreditWallet(user.id);
+      } catch (error) {
+        console.error("[/api/ai/voice-tutor] lecture du solde impossible :", error);
+        const { status, message } = describeAIError(error, dict);
+        return NextResponse.json({ error: message }, { status });
+      }
+      if (wallet.total < CREDIT_COSTS.assistant) {
+        return NextResponse.json(
+          { error: dict.credits.insufficientMessage, code: "INSUFFICIENT_CREDITS" },
+          { status: 402 },
+        );
+      }
+    }
+    // … et plafond quotidien de transcriptions par compte, place réservée
+    // avant l'appel (des envois en rafale ne passent pas le plafond).
+    const transcribeLimit = unlimited ? null : dailyAiLimit("transcriptions", user.plan);
+    let transcribeCallId: string | null;
+    try {
+      transcribeCallId = await reserveAiCall({
+        userId: user.id,
+        kind: "transcribe",
+        model: VOICE_TUTOR_TRANSCRIBE_MODEL,
+        limit: transcribeLimit,
+      });
+    } catch (error) {
+      console.error("[/api/ai/voice-tutor] échec de la réservation :", error);
+      return NextResponse.json({ error: t.unexpected }, { status: 500 });
+    }
+    if (!transcribeCallId) {
+      return NextResponse.json(
+        {
+          error: dict.voiceTutor.transcribeDailyLimit(transcribeLimit ?? 0),
+          code: "DAILY_LIMIT",
+        },
+        { status: 429 },
+      );
+    }
+
     try {
       question = await transcribeQuestion(audio, extension, [data.replyLanguage, data.documentLanguage]);
+      await finishAiCall(transcribeCallId, "success");
     } catch (error) {
+      await finishAiCall(transcribeCallId, "error");
       console.error("[/api/ai/voice-tutor] échec de la transcription :", error);
       const { status, message } = describeAIError(error, dict);
       return NextResponse.json({ error: message }, { status });

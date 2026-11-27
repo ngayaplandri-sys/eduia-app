@@ -4,7 +4,15 @@ import type { UserPlan } from "./user";
 
 export type ReportStatus = "new" | "in_progress" | "resolved";
 export type ReportType = "bug" | "suggestion" | "question" | "autre";
-export type AiUsageKind = "summary" | "exam" | "correction" | "assistant" | "ocr" | "speech";
+export type AiUsageKind =
+  | "summary"
+  | "exam"
+  | "correction"
+  | "assistant"
+  | "ocr"
+  | "speech"
+  /** Transcription d'une question orale du Professeur vocal (plafonnée par jour). */
+  | "transcribe";
 
 export interface AdminOverviewStats {
   totalUsers: number;

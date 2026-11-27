@@ -733,6 +733,8 @@ noSpeechStopped:
       "Non ti ho sentito, quindi ho disattivato il microfono. Toccalo quando sei pronto.",
 errorNoSpeech: "Non ho sentito la tua domanda. Avvicinati al microfono e riprova.",
     trialEndedTitle: "Prova gratuita terminata",
+    transcribeDailyLimit: (limit: number) =>
+      `Hai raggiunto il limite di oggi di ${limit} domande a voce. Riprova domani.`,
     pageCreditsNeeded: (cost: number) =>
       `Una pagina spiegata nel dettaglio costa ${cost} crediti e non te ne restano abbastanza. Puoi ancora fare domande (1 credito ciascuna) oppure rinnovare Premium per continuare la spiegazione.`,
     trialEndedMessage:

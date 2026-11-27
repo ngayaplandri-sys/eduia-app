@@ -733,6 +733,8 @@ noSpeechStopped:
       "我没听到你说话，所以我已经关闭麦克风。准备好后再点一下。",
 errorNoSpeech: "我没听清你的问题。请靠近麦克风再试一次。",
     trialEndedTitle: "免费试用已结束",
+    transcribeDailyLimit: (limit: number) =>
+      `你已达到今天 ${limit} 个语音提问的上限。请明天再试。`,
     pageCreditsNeeded: (cost: number) =>
       `详细讲解一页需要 ${cost} 积分，你剩余的积分不够了。你仍然可以继续提问（每个问题 1 积分），或续订 Premium 以继续讲解。`,
     trialEndedMessage:

@@ -733,6 +733,8 @@ noSpeechStopped:
       "Sizni eshitmadim, shuning uchun mikrofoni oʻchirib qoʻydim. Tayyor boʻlsangiz, bosing.",
 errorNoSpeech: "Savolingizni eshitmadim. Mikrofonga yaqinroq boring va qayta urinib koʻring.",
     trialEndedTitle: "Bepul sinov tugadi",
+    transcribeDailyLimit: (limit: number) =>
+      `Bugungi ${limit} ta ovozli savol chegarasiga yetdingiz. Ertaga qayta urinib koʻring.`,
     pageCreditsNeeded: (cost: number) =>
       `Bitta sahifani batafsil tushuntirish ${cost} kredit turadi, senda esa yetarli kredit qolmadi. Savol berishda davom etishing mumkin (har biri 1 kredit) yoki tushuntirishni davom ettirish uchun Premiumni yangila.`,
     trialEndedMessage:

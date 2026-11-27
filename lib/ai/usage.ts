@@ -1,5 +1,5 @@
 import "server-only";
-import { and, count, desc, eq, gte, sql } from "drizzle-orm";
+import { and, count, desc, eq, gte, inArray, sql } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
 import { getAiUsageResetAt } from "@/lib/data/admin-settings";
 import type { AiUsageKind } from "@/types";
@@ -85,6 +85,72 @@ export async function reserveAiCall(entry: {
       .returning({ id: schema.aiUsage.id });
     return inserted.id;
   });
+}
+
+/**
+ * Comme `reserveAiCall`, pour un appel qui lit plusieurs fichiers d'un coup
+ * (analyse d'une épreuve : une unité par photo ou fichier) : réserve `units`
+ * lignes dans le plafond du jour, ou aucune (`null`) s'il serait dépassé.
+ * À clore avec `finishAiCalls`.
+ */
+export async function reserveAiCalls(entry: {
+  userId: string;
+  kind: AiUsageKind;
+  model: string;
+  limit: number | null;
+  units: number;
+}): Promise<string[] | null> {
+  const units = Math.max(1, Math.floor(entry.units));
+  return db.transaction(async (tx) => {
+    await tx.execute(lockFor(entry.userId, entry.kind));
+    if (entry.limit !== null) {
+      const [row] = await tx
+        .select({ n: count() })
+        .from(schema.aiUsage)
+        .where(
+          and(
+            eq(schema.aiUsage.userId, entry.userId),
+            eq(schema.aiUsage.kind, entry.kind),
+            gte(schema.aiUsage.createdAt, TODAY),
+          ),
+        );
+      if (Number(row?.n ?? 0) + units > entry.limit) return null;
+    }
+    const inserted = await tx
+      .insert(schema.aiUsage)
+      .values(
+        Array.from({ length: units }, () => ({
+          userId: entry.userId,
+          kind: entry.kind,
+          model: entry.model,
+          status: "pending",
+        })),
+      )
+      .returning({ id: schema.aiUsage.id });
+    return inserted.map((row) => row.id);
+  });
+}
+
+/**
+ * Clôt les lignes réservées par `reserveAiCalls` : les tokens sur la première
+ * (un seul appel OpenAI), le statut sur toutes (silencieux en cas d'échec).
+ */
+export async function finishAiCalls(
+  ids: string[],
+  status: "success" | "error",
+  tokens?: AiUsageTokens,
+): Promise<void> {
+  if (ids.length === 0) return;
+  await finishAiCall(ids[0], status, tokens);
+  if (ids.length === 1) return;
+  try {
+    await db
+      .update(schema.aiUsage)
+      .set({ status })
+      .where(inArray(schema.aiUsage.id, ids.slice(1)));
+  } catch (error) {
+    console.error("finishAiCalls : échec de l'enregistrement", error);
+  }
 }
 
 /** Clôt un appel réservé par `reserveAiCall` (silencieux en cas d'échec). */

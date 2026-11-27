@@ -34,6 +34,7 @@ const TRANSCRIBE_MODEL =
 const TTS_MODEL = process.env.OPENAI_TTS_MODEL?.trim() || "gpt-4o-mini-tts";
 /** Modèle de la voix, pour le journal d'usage. */
 export const VOICE_TUTOR_TTS_MODEL = TTS_MODEL;
+export const VOICE_TUTOR_TRANSCRIBE_MODEL = TRANSCRIBE_MODEL;
 const TTS_VOICE = process.env.OPENAI_TTS_VOICE?.trim() || "marin";
 const TUTOR_REASONING = (process.env.VOICE_TUTOR_REASONING_EFFORT?.trim() || "low") as
   | "none"

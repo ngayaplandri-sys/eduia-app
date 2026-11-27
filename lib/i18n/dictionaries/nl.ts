@@ -733,6 +733,8 @@ noSpeechStopped:
       "Ik heb je niet gehoord, dus ik heb de microfoon uitgeschakeld. Tik erop wanneer je klaar bent.",
 errorNoSpeech: "Ik heb je vraag niet gehoord. Kom dichter bij de microfoon en probeer het opnieuw.",
     trialEndedTitle: "Gratis proefperiode voorbij",
+    transcribeDailyLimit: (limit: number) =>
+      `Je hebt de limiet van vandaag van ${limit} gesproken vragen bereikt. Probeer het morgen opnieuw.`,
     pageCreditsNeeded: (cost: number) =>
       `Een uitgebreid uitgelegde pagina kost ${cost} credits en je hebt er niet genoeg meer. Je kunt nog steeds vragen stellen (1 credit per vraag) of Premium verlengen om verder te gaan met de uitleg.`,
     trialEndedMessage:

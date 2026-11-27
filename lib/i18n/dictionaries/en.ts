@@ -752,6 +752,8 @@ export const en: Dictionary = {
       "I didn't hear you, so I turned the mic off. Tap it when you're ready.",
     errorNoSpeech: "I didn't hear your question. Move closer to the mic and try again.",
     trialEndedTitle: "Free trial over",
+    transcribeDailyLimit: (limit: number) =>
+      `You've reached today's limit of ${limit} spoken questions. Try again tomorrow.`,
     pageCreditsNeeded: (cost: number) =>
       `A page explained in detail costs ${cost} credits, and you don't have enough left. You can still ask questions (1 credit each), or renew Premium to continue the explanation.`,
     trialEndedMessage:

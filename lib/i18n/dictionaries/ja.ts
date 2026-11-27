@@ -733,6 +733,8 @@ noSpeechStopped:
       "声が聞こえなかったので、マイクをオフにしました。準備ができたら押してください。",
 errorNoSpeech: "質問が聞き取れませんでした。マイクに近づいてもう一度試してください。",
     trialEndedTitle: "無料トライアル終了",
+    transcribeDailyLimit: (limit: number) =>
+      `今日の音声での質問の上限（${limit}件）に達しました。明日もう一度お試しください。`,
     pageCreditsNeeded: (cost: number) =>
       `ページの詳しい解説には${cost}クレジットが必要ですが、残りのクレジットが足りません。質問は引き続きできます（1件につき1クレジット）。解説を続けるにはPremiumを更新してください。`,
     trialEndedMessage:
